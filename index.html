@@ -2,105 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AlertPro V2</title>
+  <title>AlertPro Terminal</title>
   <style>
-    body { background: #0a0a0a; color: #fff; font-family: Inter, sans-serif; margin: 0; }
-   .header { background: #1a1a1a; padding: 15px; font-size: 20px; text-align: center; color: #10b981; }
-   .mode-switch { display: flex; gap: 8px; padding: 10px; background: #111; }
-   .mode-btn { flex: 1; padding: 10px; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; cursor: pointer; }
-   .mode-btn.active { background: #10b981; color: #000; border-color: #10b981; }
-   .tabs { display: flex; background: #111; }
-   .tab-btn { flex: 1; padding: 12px; background: #111; color: #fff; border: none; cursor: pointer; }
-   .tab-btn.active { background: #10b981; color: #000; }
-   .card { background: #1a1a1a; margin: 15px; padding: 15px; border-radius: 10px; }
-   .btn { background: #10b981; color: #000; padding: 10px; border: none; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 10px; }
-    select, input { width: 100%; padding: 8px; margin-top: 8px; background: #222; color: #fff; border: 1px solid #333; border-radius: 5px; }
+    body { background: #0d1117; color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px; text-align: center; }
+    .header { margin-bottom: 40px; }
+    .header h1 { color: #58a6ff; font-size: 32px; margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .header p { color: #8b949e; }
+    
+    .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 900px; margin: auto; }
+    
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 25px; cursor: pointer; transition: 0.2s; text-align: left; }
+    .card:hover { border-color: #58a6ff; transform: translateY(-5px); }
+    .card h2 { margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+    .card p { color: #8b949e; margin: 0; font-size: 14px; }
+    
+    .coming { background: #f85149; color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 5px; margin-top: 10px; display: inline-block; }
+    .footer { margin-top: 50px; color: #8b949e; font-size: 12px; }
+    
+    #dashboard { display: none; max-width: 800px; margin: auto; text-align: left; }
+    .back-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
+    .box { background: #161b22; padding: 20px; border-radius: 10px; border: 1px solid #30363d; }
   </style>
 </head>
 <body>
-  <div class="header">🔔 AlertPro V2 - Multi Mode Bot</div>
 
-  <div class="mode-switch">
-    <button onclick="switchMode('crypto')" class="mode-btn active">🪙 Crypto</button>
-    <button onclick="switchMode('stock')" class="mode-btn">📈 Stock</button>
-    <button onclick="switchMode('forex')" class="mode-btn">💱 Forex</button>
-    <button onclick="switchMode('commodity')" class="mode-btn">🥇 Commodity</button>
+  <div id="landing">
+    <div class="header">
+      <h1>🔔 AlertPro Terminal</h1>
+      <p>Select Market to Manage Strategies</p>
+    </div>
+
+    <div class="container">
+      <div class="card" onclick="openMarket('crypto')">
+        <h2>₿ CRYPTO</h2>
+        <p>BTC, ETH, Altcoins • Real-time Signal Strategies</p>
+      </div>
+
+      <div class="card" onclick="openMarket('stock')">
+        <h2>📊 SHARE MARKET</h2>
+        <p>Nifty 50, Bank Nifty • Professional Trading Setup</p>
+        <span class="coming">COMING SOON</span>
+      </div>
+
+      <div class="card" onclick="openMarket('commodity')">
+        <h2>🥇 COMMODITY</h2>
+        <p>Gold, Silver, Oil • Futures & Spot Trading</p>
+        <span class="coming">COMING SOON</span>
+      </div>
+    </div>
+    <div class="footer">Powered by AlertPro AI • v2.0</div>
   </div>
 
-  <div class="tabs">
-    <button onclick="showTab('dashboard')" class="tab-btn active">Dashboard</button>
-    <button onclick="showTab('backtest')" class="tab-btn">Backtest</button>
-    <button onclick="showTab('settings')" class="tab-btn">Settings</button>
+  <div id="dashboard">
+    <button class="back-btn" onclick="goBack()">← Back to Terminal</button>
+    <div class="box" id="dashboard-content"></div>
   </div>
 
-  <div id="content"></div>
-
-  <script>
-    let CURRENT_MODE = 'crypto';
-
-    function switchMode(mode){
-      CURRENT_MODE = mode;
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      loadDashboard();
+<script>
+  function openMarket(market){
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    
+    let content = '';
+    if(market === 'crypto'){
+      content = `<h2>₿ CRYPTO Dashboard</h2>
+      <p>BTC Price: <b id="price">Loading...</b></p>
+      <button onclick="alert('Backtest Coming')" style="background:#238636;color:#fff;padding:10px;border:none;border-radius:6px;">Run Backtest</button>`;
+      fetchCrypto();
+    } else {
+      content = `<h2>${market.toUpperCase()} Dashboard</h2><p>API Coming Soon for ${market}</p>`;
     }
+    document.getElementById('dashboard-content').innerHTML = content;
+  }
 
-    function showTab(tab){
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      if(tab === 'dashboard') loadDashboard();
-      if(tab === 'backtest') loadBacktest();
-      if(tab === 'settings') loadSettings();
-    }
+  function goBack(){
+    document.getElementById('landing').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+  }
 
-    function loadDashboard(){
-      let coins = [];
-      if(CURRENT_MODE === 'crypto') coins = ['bitcoin', 'ethereum', 'solana'];
-      if(CURRENT_MODE === 'stock') coins = ['AAPL', 'TSLA', 'GOOGL'];
-      if(CURRENT_MODE === 'forex') coins = ['EURUSD', 'GBPUSD', 'USDJPY'];
-      if(CURRENT_MODE === 'commodity') coins = ['GOLD', 'SILVER', 'OIL'];
+  async function fetchCrypto(){
+    let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd`);
+    let data = await res.json();
+    document.getElementById('price').innerText = '$' + data.bitcoin.usd.toLocaleString();
+  }
+</script>
 
-      let options = coins.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('');
-
-      document.getElementById('content').innerHTML = `
-      <div class="card">
-        <h3>📊 ${CURRENT_MODE.toUpperCase()} Dashboard</h3>
-        <select id="coin" onchange="fetchPrice()">${options}</select>
-        <h2 id="price">Loading...</h2>
-      </div>`;
-      fetchPrice();
-    }
-
-    async function fetchPrice(){
-      let coin = document.getElementById('coin').value;
-      if(CURRENT_MODE!== 'crypto') {
-        document.getElementById('price').innerText = 'API Coming Soon';
-        return;
-      }
-      let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`);
-      let data = await res.json();
-      document.getElementById('price').innerText = '$' + data[coin].usd;
-    }
-
-    function loadBacktest(){
-      document.getElementById('content').innerHTML = `
-      <div class="card">
-        <h3>📈 ${CURRENT_MODE.toUpperCase()} Backtest</h3>
-        <p>Backtest logic यहां आएगा। पहले Crypto से शुरू करेंगे।</p>
-        <button class="btn" onclick="alert('Backtest Coming Soon')">Run Backtest</button>
-      </div>`;
-    }
-
-    function loadSettings(){
-      document.getElementById('content').innerHTML = `
-      <div class="card">
-        <h3>⚙️ Settings</h3>
-        <p>Telegram Bot: Coming Soon</p>
-        <p>Firebase Lock: Coming Soon</p>
-      </div>`;
-    }
-
-    document.addEventListener('DOMContentLoaded', () => loadDashboard());
-  </script>
 </body>
 </html>
