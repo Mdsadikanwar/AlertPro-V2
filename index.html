@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AlertPro V2</title>
+  <style>
+    body { background: #0a0a0a; color: #fff; font-family: Inter, sans-serif; margin: 0; }
+   .header { background: #1a1a1a; padding: 15px; font-size: 20px; text-align: center; color: #10b981; }
+   .mode-switch { display: flex; gap: 8px; padding: 10px; background: #111; }
+   .mode-btn { flex: 1; padding: 10px; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; cursor: pointer; }
+   .mode-btn.active { background: #10b981; color: #000; border-color: #10b981; }
+   .tabs { display: flex; background: #111; }
+   .tab-btn { flex: 1; padding: 12px; background: #111; color: #fff; border: none; cursor: pointer; }
+   .tab-btn.active { background: #10b981; color: #000; }
+   .card { background: #1a1a1a; margin: 15px; padding: 15px; border-radius: 10px; }
+   .btn { background: #10b981; color: #000; padding: 10px; border: none; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 10px; }
+    select, input { width: 100%; padding: 8px; margin-top: 8px; background: #222; color: #fff; border: 1px solid #333; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="header">🔔 AlertPro V2 - Multi Mode Bot</div>
+
+  <div class="mode-switch">
+    <button onclick="switchMode('crypto')" class="mode-btn active">🪙 Crypto</button>
+    <button onclick="switchMode('stock')" class="mode-btn">📈 Stock</button>
+    <button onclick="switchMode('forex')" class="mode-btn">💱 Forex</button>
+    <button onclick="switchMode('commodity')" class="mode-btn">🥇 Commodity</button>
+  </div>
+
+  <div class="tabs">
+    <button onclick="showTab('dashboard')" class="tab-btn active">Dashboard</button>
+    <button onclick="showTab('backtest')" class="tab-btn">Backtest</button>
+    <button onclick="showTab('settings')" class="tab-btn">Settings</button>
+  </div>
+
+  <div id="content"></div>
+
+  <script>
+    let CURRENT_MODE = 'crypto';
+
+    function switchMode(mode){
+      CURRENT_MODE = mode;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      loadDashboard();
+    }
+
+    function showTab(tab){
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      if(tab === 'dashboard') loadDashboard();
+      if(tab === 'backtest') loadBacktest();
+      if(tab === 'settings') loadSettings();
+    }
+
+    function loadDashboard(){
+      let coins = [];
+      if(CURRENT_MODE === 'crypto') coins = ['bitcoin', 'ethereum', 'solana'];
+      if(CURRENT_MODE === 'stock') coins = ['AAPL', 'TSLA', 'GOOGL'];
+      if(CURRENT_MODE === 'forex') coins = ['EURUSD', 'GBPUSD', 'USDJPY'];
+      if(CURRENT_MODE === 'commodity') coins = ['GOLD', 'SILVER', 'OIL'];
+
+      let options = coins.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('');
+
+      document.getElementById('content').innerHTML = `
+      <div class="card">
+        <h3>📊 ${CURRENT_MODE.toUpperCase()} Dashboard</h3>
+        <select id="coin" onchange="fetchPrice()">${options}</select>
+        <h2 id="price">Loading...</h2>
+      </div>`;
+      fetchPrice();
+    }
+
+    async function fetchPrice(){
+      let coin = document.getElementById('coin').value;
+      if(CURRENT_MODE!== 'crypto') {
+        document.getElementById('price').innerText = 'API Coming Soon';
+        return;
+      }
+      let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`);
+      let data = await res.json();
+      document.getElementById('price').innerText = '$' + data[coin].usd;
+    }
+
+    function loadBacktest(){
+      document.getElementById('content').innerHTML = `
+      <div class="card">
+        <h3>📈 ${CURRENT_MODE.toUpperCase()} Backtest</h3>
+        <p>Backtest logic यहां आएगा। पहले Crypto से शुरू करेंगे।</p>
+        <button class="btn" onclick="alert('Backtest Coming Soon')">Run Backtest</button>
+      </div>`;
+    }
+
+    function loadSettings(){
+      document.getElementById('content').innerHTML = `
+      <div class="card">
+        <h3>⚙️ Settings</h3>
+        <p>Telegram Bot: Coming Soon</p>
+        <p>Firebase Lock: Coming Soon</p>
+      </div>`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => loadDashboard());
+  </script>
+</body>
+</html>
