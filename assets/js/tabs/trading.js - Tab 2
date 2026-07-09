@@ -1,0 +1,23 @@
+function render_trading(){
+  document.getElementById('tab-content').innerHTML = `
+    <div class="box">
+      <h3>💹 Live Trading Signals</h3>
+      <select id="tcoin"><option value="bitcoin">BTC</option><option value="ethereum">ETH</option></select>
+      <button class="btn" id="checkSignalBtn">Check Live Signal Now</button>
+      <div id="signalResult" style="margin-top:15px;"></div>
+    </div>
+  `;
+  document.getElementById('checkSignalBtn').addEventListener('click', checkLiveSignal);
+}
+
+async function checkLiveSignal(){
+  let coin = document.getElementById('tcoin').value;
+  document.getElementById('signalResult').innerHTML = 'Analyzing...';
+  let res = await fetch(`${CONFIG.COINGECKO_API}/coins/${coin}/market_chart?vs_currency=usd&days=1&interval=hourly`);
+  let data = await res.json();
+  let prices = data.prices.map(p => p[1]);
+  let last = prices[prices.length-1];
+  let prev = prices[prices.length-2];
+  let signal = last > prev? "BUY 🟢" : "SELL 🔴";
+  document.getElementById('signalResult').innerHTML = `<h2 style="color:${signal.includes('BUY')?'var(--accent)':'var(--red)'}">${signal}</h2>`;
+}
