@@ -1,0 +1,10 @@
+function render_logs(){
+  let rows = SIGNAL_LOGS.map(log => `<tr><td>${log.time}</td><td>${log.coin}</td><td class="${log.signal.includes('BUY')?'price-up':'price-down'}">${log.signal}</td></tr>`).join('');
+  document.getElementById('tab-content').innerHTML = `
+    <div class="box">
+      <h3>📜 Signal History</h3>
+      <table><tr><th>Time</th><th>Coin</th><th>Signal</th></tr>${rows || '<tr><td colspan="3">No logs yet</td></tr>'}</table>
+      <button class="btn" onclick="localStorage.clear(); location.reload()">Clear Logs</button>
+    </div>
+  `;
+}
