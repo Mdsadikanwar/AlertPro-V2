@@ -3,21 +3,27 @@ function loadTab(tabName) {
   let activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
   if(activeBtn) activeBtn.classList.add('active');
   
-  // Agar function hai to call karo
   if(typeof window[`render_${tabName}`] === 'function') {
     window[`render_${tabName}`]();
   }
 }
 
+// YE NAYA FUNCTION ADD KARO - Tabs pe click lagane ke liye
+function attachTabEvents() {
+  document.querySelectorAll('.tab[data-tab]').forEach(btn => {
+    btn.onclick = () => loadTab(btn.dataset.tab); // purana event hata ke naya lagao
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Page load pe check karo market select hai ya nahi
   let market = localStorage.getItem('selectedMarket');
   if(market) {
-    loadMarketTabs(market); // Tabs बना दो
-    loadTab('dashboard');   // सीधा Dashboard खोलो
+    loadMarketTabs(market); 
+    attachTabEvents(); // yahan bhi lagao
+    loadTab('dashboard');
   } else {
-    loadTab('hub'); // Pehle Hub
+    loadTab('hub');
   }
   
-  setInterval(fetchCoinData, 60000); // हर 1 min पे price update
+  setInterval(fetchCoinData, 60000);
 });
