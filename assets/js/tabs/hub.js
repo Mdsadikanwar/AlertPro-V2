@@ -23,7 +23,18 @@ function loadMarketTabs(market) {
   const tabsDiv = document.getElementById('top-tabs');
   tabsDiv.classList.remove('hidden'); // Tabs दिखा दो
   
-  let tabHTML = `<div class="tab" onclick="loadTab('hub')">🏠 Home</div>`;
+  let marketName = '';
+  if(market === 'crypto') marketName = '🪙 CRYPTO TERMINAL';
+  if(market === 'stocks') marketName = '📈 STOCK MARKET';
+  if(market === 'commodity') marketName = '🥇 COMMODITY';
+
+  let tabHTML = `
+    <div style="width:100%; text-align:center; padding:10px; background:#0f172a; border-radius:10px; margin-bottom:10px; color:#10b981; font-weight:800;">
+      You are in: ${marketName}
+    </div>
+  `;
+  
+  tabHTML += `<div class="tab" onclick="loadTab('hub')">🏠 Home</div>`;
   
   if(market === 'crypto') {
     tabHTML += `
@@ -43,5 +54,5 @@ function loadMarketTabs(market) {
   }
   
   tabsDiv.innerHTML = tabHTML;
-  attachTabEvents(); // YE IMPORTANT HAI - Tabs बनते ही event लग जाएगा
+  attachTabEvents();
 }
