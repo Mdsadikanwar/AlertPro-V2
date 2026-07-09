@@ -29,9 +29,10 @@ function loadMarketTabs(market) {
   if(market === 'commodity') marketName = '🥇 COMMODITY';
 
   let tabHTML = `
-    <div style="width:100%; text-align:center; padding:10px; background:#0f172a; border-radius:10px; margin-bottom:10px; color:#10b981; font-weight:800;">
+    <div style="width:100%; text-align:center; padding:10px; background:#0f172a; border-radius:10px; margin-bottom:12px; color:#10b981; font-weight:800; border:1px solid #334155;">
       You are in: ${marketName}
     </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
   `;
   
   tabHTML += `<div class="tab" onclick="loadTab('hub')">🏠 Home</div>`;
@@ -53,6 +54,7 @@ function loadMarketTabs(market) {
     tabHTML += `<div class="tab">📊 Commodity Dashboard - Coming Soon</div>`;
   }
   
+  tabHTML += `</div>`;
   tabsDiv.innerHTML = tabHTML;
   attachTabEvents();
 }
