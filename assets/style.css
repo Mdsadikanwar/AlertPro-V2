@@ -1,0 +1,21 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow-x: hidden; }
+body { font-family: 'Inter', sans-serif; background: #0a0e1a; color: #e2e8f0; padding: 16px; }
+.container { max-width: 600px; width: 100%; margin: 0 auto; }
+.header { text-align: center; margin-bottom: 24px; }
+.logo { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #10b981; }
+.subtitle { color: #94a3b8; font-size: 13px; font-weight: 500; }
+.card { background: rgba(19, 27, 46, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(30, 41, 59, 0.8); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.price-box { text-align: center; }
+.price-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+.price-main { font-size: 42px; font-weight: 800; color: #f59e0b; line-height: 1; }
+.price-change { font-size: 18px; margin-top: 12px; font-weight: 700; }
+.green { color: #10b981; }
+.red { color: #ef4444; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { flex: 1; min-width: 70px; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; }
+.tab.active { background: #10b981; border-color: #10b981; color: white; }
+.input { width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; color: #e2e8f0; margin: 8px 0; font-size: 14px; }
+.footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 20px; }
+.log { background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 12px; max-height: 200px; overflow-y: auto; font-size: 11px; font-family: monospace; }
+.log-item { padding: 4px 0; border-bottom: 1px solid #1e293b; }
