@@ -2,34 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ ApexTraders</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ApexTraders - Professional AI Trading Terminal</title>
+  <link rel="stylesheet" href="assets/style.css?v=20">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="logo">⚡ ApexTraders</div>
-      <div class="subtitle">Professional AI Trading Terminal <span id="syncStatus">☁️ Synced</span></div>
+      <div class="subtitle">Multi-Coin Paper Trading + Live Signals <span class="sync-badge" id="syncStatus">☁️ Synced</span></div>
+    </div>
+    <div class="status-banner" id="statusBanner">⚠️ API Error - Retrying...</div>
+
+    <div id="top-tabs" class="tabs">
+      <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab" data-tab="trading">💰 Trading</button>
+      <button class="tab" data-tab="strategies">🤖 Strategies</button>
+      <button class="tab" data-tab="backtest">📈 Backtest</button>
+      <button class="tab" data-tab="settings">⚙️ Settings</button>
+      <button class="tab" data-tab="logs">📜 Logs</button>
     </div>
 
-    <!-- YE TABS AB YAHAN NAHI RAHENGE -->
-    <div id="top-tabs" class="tabs hidden"></div>
-
-    <div id="tab-content">Loading...</div>
-    <div class="footer">Powered by ApexTraders AI • v5.1</div>
+    <main id="tab-content"></main>
   </div>
 
-  <script src="assets/js/core.js"></script>
-  <script src="assets/js/tabs/hub.js"></script>
-  <script src="assets/js/tabs/dashboard.js"></script>
-  <script src="assets/js/tabs/trading.js"></script>
-  <script src="assets/js/tabs/strategies.js"></script>
-  <script src="assets/js/tabs/backtest.js"></script>
-  <script src="assets/js/tabs/settings.js"></script>
-  <script src="assets/js/tabs/logs.js"></script>
-  <script src="assets/js/app.js"></script>
+  <!-- JS Files -->
+  <script src="assets/js/main.js?v=20"></script>
+  <script src="assets/js/tabs/hub.js?v=20"></script>
+  <script src="assets/js/tabs/dashboard.js?v=20"></script>
+  <script src="assets/js/tabs/trading.js?v=20"></script>
+  <script src="assets/js/tabs/strategies.js?v=20"></script>
+  <script src="assets/js/tabs/backtest.js?v=20"></script>
+  <script src="assets/js/tabs/settings.js?v=20"></script>
+  <script src="assets/js/tabs/logs.js?v=20"></script>
 </body>
 </html>
