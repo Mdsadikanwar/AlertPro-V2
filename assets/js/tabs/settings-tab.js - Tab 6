@@ -1,0 +1,18 @@
+function render_settings-tab(){
+  document.getElementById('tab-content').innerHTML = `
+    <div class="box">
+      <h3>⚙️ Settings</h3>
+      <label>Telegram Token</label>
+      <input type="text" id="tokenInput" value="${CONFIG.TELEGRAM_TOKEN}">
+      <label>Chat ID</label>
+      <input type="text" id="chatInput" value="${CONFIG.CHAT_ID}">
+      <button class="btn" onclick="saveSettings()">Save</button>
+      <p id="saveMsg"></p>
+    </div>
+  `;
+}
+function saveSettings(){
+  CONFIG.TELEGRAM_TOKEN = document.getElementById('tokenInput').value;
+  CONFIG.CHAT_ID = document.getElementById('chatInput').value;
+  document.getElementById('saveMsg').innerText = "Saved! Refresh to apply.";
+}
