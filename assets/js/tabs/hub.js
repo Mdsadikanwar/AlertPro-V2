@@ -15,6 +15,7 @@ function render_hub() {
 function enterMarket(market) {
   localStorage.setItem('selectedMarket', market);
   loadMarketTabs(market);
+  attachTabEvents(); // Tabs पे click event लगाने के लिए
   loadTab('dashboard'); // Crypto में घुसते ही Dashboard
 }
 
@@ -42,4 +43,5 @@ function loadMarketTabs(market) {
   }
   
   tabsDiv.innerHTML = tabHTML;
+  attachTabEvents(); // YE IMPORTANT HAI - Tabs बनते ही event लग जाएगा
 }
