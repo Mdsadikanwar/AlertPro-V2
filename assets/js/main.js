@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('main-header').classList.add('hidden'); // START MEIN HIDE
   render_hub();
   setupTabs();
 });
