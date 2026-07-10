@@ -1,33 +1,58 @@
-function loadTab(tabName) {
-  // Sab tabs se active class hatao
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  // Jispe click kiya usko active karo
-  let activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-  if(activeBtn) activeBtn.classList.add('active');
+let currentTab = 'home';
+let currentMarket = 'crypto';
+
+function initApp() {
+  renderNavbar();
+  switchTab('home');
+}
+
+function renderNavbar() {
+  const navbar = document.getElementById('navbar');
   
-  // Uss tab ka function call karo jaise render_dashboard()
-  if(typeof window[`render_${tabName}`] === 'function') {
-    window[`render_${tabName}`]();
-  }
-}
-
-// YE FUNCTION BAHUT IMPORTANT HAI - Tabs pe click lagata hai
-function attachTabEvents() {
-  document.querySelectorAll('.tab[data-tab]').forEach(btn => {
-    btn.onclick = () => loadTab(btn.dataset.tab);
-  });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Page load pe check karo market select hai ya nahi
-  let market = localStorage.getItem('selectedMarket');
-  if(market) {
-    loadMarketTabs(market); // Tabs बना दो
-    attachTabEvents();      // Tabs pe click event lagao
-    loadTab('dashboard');   // सीधा Dashboard खोलो
+  if(currentTab === 'home') {
+    navbar.innerHTML = `<button class="nav-btn active" onclick="switchTab('home')">🏠 Home</button>`;
   } else {
-    loadTab('hub'); // Pehle Hub
+    navbar.innerHTML = `
+      <button class="nav-btn" onclick="switchTab('home')">🏠 Home</button>
+      <button class="nav-btn ${currentTab==='dashboard'?'active':''}" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="nav-btn ${currentTab==='trading'?'active':''}" onclick="switchTab('trading')">💰 Trading</button>
+      <button class="nav-btn ${currentTab==='strategies'?'active':''}" onclick="switchTab('strategies')">🤖 Strategies</button>
+      <button class="nav-btn ${currentTab==='backtest'?'active':''}" onclick="switchTab('backtest')">📈 Backtest</button>
+      <button class="nav-btn ${currentTab==='settings'?'active':''}" onclick="switchTab('settings')">⚙️ Settings</button>
+      <button class="nav-btn ${currentTab==='logs'?'active':''}" onclick="switchTab('logs')">📝 Logs</button>
+    `;
   }
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  renderNavbar();
+  if(window.stopDashboard) stopDashboard();
   
-  setInterval(fetchCoinData, 60000); // हर 1 min पे price update
-});
+  const content = document.getElementById('tab-content');
+  
+  if(tab === 'home') { renderHome(); }
+  if(tab === 'dashboard') { import('./tabs/dashboard.js').then(()=>render_dashboard()); }
+  if(tab === 'trading') { content.innerHTML = '<div class="card"><h2>Trading - Coming Soon</h2></div>'; }
+  if(tab === 'strategies') { content.innerHTML = '<div class="card"><h2>Strategies - Coming Soon</h2></div>'; }
+  if(tab === 'backtest') { content.innerHTML = '<div class="card"><h2>Backtest - Coming Soon</h2></div>'; }
+  if(tab === 'settings') { content.innerHTML = '<div class="card"><h2>Settings - Coming Soon</h2></div>'; }
+  if(tab === 'logs') { content.innerHTML = '<div class="card"><h2>Logs - Coming Soon</h2></div>'; }
+}
+
+function renderHome() {
+  const content = document.getElementById('tab-content');
+  content.innerHTML = `
+    <div style="text-align:center; padding: 60px 20px;">
+      <h1 style="font-size: 42px; color: #10b981; margin-bottom: 10px;">⚡ ApexTraders</h1>
+      <p style="color: #94a3b8; margin-bottom: 40px;">Multi-Coin Paper Trading + Live Signals ⚡ Synced</p>
+      <div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
+        <button class="nav-btn" style="padding:20px 40px; font-size:16px;" onclick="switchTab('dashboard')">🪙 CRYPTO TERMINAL</button>
+        <button class="nav-btn" style="padding:20px 40px; font-size:16px; opacity:0.5;" onclick="alert('Coming Soon')">📈 STOCK MARKET</button>
+        <button class="nav-btn" style="padding:20px 40px; font-size:16px; opacity:0.5;" onclick="alert('Coming Soon')">🛢️ COMMODITY</button>
+      </div>
+    </div>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
