@@ -4,16 +4,11 @@ let currentCurrency = 'usd';
 let cooldown = 60;
 
 const COIN_DATA = {
-  'bitcoin': { symbol: 'BTC' },
-  'ethereum': { symbol: 'ETH' },
-  'binancecoin': { symbol: 'BNB' },
-  'solana': { symbol: 'SOL' },
-  'dogecoin': { symbol: 'DOGE' },
-  'ripple': { symbol: 'XRP' },
-  'cardano': { symbol: 'ADA' },
-  'tron': { symbol: 'TRX' },
-  'the-open-network': { symbol: 'TON' },
-  'shiba-inu': { symbol: 'SHIB' }
+  'bitcoin': { symbol: 'BTC' }, 'ethereum': { symbol: 'ETH' },
+  'binancecoin': { symbol: 'BNB' }, 'solana': { symbol: 'SOL' },
+  'dogecoin': { symbol: 'DOGE' }, 'ripple': { symbol: 'XRP' },
+  'cardano': { symbol: 'ADA' }, 'tron': { symbol: 'TRX' },
+  'the-open-network': { symbol: 'TON' }, 'shiba-inu': { symbol: 'SHIB' }
 };
 
 async function render_dashboard() {
@@ -28,10 +23,6 @@ async function render_dashboard() {
           <option value="solana">Solana (SOL)</option>
           <option value="dogecoin">Dogecoin (DOGE)</option>
           <option value="ripple">XRP (XRP)</option>
-          <option value="cardano">Cardano (ADA)</option>
-          <option value="tron">TRON (TRX)</option>
-          <option value="the-open-network">Toncoin (TON)</option>
-          <option value="shiba-inu">Shiba Inu (SHIB)</option>
         </select>
         <select class="input" id="currencySelect" style="max-width: 120px;">
           <option value="usd">USD</option>
@@ -59,7 +50,6 @@ async function render_dashboard() {
     </div>
   `;
 
-  // Event listeners
   document.getElementById('coinSelect').value = currentCoin;
   document.getElementById('currencySelect').value = currentCurrency;
   
@@ -76,11 +66,11 @@ async function render_dashboard() {
   });
 
   updatePairLabel();
-  fetchDashboardData(); // pehli baar
+  fetchDashboardData();
   startCountdown();
   
   clearInterval(dashboardInterval);
-  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000); // 60s me repeat
+  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000);
 }
 
 function updatePairLabel() {
@@ -88,28 +78,30 @@ function updatePairLabel() {
   document.getElementById('pairLabel').textContent = symbol + '/' + currentCurrency.toUpperCase();
 }
 
+// YAHI WALA FIX HAI 👇
 async function fetchDashboardData() {
   try {
-    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=${currentCurrency}&include_24hr_change=true&include_24hr_high=true&include_24hr_low=true`);
+    // NAYA API: coins/markets - isme high low sahi aata hai
+    const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=24h`);
     
     if(!res.ok) throw new Error('API Failed');
     
     const data = await res.json();
-    const d = data[currentCoin];
+    const d = data[0];
 
-    const price = d[currentCurrency];
-    const change = d[currentCurrency + '_24h_change'] || 0;
-    const high = d[currentCurrency + '_24h_high'] || 0;
-    const low = d[currentCurrency + '_24h_low'] || 0;
+    const price = d.current_price;
+    const change = d.price_change_percentage_24h || 0;
+    const high = d.high_24h || 0;
+    const low = d.low_24h || 0;
 
     let symbol = currentCurrency === 'inr'? '₹' : '$';
     
-    document.getElementById('coinPrice').innerText = symbol + price.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('coinPrice').innerText = symbol + price.toLocaleString('en-IN', {minimumFractionDigits: 2});
     document.getElementById('coinChange').innerHTML = (change >= 0? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
     document.getElementById('coinChange').className = 'price-change ' + (change >= 0? 'green' : 'red');
     
-    document.getElementById('high24h').innerText = symbol + high.toLocaleString('en-US', {minimumFractionDigits: 2});
-    document.getElementById('low24h').innerText = symbol + low.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('high24h').innerText = symbol + high.toLocaleString('en-IN', {minimumFractionDigits: 2});
+    document.getElementById('low24h').innerText = symbol + low.toLocaleString('en-IN', {minimumFractionDigits: 2});
 
   } catch(e) { 
     console.log('API Error', e);
