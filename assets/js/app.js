@@ -2,31 +2,40 @@ let currentTab = 'home';
 let currentMarket = 'crypto';
 
 function initApp() {
+  // Home pe navbar hide kar denge
+  if(window.location.hash === '' || window.location.hash === '#home') {
+    currentTab = 'home';
+  }
   renderNavbar();
-  switchTab('home');
+  switchTab(currentTab);
 }
 
 function renderNavbar() {
   const navbar = document.getElementById('navbar');
   
+  // HOME PE NAVBAR HI MAT DIKHAO
   if(currentTab === 'home') {
-    navbar.innerHTML = `<button class="nav-btn active" onclick="switchTab('home')">🏠 Home</button>`;
-  } else {
-    navbar.innerHTML = `
-      <button class="nav-btn" onclick="switchTab('home')">🏠 Home</button>
-      <button class="nav-btn ${currentTab==='dashboard'?'active':''}" onclick="switchTab('dashboard')">📊 Dashboard</button>
-      <button class="nav-btn ${currentTab==='trading'?'active':''}" onclick="switchTab('trading')">💰 Trading</button>
-      <button class="nav-btn ${currentTab==='strategies'?'active':''}" onclick="switchTab('strategies')">🤖 Strategies</button>
-      <button class="nav-btn ${currentTab==='backtest'?'active':''}" onclick="switchTab('backtest')">📈 Backtest</button>
-      <button class="nav-btn ${currentTab==='settings'?'active':''}" onclick="switchTab('settings')">⚙️ Settings</button>
-      <button class="nav-btn ${currentTab==='logs'?'active':''}" onclick="switchTab('logs')">📝 Logs</button>
-    `;
-  }
+    navbar.style.display = 'none'; // YE LINE SABSE IMPORTANT HAI
+    return;
+  } 
+  
+  // BAQI SAB PAGE PE NAVBAR DIKHAO
+  navbar.style.display = 'flex';
+  navbar.innerHTML = `
+    <button class="nav-btn" onclick="switchTab('home')">🏠 Home</button>
+    <button class="nav-btn ${currentTab==='dashboard'?'active':''}" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn ${currentTab==='trading'?'active':''}" onclick="switchTab('trading')">💰 Trading</button>
+    <button class="nav-btn ${currentTab==='strategies'?'active':''}" onclick="switchTab('strategies')">🤖 Strategies</button>
+    <button class="nav-btn ${currentTab==='backtest'?'active':''}" onclick="switchTab('backtest')">📈 Backtest</button>
+    <button class="nav-btn ${currentTab==='settings'?'active':''}" onclick="switchTab('settings')">⚙️ Settings</button>
+    <button class="nav-btn ${currentTab==='logs'?'active':''}" onclick="switchTab('logs')">📝 Logs</button>
+  `;
 }
 
 function switchTab(tab) {
   currentTab = tab;
-  renderNavbar();
+  window.location.hash = tab;
+  renderNavbar(); // navbar ko dobara render karega
   if(window.stopDashboard) stopDashboard();
   
   const content = document.getElementById('tab-content');
@@ -43,13 +52,20 @@ function switchTab(tab) {
 function renderHome() {
   const content = document.getElementById('tab-content');
   content.innerHTML = `
-    <div style="text-align:center; padding: 60px 20px;">
-      <h1 style="font-size: 42px; color: #10b981; margin-bottom: 10px;">⚡ ApexTraders</h1>
-      <p style="color: #94a3b8; margin-bottom: 40px;">Multi-Coin Paper Trading + Live Signals ⚡ Synced</p>
-      <div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
-        <button class="nav-btn" style="padding:20px 40px; font-size:16px;" onclick="switchTab('dashboard')">🪙 CRYPTO TERMINAL</button>
-        <button class="nav-btn" style="padding:20px 40px; font-size:16px; opacity:0.5;" onclick="alert('Coming Soon')">📈 STOCK MARKET</button>
-        <button class="nav-btn" style="padding:20px 40px; font-size:16px; opacity:0.5;" onclick="alert('Coming Soon')">🛢️ COMMODITY</button>
+    <div style="text-align:center; padding: 80px 20px;">
+      <h1 style="font-size: 48px; color: #10b981; margin-bottom: 10px;">⚡ ApexTraders</h1>
+      <p style="color: #94a3b8; margin-bottom: 50px; font-size:18px;">Multi-Coin Paper Trading + Live Signals ⚡ Synced</p>
+      
+      <div style="display:flex; gap:25px; justify-content:center; flex-wrap:wrap;">
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; font-weight:600;" onclick="switchTab('dashboard')">
+          🪙 CRYPTO TERMINAL
+        </button>
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">
+          📈 STOCK MARKET
+        </button>
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">
+          🛢️ COMMODITY
+        </button>
       </div>
     </div>
   `;
