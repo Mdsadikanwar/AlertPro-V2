@@ -3,7 +3,7 @@ let currentCoin = 'bitcoin';
 
 const COIN_MAP = {
   'BTCUSDT': 'bitcoin',
-  'ETHUSDT': 'ethereum', 
+  'ETHUSDT': 'ethereum',
   'SOLUSDT': 'solana',
   'BNBUSDT': 'binancecoin'
 }
@@ -28,7 +28,7 @@ async function render_dashboard() {
       <div class="price-main" id="btc-price">Loading...</div>
       <div class="price-change" id="btc-change">--</div>
       <div>Active: <span class="active-badge">hlw</span></div>
-      
+
       <div class="stats-row">
         <div class="stat">
           <div class="stat-label">24h High</div>
@@ -41,7 +41,7 @@ async function render_dashboard() {
       </div>
     </div>
   `;
-  
+
   fetchDashboardData();
   dashboardInterval = setInterval(fetchDashboardData, 5000);
 }
@@ -59,20 +59,20 @@ async function fetchDashboardData() {
     const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`);
     const data = await res.json();
     const m = data.market_data;
-    
+
     const price = m.current_price.usd;
     const change = m.price_change_percentage_24h;
     const high = m.high_24h.usd;
     const low = m.low_24h.usd;
-    
+
     document.getElementById('btc-price').innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2});
-    document.getElementById('btc-change').innerHTML = (change >= 0 ? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
-    document.getElementById('btc-change').className = 'price-change ' + (change >= 0 ? 'green' : 'red');
+    document.getElementById('btc-change').innerHTML = (change >= 0? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
+    document.getElementById('btc-change').className = 'price-change ' + (change >= 0? 'green' : 'red');
     document.getElementById('high-24h').innerText = '$' + high.toLocaleString('en-US', {minimumFractionDigits: 2});
     document.getElementById('low-24h').innerText = '$' + low.toLocaleString('en-US', {minimumFractionDigits: 2});
-    
-  } catch(e) { 
-    console.log('API Error', e); 
+
+  } catch(e) {
+    console.log('API Error', e);
     document.getElementById('btc-price').innerText = 'API Error';
   }
 }
