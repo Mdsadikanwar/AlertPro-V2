@@ -1,6 +1,6 @@
 let dashboardInterval;
 let currentCoin = 'bitcoin';
-let cooldown = 60; // 60 sec kar diya
+let cooldown = 60; // 60 sec
 
 async function render_dashboard() {
   const content = document.getElementById('tab-content');
@@ -11,6 +11,7 @@ async function render_dashboard() {
         <option value="ethereum">Ethereum (ETH)</option>
         <option value="solana">Solana (SOL)</option>
         <option value="binancecoin">BNB (BNB)</option>
+        <option value="ripple">XRP (XRP)</option>
       </select>
       <select class="input small"><option>USD</option></select>
     </div>
@@ -19,7 +20,7 @@ async function render_dashboard() {
       <div class="price-pair" id="pair-name">BTC/USD</div>
       <div class="price-main" id="btc-price">Loading...</div>
       <div class="price-change" id="btc-change">--</div>
-      <div>Next Update: <span id="cooldown-timer">${cooldown}s</span></div>
+      <div style="margin-top:8px; font-size:14px; color:#aaa;">Next Update: <span id="cooldown-timer">${cooldown}s</span></div>
 
       <div class="stats-row">
         <div class="stat"><div class="stat-label">24h High</div><div class="stat-value" id="high-24h">--</div></div>
@@ -32,12 +33,12 @@ async function render_dashboard() {
     currentCoin = e.target.value;
     const name = e.target.options[e.target.selectedIndex].text.split(' ')[0];
     document.getElementById('pair-name').innerText = name + '/USD';
-    fetchDashboardData();
+    fetchDashboardData(); // coin change karte hi turant update
   });
 
-  fetchDashboardData();
+  fetchDashboardData(); // pehli baar load
   startCooldown();
-  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000);
+  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000); // 60s me repeat
 }
 
 async function fetchDashboardData() {
@@ -46,13 +47,22 @@ async function fetchDashboardData() {
     const data = await res.json();
     const d = data[currentCoin];
 
-    document.getElementById('btc-price').innerText = '$' + d.usd.toLocaleString('en-US', {minimumFractionDigits: 2});
-    document.getElementById('btc-change').innerHTML = (d.usd_24h_change >= 0? '▲ ' : '▼ ') + Math.abs(d.usd_24h_change).toFixed(2) + '% (24h)';
-    document.getElementById('btc-change').className = 'price-change ' + (d.usd_24h_change >= 0? 'green' : 'red');
-    document.getElementById('high-24h').innerText = '$' + d.usd_24h_high.toLocaleString('en-US', {minimumFractionDigits: 2});
-    document.getElementById('low-24h').innerText = '$' + d.usd_24h_low.toLocaleString('en-US', {minimumFractionDigits: 2});
+    const price = d.usd;
+    const change = d.usd_24h_change;
+    const high = d.usd_24h_high;
+    const low = d.usd_24h_low;
 
-  } catch(e) { console.log('API Error', e); }
+    document.getElementById('btc-price').innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('btc-change').innerHTML = (change >= 0? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
+    document.getElementById('btc-change').className = 'price-change ' + (change >= 0? 'green' : 'red');
+    
+    document.getElementById('high-24h').innerText = '$' + high.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('low-24h').innerText = '$' + low.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+  } catch(e) { 
+    console.log('API Error', e);
+    document.getElementById('btc-price').innerText = 'Error';
+  }
 }
 
 function startCooldown() {
@@ -64,4 +74,6 @@ function startCooldown() {
   }, 1000);
 }
 
-function stopDashboard() { clearInterval(dashboardInterval); }
+function stopDashboard() { 
+  clearInterval(dashboardInterval); 
+}
