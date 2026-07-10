@@ -14,8 +14,9 @@ function setupTabs() {
 }
 
 function loadTab(tabName) {
+  document.getElementById('main-header').classList.remove('hidden'); // HEADER SHOW
   if(typeof stopDashboard === 'function') stopDashboard();
-  
+
   if(tabName === 'dashboard') render_dashboard();
   if(tabName === 'trading') render_trading();
   if(tabName === 'strategies') render_strategies();
@@ -25,6 +26,8 @@ function loadTab(tabName) {
 }
 
 function backToHub() {
+  document.getElementById('main-header').classList.add('hidden'); // HEADER HIDE
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('top-tabs').classList.add('hidden');
   render_hub();
 }
