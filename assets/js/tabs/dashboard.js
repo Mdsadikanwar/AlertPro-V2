@@ -12,11 +12,11 @@ async function render_dashboard() {
   const content = document.getElementById('tab-content');
   content.innerHTML = `
     <div class="filter-row">
-      <select class="input" id="coin-select" onchange="changeCoin()">
-        <option value="BTCUSDT">Bitcoin (BTC)</option>
-        <option value="ETHUSDT">Ethereum (ETH)</option>
-        <option value="SOLUSDT">Solana (SOL)</option>
-        <option value="BNBUSDT">BNB (BNB)</option>
+      <select class="input" id="coin-select">
+        <option value="bitcoin">Bitcoin (BTC)</option>
+        <option value="ethereum">Ethereum (ETH)</option>
+        <option value="solana">Solana (SOL)</option>
+        <option value="binancecoin">BNB (BNB)</option>
       </select>
       <select class="input small">
         <option>USD</option>
@@ -42,28 +42,31 @@ async function render_dashboard() {
     </div>
   `;
 
-  fetchDashboardData();
-  dashboardInterval = setInterval(fetchDashboardData, 5000);
-}
+  document.getElementById('coin-select').addEventListener('change', (e)=>{
+    currentCoin = e.target.value;
+    const name = e.target.options[e.target.selectedIndex].text.split(' ')[0];
+    document.getElementById('pair-name').innerText = name + '/USD';
+    fetchDashboardData();
+  });
 
-function changeCoin() {
-  currentCoin = document.getElementById('coin-select').value;
-  const name = currentCoin.replace('USDT', '');
-  document.getElementById('pair-name').innerText = name + '/USD';
   fetchDashboardData();
+  dashboardInterval = setInterval(fetchDashboardData, 10000); // 10 sec कर दिया rate limit से बचने के लिए
 }
 
 async function fetchDashboardData() {
   try {
-    const coinId = COIN_MAP[currentCoin];
-    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`);
-    const data = await res.json();
-    const m = data.market_data;
+    // Simple API use करेंगे - CORS issue नहीं आएगा
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=usd&include_24hr_change=true&include_24hr_high=true&include_24hr_low=true`);
 
-    const price = m.current_price.usd;
-    const change = m.price_change_percentage_24h;
-    const high = m.high_24h.usd;
-    const low = m.low_24h.usd;
+    if(!res.ok) throw new Error('API Failed');
+
+    const data = await res.json();
+    const d = data[currentCoin];
+
+    const price = d.usd;
+    const change = d.usd_24h_change;
+    const high = d.usd_24h_high;
+    const low = d.usd_24h_low;
 
     document.getElementById('btc-price').innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2});
     document.getElementById('btc-change').innerHTML = (change >= 0? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
