@@ -1,5 +1,4 @@
 let currentTab = 'home';
-let currentMarket = 'crypto';
 
 function initApp() {
   if(window.location.hash === '' || window.location.hash === '#home') {
@@ -14,13 +13,11 @@ function initApp() {
 function renderNavbar() {
   const navbar = document.getElementById('navbar');
   
-  // HOME PE NAVBAR GAYAB
   if(currentTab === 'home') {
     navbar.style.display = 'none';
     return;
   } 
   
-  // BAQI PAGE PE NAVBAR DIKHAO
   navbar.style.display = 'flex';
   navbar.innerHTML = `
     <button class="nav-btn" onclick="switchTab('home')">🏠 Home</button>
@@ -37,12 +34,21 @@ function switchTab(tab) {
   currentTab = tab;
   window.location.hash = tab;
   renderNavbar();
-  if(window.stopDashboard) stopDashboard();
   
   const content = document.getElementById('tab-content');
   
-  if(tab === 'home') { renderHome(); }
-  if(tab === 'dashboard') { import('./tabs/dashboard.js').then(()=>render_dashboard()); }
+  if(tab === 'home') { 
+    renderHome(); 
+  }
+  if(tab === 'dashboard') { 
+    content.innerHTML = `
+      <div class="card">
+        <h2>📊 CRYPTO DASHBOARD</h2>
+        <p>यहां तेरा पुराना dashboard code आएगा</p>
+        <button class="nav-btn" onclick="alert('Buy Signal')">Test Buy</button>
+      </div>
+    `;
+  }
   if(tab === 'trading') { content.innerHTML = '<div class="card"><h2>Trading - Coming Soon</h2></div>'; }
   if(tab === 'strategies') { content.innerHTML = '<div class="card"><h2>Strategies - Coming Soon</h2></div>'; }
   if(tab === 'backtest') { content.innerHTML = '<div class="card"><h2>Backtest - Coming Soon</h2></div>'; }
