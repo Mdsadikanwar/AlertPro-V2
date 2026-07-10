@@ -3,69 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AlertPro Auto Bot</title>
+  <title>ApexTraders</title>
   <style>
-    body { background: #0a0e1a; color: #e2e8f0; font-family: Arial; margin: 0; padding: 20px; }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { color: #10b981; font-size: 28px; margin: 10px 0; }
-    .header p { color: #94a3b8; font-size: 14px; }
-    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-    .tab-btn { padding: 10px 18px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
-    .tab-btn.active { background: #10b981; }
-    .logs-btn { width: 100%; padding: 12px; background: #1e293b; color: white; border: none; border-radius: 8px; margin-bottom: 20px; }
-    .card { background: #111827; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-    .select-group { display: flex; gap: 10px; }
-    select { flex: 1; padding: 12px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; font-size: 16px; }
-    .price { font-size: 42px; color: #f59e0b; font-weight: 700; text-align: center; margin: 10px 0; }
-    .change { color: #10b981; text-align: center; font-size: 18px; font-weight: 600; }
-    .tag { background: #10b981; color: white; padding: 4px 12px; border-radius: 6px; font-size: 12px; }
-    .stats { display: flex; justify-content: space-around; margin-top: 15px; text-align: center; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: linear-gradient(180deg, #0a0e1a 0%, #1a2333 100%); 
+      color: #e2e8f0; 
+      font-family: Arial, sans-serif; 
+      min-height: 100vh;
+    }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 30px; border-bottom: 1px solid #1e293b;
+    }
+    .logo { font-size: 20px; font-weight: 600; }
+    .navbar {
+      display: flex; gap: 8px; padding: 15px 30px; flex-wrap: wrap;
+    }
+    .nav-btn {
+      padding: 8px 14px; background: #334155; color: #cbd5e1; 
+      border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+    }
+    .container { text-align: center; padding: 60px 20px; }
+    .container h1 { 
+      font-size: 40px; color: #10b981; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .container p { color: #94a3b8; margin-bottom: 40px; }
+    .btn-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+    .main-btn {
+      padding: 15px 30px; background: #475569; color: white; 
+      border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+      cursor: pointer;
+    }
+    .main-btn.crypto { background: #64748b; }
+    .main-btn.stock { background: #3b82f6; }
+    .main-btn.commodity { background: #f59e0b; color: #0a0e1a; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🔔 AlertPro Auto Bot</h1>
-    <p>Multi-Coin Paper Trading + Live Signals ☁️ <span style="color:#10b981">Synced</span></p>
+  <div class="topbar">
+    <div class="logo">⚡ ApexTraders</div>
+    <div style="color: #94a3b8;">Professional AI</div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active">Dashboard</button>
-    <button class="tab-btn" onclick="alert('Coming Soon')">Trading</button>
-    <button class="tab-btn" onclick="alert('Coming Soon')">Strategies</button>
-    <button class="tab-btn" onclick="alert('Coming Soon')">Backtest</button>
-    <button class="tab-btn" onclick="alert('Coming Soon')">Settings</button>
+  <div class="navbar">
+    <button class="nav-btn">🏠 Home</button>
+    <button class="nav-btn">📊 Dashboard</button>
+    <button class="nav-btn">💰 Trading</button>
+    <button class="nav-btn">🤖 Strategies</button>
+    <button class="nav-btn">📈 Backtest</button>
+    <button class="nav-btn">⚙️ Settings</button>
+    <button class="nav-btn">📝 Logs</button>
   </div>
-  
-  <button class="logs-btn" onclick="alert('Coming Soon')">Logs</button>
 
-  <div class="card">
-    <div class="select-group">
-      <select>
-        <option>Bitcoin (BTC)</option>
-        <option>Ethereum (ETH)</option>
-      </select>
-      <select style="max-width: 100px;">
-        <option>USD</option>
-      </select>
+  <div class="container">
+    <h1>⚡ ApexTraders</h1>
+    <p>Multi-Coin Paper Trading + Live Signals ☁️ Synced</p>
+    
+    <div class="btn-group">
+      <button class="main-btn crypto" onclick="alert('Crypto Dashboard Coming')">📊 CRYPTO TERMINAL</button>
+      <button class="main-btn stock" onclick="alert('Coming Soon')">📈 STOCK MARKET</button>
+      <button class="main-btn commodity" onclick="alert('Coming Soon')">🛢️ COMMODITY</button>
     </div>
   </div>
-
-  <div class="card">
-    <div style="text-align:center; color:#94a3b8;">BTC/USD</div>
-    <div class="price">$63798.00</div>
-    <div class="change">▲ 0.98% (24h)</div>
-    <div style="text-align:center; margin: 10px 0; color:#94a3b8;">Active: <span class="tag">Hiw</span></div>
-    <div class="stats">
-      <div>
-        <div style="color:#94a3b8; font-size:12px;">24h High</div>
-        <div style="font-size:18px; font-weight:600;">$64554.00</div>
-      </div>
-      <div>
-        <div style="color:#94a3b8; font-size:12px;">24h Low</div>
-        <div style="font-size:18px; font-weight:600;">$62955.00</div>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
