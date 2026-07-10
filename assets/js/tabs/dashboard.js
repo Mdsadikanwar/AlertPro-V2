@@ -1,6 +1,6 @@
 let dashboardInterval;
 let currentCoin = 'bitcoin';
-let currentCurrency = 'usd';
+let currentCurrency = 'inr'; // default INR kar diya
 let cooldown = 60;
 
 const COIN_DATA = {
@@ -16,7 +16,7 @@ async function render_dashboard() {
   content.innerHTML = `
     <div class="card">
       <div class="select-row">
-        <select class="input" id="coinSelect">
+        <select class="input" id="coinSelect" style="max-width: 250px;">
           <option value="bitcoin">Bitcoin (BTC)</option>
           <option value="ethereum">Ethereum (ETH)</option>
           <option value="binancecoin">BNB (BNB)</option>
@@ -32,7 +32,7 @@ async function render_dashboard() {
     </div>
 
     <div class="card price-box">
-      <div class="price-label" id="pairLabel">BTC/USD</div>
+      <div class="price-label" id="pairLabel">BTC/INR</div>
       <div class="price-main" id="coinPrice">Loading...</div>
       <div class="price-change" id="coinChange">--</div>
       <div style="margin-top:8px;font-size:12px;color:#64748b;" id="countdown">Cooldown: 60s</div>
@@ -78,14 +78,9 @@ function updatePairLabel() {
   document.getElementById('pairLabel').textContent = symbol + '/' + currentCurrency.toUpperCase();
 }
 
-// YAHI WALA FIX HAI 👇
 async function fetchDashboardData() {
   try {
-    // NAYA API: coins/markets - isme high low sahi aata hai
     const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=24h`);
-    
-    if(!res.ok) throw new Error('API Failed');
-    
     const data = await res.json();
     const d = data[0];
 
@@ -105,7 +100,6 @@ async function fetchDashboardData() {
 
   } catch(e) { 
     console.log('API Error', e);
-    document.getElementById('coinPrice').innerText = 'Error';
   }
 }
 
