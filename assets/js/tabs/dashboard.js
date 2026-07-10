@@ -1,6 +1,6 @@
 let dashboardInterval;
 let currentCoin = 'bitcoin';
-let cooldown = 60; // 60 sec
+let cooldown = 60;
 
 async function render_dashboard() {
   const content = document.getElementById('tab-content');
@@ -33,24 +33,29 @@ async function render_dashboard() {
     currentCoin = e.target.value;
     const name = e.target.options[e.target.selectedIndex].text.split(' ')[0];
     document.getElementById('pair-name').innerText = name + '/USD';
-    fetchDashboardData(); // coin change karte hi turant update
+    fetchDashboardData();
   });
 
-  fetchDashboardData(); // pehli baar load
+  fetchDashboardData();
   startCooldown();
-  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000); // 60s me repeat
+  dashboardInterval = setInterval(fetchDashboardData, cooldown * 1000);
 }
 
 async function fetchDashboardData() {
   try {
     const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=usd&include_24hr_change=true&include_24hr_high=true&include_24hr_low=true`);
+    
+    if(!res.ok) throw new Error('API Failed'); // अगर 429 आया तो
+    
     const data = await res.json();
     const d = data[currentCoin];
 
+    if(!d) throw new Error('Coin Data Missing');
+
     const price = d.usd;
-    const change = d.usd_24h_change;
-    const high = d.usd_24h_high;
-    const low = d.usd_24h_low;
+    const change = d.usd_24h_change || 0;
+    const high = d.usd_24h_high || 0;
+    const low = d.usd_24h_low || 0;
 
     document.getElementById('btc-price').innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2});
     document.getElementById('btc-change').innerHTML = (change >= 0? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
@@ -61,7 +66,10 @@ async function fetchDashboardData() {
 
   } catch(e) { 
     console.log('API Error', e);
-    document.getElementById('btc-price').innerText = 'Error';
+    document.getElementById('btc-price').innerText = 'Fetching...'; // Error की जगह Loading
+    document.getElementById('btc-change').innerText = '--';
+    document.getElementById('high-24h').innerText = '--';
+    document.getElementById('low-24h').innerText = '--';
   }
 }
 
