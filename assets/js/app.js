@@ -2,7 +2,6 @@ let currentTab = 'home';
 let currentMarket = 'crypto';
 
 function initApp() {
-  // Home pe navbar hide kar denge
   if(window.location.hash === '' || window.location.hash === '#home') {
     currentTab = 'home';
   }
@@ -13,13 +12,11 @@ function initApp() {
 function renderNavbar() {
   const navbar = document.getElementById('navbar');
   
-  // HOME PE NAVBAR HI MAT DIKHAO
   if(currentTab === 'home') {
-    navbar.style.display = 'none'; // YE LINE SABSE IMPORTANT HAI
+    navbar.style.display = 'none';
     return;
   } 
   
-  // BAQI SAB PAGE PE NAVBAR DIKHAO
   navbar.style.display = 'flex';
   navbar.innerHTML = `
     <button class="nav-btn" onclick="switchTab('home')">🏠 Home</button>
@@ -35,7 +32,7 @@ function renderNavbar() {
 function switchTab(tab) {
   currentTab = tab;
   window.location.hash = tab;
-  renderNavbar(); // navbar ko dobara render karega
+  renderNavbar();
   if(window.stopDashboard) stopDashboard();
   
   const content = document.getElementById('tab-content');
@@ -55,17 +52,10 @@ function renderHome() {
     <div style="text-align:center; padding: 80px 20px;">
       <h1 style="font-size: 48px; color: #10b981; margin-bottom: 10px;">⚡ ApexTraders</h1>
       <p style="color: #94a3b8; margin-bottom: 50px; font-size:18px;">Multi-Coin Paper Trading + Live Signals ⚡ Synced</p>
-      
       <div style="display:flex; gap:25px; justify-content:center; flex-wrap:wrap;">
-        <button class="nav-btn" style="padding:25px 50px; font-size:18px; font-weight:600;" onclick="switchTab('dashboard')">
-          🪙 CRYPTO TERMINAL
-        </button>
-        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">
-          📈 STOCK MARKET
-        </button>
-        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">
-          🛢️ COMMODITY
-        </button>
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; font-weight:600;" onclick="switchTab('dashboard')">🪙 CRYPTO TERMINAL</button>
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">📈 STOCK MARKET</button>
+        <button class="nav-btn" style="padding:25px 50px; font-size:18px; opacity:0.5;" onclick="alert('Coming Soon')">🛢️ COMMODITY</button>
       </div>
     </div>
   `;
