@@ -1,8 +1,14 @@
 let dashboardInterval;
-let currentSymbol = 'BTCUSDT';
+let currentCoin = 'bitcoin';
+
+const COIN_MAP = {
+  'BTCUSDT': 'bitcoin',
+  'ETHUSDT': 'ethereum', 
+  'SOLUSDT': 'solana',
+  'BNBUSDT': 'binancecoin'
+}
 
 async function render_dashboard() {
-  document.getElementById('top-tabs').classList.remove('hidden');
   const content = document.getElementById('tab-content');
   content.innerHTML = `
     <div class="filter-row">
@@ -41,29 +47,34 @@ async function render_dashboard() {
 }
 
 function changeCoin() {
-  currentSymbol = document.getElementById('coin-select').value;
-  const name = currentSymbol.replace('USDT', '');
+  currentCoin = document.getElementById('coin-select').value;
+  const name = currentCoin.replace('USDT', '');
   document.getElementById('pair-name').innerText = name + '/USD';
   fetchDashboardData();
 }
 
 async function fetchDashboardData() {
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${currentSymbol}`);
+    const coinId = COIN_MAP[currentCoin];
+    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`);
     const data = await res.json();
+    const m = data.market_data;
     
-    const price = parseFloat(data.lastPrice).toLocaleString('en-US', {minimumFractionDigits: 2});
-    const change = parseFloat(data.priceChangePercent).toFixed(2);
-    const high = parseFloat(data.highPrice).toLocaleString('en-US', {minimumFractionDigits: 2});
-    const low = parseFloat(data.lowPrice).toLocaleString('en-US', {minimumFractionDigits: 2});
+    const price = m.current_price.usd;
+    const change = m.price_change_percentage_24h;
+    const high = m.high_24h.usd;
+    const low = m.low_24h.usd;
     
-    document.getElementById('btc-price').innerText = '$' + price;
-    document.getElementById('btc-change').innerHTML = (change >= 0 ? '▲ ' : '▼ ') + Math.abs(change) + '% (24h)';
+    document.getElementById('btc-price').innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('btc-change').innerHTML = (change >= 0 ? '▲ ' : '▼ ') + Math.abs(change).toFixed(2) + '% (24h)';
     document.getElementById('btc-change').className = 'price-change ' + (change >= 0 ? 'green' : 'red');
-    document.getElementById('high-24h').innerText = '$' + high;
-    document.getElementById('low-24h').innerText = '$' + low;
+    document.getElementById('high-24h').innerText = '$' + high.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('low-24h').innerText = '$' + low.toLocaleString('en-US', {minimumFractionDigits: 2});
     
-  } catch(e) { console.log('API Error', e); }
+  } catch(e) { 
+    console.log('API Error', e); 
+    document.getElementById('btc-price').innerText = 'API Error';
+  }
 }
 
 function stopDashboard() { clearInterval(dashboardInterval); }
