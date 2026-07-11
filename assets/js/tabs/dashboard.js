@@ -13,12 +13,31 @@ const top10Coins = [
 
 let currentCoin = "bitcoin";
 let currentCurrency = "usd";
-let countdown = 60; // countdown timer
+let countdown = 60;
 let countdownInterval;
 
 function renderDashboard() {
   showScreen(`
     ${getNavbar()}
+
+    <!-- MARKET SENTIMENT CARD -->
+    <div class="card" style="margin-bottom:15px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="color:#94a3b8; font-size:12px;">Market Sentiment</div>
+          <div style="font-size:18px; font-weight:700;" id="sentimentLabel">Loading...</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:24px; font-weight:800;" id="sentimentScore">--</div>
+          <div style="font-size:10px; color:#94a3b8;">Fear & Greed</div>
+        </div>
+      </div>
+      <div style="height:6px; background:#1e293b; border-radius:3px; margin-top:10px;">
+        <div id="sentimentBar" style="height:6px; border-radius:3px; width:0%; transition:width 0.5s;"></div>
+      </div>
+    </div>
+
+    <!-- PRICE CARD -->
     <div class="card">
       <div style="display:flex; gap:10px; margin-bottom:20px;">
         <select id="coinSelect" style="flex:1; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
@@ -53,8 +72,10 @@ function renderDashboard() {
   document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
 
   fetchPrice();
-  setInterval(fetchPrice, 60000); // 60sec auto fetch
-  startCountdown(); // countdown start
+  fetchSentiment(); // नया function
+  setInterval(fetchPrice, 60000);
+  setInterval(fetchSentiment, 300000); // 5 min में 1 बार sentiment
+  startCountdown();
 }
 
 function startCountdown() {
@@ -66,12 +87,11 @@ function startCountdown() {
     const timerEl = document.getElementById('cooldownTimer');
     if(timerEl){
       timerEl.innerText = `Next update in ${countdown}s`;
-      timerEl.style.background = countdown <= 10 ? '#ef4444' : '#f59e0b'; // 10s pe red
+      timerEl.style.background = countdown <= 10? '#ef4444' : '#f59e0b';
     }
   }, 1000);
 }
 
-// CoinGecko v3 /coins/markets
 async function fetchPrice() {
   const coin = top10Coins.find(c => c.id === currentCoin);
   const symbol = currentCurrency === "inr"? "₹" : "$";
@@ -79,11 +99,10 @@ async function fetchPrice() {
 
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading...";
-  countdown = 60; // reset countdown on fetch
+  countdown = 60;
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h`;
-    
     const res = await fetch(url);
     const data = await res.json();
     const coinData = data[0];
@@ -104,5 +123,30 @@ async function fetchPrice() {
     console.error(error);
     document.getElementById('livePrice').innerText = "Error fetching data";
     document.getElementById('livePrice').style.color = "#ef4444";
+  }
+}
+
+// NAYA FUNCTION: Fear & Greed Index
+async function fetchSentiment() {
+  try {
+    const res = await fetch('https://api.alternative.me/fng/');
+    const data = await res.json();
+    const sentiment = data.data[0];
+    const score = sentiment.value;
+    const label = sentiment.value_class;
+
+    document.getElementById('sentimentScore').innerText = score;
+    document.getElementById('sentimentLabel').innerText = label;
+
+    const bar = document.getElementById('sentimentBar');
+    bar.style.width = `${score}%`;
+
+    if(score <= 25) bar.style.background = '#ef4444'; // Extreme Fear - Red
+    else if(score <= 50) bar.style.background = '#f97316'; // Fear - Orange
+    else if(score <= 75) bar.style.background = '#10b981'; // Greed - Green
+    else bar.style.background = '#22c55e'; // Extreme Greed - Bright Green
+
+  } catch (error) {
+    console.error("Sentiment error", error);
   }
 }
