@@ -1,34 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('main-header').classList.add('hidden'); // START MEIN HIDE
-  render_hub();
-  setupTabs();
-});
-
-function setupTabs() {
-  document.querySelectorAll('.tab[data-tab]').forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      e.target.classList.add('active');
-      loadTab(e.target.dataset.tab);
-    });
-  });
-}
-
-function loadTab(tabName) {
-  document.getElementById('main-header').classList.remove('hidden'); // HEADER SHOW
-  if(typeof stopDashboard === 'function') stopDashboard();
-
-  if(tabName === 'dashboard') render_dashboard();
-  if(tabName === 'trading') render_trading();
-  if(tabName === 'strategies') render_strategies();
-  if(tabName === 'backtest') render_backtest();
-  if(tabName === 'settings') render_settings();
-  if(tabName === 'logs') render_logs();
-}
-
-function backToHub() {
-  document.getElementById('main-header').classList.add('hidden'); // HEADER HIDE
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('top-tabs').classList.add('hidden');
-  render_hub();
+function getNavbar() {
+  return `
+    <div class="topbar">
+      <div class="logo">⚡ ApexTraders</div>
+      <div style="color: #94a3b8;">Professional AI</div>
+    </div>
+    <div class="navbar">
+      <button class="nav-btn" onclick="renderHome()">🏠 Home</button>
+      <button class="nav-btn" onclick="renderDashboard()">📊 Dashboard</button>
+      <button class="nav-btn" onclick="renderTrading()">💰 Trading</button>
+      <button class="nav-btn" onclick="renderStrategies()">🤖 Strategies</button>
+      <button class="nav-btn" onclick="renderBacktest()">📈 Backtest</button>
+      <button class="nav-btn" onclick="renderSettings()">⚙️ Settings</button>
+      <button class="nav-btn" onclick="renderLogs()">📝 Logs</button>
+      <button class="nav-btn" onclick="renderHub()">🛠️ Hub</button>
+    </div>
+  `;
 }
