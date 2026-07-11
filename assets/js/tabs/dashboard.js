@@ -9,7 +9,7 @@ const top10Coins = [
 let currentCoin = "bitcoin";
 let currentCurrency = "usd";
 let currentTimeframe = "1d";
-let priceTimeframe = "24h"; // NAYA: Price change ka timeframe
+let priceTimeframe = "24h";
 let countdown = 60;
 let countdownInterval;
 
@@ -32,7 +32,7 @@ function renderDashboard() {
         <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
 
-        <!-- NAYA: Timeframe Dropdown for Change -->
+        <!-- Timeframe Dropdown for Change -->
         <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin:10px 0;">
           <div class="change" id="changePrice">--</div>
           <select id="priceTimeframeSelect" style="padding:4px 8px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px; font-size:12px;">
@@ -82,12 +82,6 @@ function renderDashboard() {
         </div>
       </div>
     </div>
-
-    <!-- 3. TOP 10 COINS LIST - FIXED -->
-    <div class="card" style="margin-top:15px;">
-      <div style="font-size:16px; font-weight:700; margin-bottom:15px;">Top 10 Cryptocurrencies</div>
-      <div id="top10List">Loading...</div>
-    </div>
   `);
 
   document.getElementById('coinSelect').value = currentCoin;
@@ -96,16 +90,14 @@ function renderDashboard() {
   document.getElementById('priceTimeframeSelect').value = priceTimeframe;
 
   document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; countdown = 60; fetchPrice(); fetchSentiment()};
-  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice(); fetchTop10()};
+  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
   document.getElementById('timeframeSelect').onchange = (e) => {currentTimeframe = e.target.value; document.getElementById('rsiTime').innerText = e.target.value.toUpperCase(); document.getElementById('mcapTime').innerText = e.target.value.toUpperCase(); fetchSentiment()};
-  document.getElementById('priceTimeframeSelect').onchange = (e) => {priceTimeframe = e.target.value; fetchPrice()}; // NAYA
+  document.getElementById('priceTimeframeSelect').onchange = (e) => {priceTimeframe = e.target.value; fetchPrice()};
 
   fetchPrice();
   fetchSentiment();
-  fetchTop10();
   setInterval(fetchPrice, 60000);
   setInterval(fetchSentiment, 300000);
-  setInterval(fetchTop10, 60000);
   startCountdown();
 }
 
@@ -129,7 +121,6 @@ async function fetchPrice() {
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading..."; countdown = 60;
   try {
-    // NAYA: price_change_percentage me timeframe add kiya
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=${priceTimeframe}`;
     const res = await fetch(url); const data = await res.json(); const coinData = data[0];
     document.getElementById('livePrice').innerText = `${symbol}${coinData.current_price.toLocaleString('en-IN')}`;
@@ -180,37 +171,6 @@ async function fetchSentiment() {
       document.getElementById('marketCapChange').style.color = mcapChange >= 0? '#10b981' : '#ef4444';
     }
   } catch (error) { console.error("Sentiment error", error); }
-}
-
-// FIXED: TOP 10 LIST with proper alignment
-async function fetchTop10() {
-  try {
-    const symbol = currentCurrency === "inr"? "₹" : "$";
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${top10Coins.map(c=>c.id).join(',')}&order=market_cap_desc&price_change_percentage=24h`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const listHtml = data.map((coin, i) => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #1e293b;">
-        <div style="display:flex; align-items:center; gap:10px; flex:1;">
-          <div style="color:#94a3b8; font-size:12px; width:20px;">${i+1}</div>
-          <img src="${coin.image}" style="width:24px; height:24px;">
-          <div>
-            <div style="font-weight:600;">${coin.name}</div>
-            <div style="color:#94a3b8; font-size:11px;">${coin.symbol.toUpperCase()}</div>
-          </div>
-        </div>
-        <div style="text-align:right; width:120px;">
-          <div style="font-weight:600;">${symbol}${coin.current_price.toLocaleString('en-IN')}</div>
-          <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0? '#10b981' : '#ef4444'};">
-            ${coin.price_change_percentage_24h >= 0? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
-          </div>
-        </div>
-      </div>
-    `).join('');
-
-    document.getElementById('top10List').innerHTML = listHtml;
-  } catch (error) { document.getElementById('top10List').innerText = "Error loading data"; }
 }
 
 function calculateRSI(prices) {
