@@ -21,11 +21,11 @@ function renderDashboard() {
     <div class="card">
       <!-- Selectors -->
       <div style="display:flex; gap:10px; margin-bottom:20px;">
-        <select id="coinSelect" style="flex:1; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
+        <select id="coinSelect" style="flex:1; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; font-size:14px;">
           ${top10Coins.map(c => `<option value="${c.id}">${c.name} (${c.symbol})</option>`).join('')}
         </select>
 
-        <select id="currencySelect" style="width:120px; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
+        <select id="currencySelect" style="width:120px; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; font-size:14px;">
           <option value="usd">USDT</option>
           <option value="inr">INR</option>
         </select>
@@ -33,10 +33,13 @@ function renderDashboard() {
 
       <!-- Price Section -->
       <div style="text-align:center;">
-        <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USD</div>
+        <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
         <div class="change" id="change24h">--</div>
-        <div style="margin:15px 0; font-size:11px; color:#64748b;" id="lastUpdate">Last Update: --</div>
+        <div style="margin:15px 0;">
+          <span style="background:#10b981; padding:4px 12px; border-radius:6px; font-size:12px;">LIVE</span>
+        </div>
+        <div style="margin:10px 0; font-size:11px; color:#64748b;" id="lastUpdate">Last Update: --</div>
       </div>
 
       <!-- 24h High Low -->
@@ -58,11 +61,13 @@ function renderDashboard() {
 
   document.getElementById('coinSelect').onchange = (e) => {
     currentCoin = e.target.value;
-    fetchPrice(); // force fetch on change
+    lastFetchTime = 0; // force fetch on change
+    fetchPrice();
   }
   document.getElementById('currencySelect').onchange = (e) => {
     currentCurrency = e.target.value;
-    fetchPrice(); // force fetch on change
+    lastFetchTime = 0; // force fetch on change
+    fetchPrice();
   }
 
   fetchPrice(); // First load
@@ -83,18 +88,21 @@ async function fetchPrice() {
 
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading...";
+  document.getElementById('livePrice').style.color = "#e2e8f0";
 
   try {
-    // CoinGecko API - Free, no key needed
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=${currentCurrency}&include_24hr_change=true&include_24hr_high_low=true`;
-    const res = await fetch(url);
+    // PROXY LAGAYA HAI - CORS ERROR FIX
+    const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=${currentCurrency}&include_24hr_change=true&include_24hr_high_low=true`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+    
+    const res = await fetch(proxyUrl);
     const data = await res.json();
     const coinData = data[currentCoin];
 
-    const price = coinData[currentCurrency].toLocaleString();
+    const price = coinData[currentCurrency].toLocaleString('en-IN');
     const change = coinData[`${currentCurrency}_24h_change`].toFixed(2);
-    const high = coinData[`${currentCurrency}_24h_high`].toLocaleString();
-    const low = coinData[`${currentCurrency}_24h_low`].toLocaleString();
+    const high = coinData[`${currentCurrency}_24h_high`].toLocaleString('en-IN');
+    const low = coinData[`${currentCurrency}_24h_low`].toLocaleString('en-IN');
 
     document.getElementById('livePrice').innerText = `${symbol}${price}`;
     document.getElementById('change24h').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}% (24h)`;
@@ -106,5 +114,6 @@ async function fetchPrice() {
   } catch (error) {
     console.error(error);
     document.getElementById('livePrice').innerText = "Error fetching data";
+    document.getElementById('livePrice').style.color = "#ef4444";
   }
 }
