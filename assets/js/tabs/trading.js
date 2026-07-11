@@ -1,15 +1,23 @@
-let tradeBalance = parseFloat(localStorage.getItem('balance') || "1000");
+let tradeBalance = { usdt: 1000, inr: 83000 }; // Dummy balance
 let tradeHistory = JSON.parse(localStorage.getItem('tradeHistory') || "[]");
+let autoTrade = false;
+let autoTradeInterval;
 
 function renderTrading() {
   showScreen(`
     ${getNavbar()}
     <div class="card">
-      <div style="font-size:18px; font-weight:700; margin-bottom:15px;">Trading Panel</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <div style="font-size:18px; font-weight:700;">Smart Trading Panel</div>
+        <div style="display:flex; gap:5px; background:#1e293b; padding:4px; border-radius:8px;">
+          <button id="currUsdt" style="padding:6px 12px; border:none; border-radius:6px; background:#0ea5e9; color:white; font-weight:600;">USDT</button>
+          <button id="currInr" style="padding:6px 12px; border:none; border-radius:6px; background:transparent; color:#94a3b8;">INR</button>
+        </div>
+      </div>
 
       <div style="background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px;">
         <div style="color:#94a3b8; font-size:12px;">Available Balance</div>
-        <div style="font-size:24px; font-weight:800;">$${tradeBalance.toFixed(2)} USDT</div>
+        <div style="font-size:24px; font-weight:800;" id="balanceDisplay">$${tradeBalance.usdt.toFixed(2)}</div>
       </div>
 
       <div style="margin-bottom:15px;">
@@ -19,9 +27,36 @@ function renderTrading() {
         </select>
       </div>
 
+      <!-- NAYA: Order Type -->
       <div style="margin-bottom:15px;">
-        <div style="color:#94a3b8; font-size:12px; margin-bottom:5px;">Amount in USDT</div>
+        <div style="color:#94a3b8; font-size:12px; margin-bottom:5px;">Order Type</div>
+        <div style="display:flex; gap:5px; background:#1e293b; padding:4px; border-radius:8px;">
+          <button id="typeAmount" style="flex:1; padding:8px; border:none; border-radius:6px; background:#0ea5e9; color:white;">By Amount</button>
+          <button id="typeQty" style="flex:1; padding:8px; border:none; border-radius:6px; background:transparent; color:#94a3b8;">By Quantity</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:15px;">
+        <div style="color:#94a3b8; font-size:12px; margin-bottom:5px;" id="amountLabel">Amount in USDT</div>
         <input type="number" id="tradeAmount" placeholder="100" style="width:100%; padding:12px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
+      </div>
+
+      <!-- NAYA: AUTO TRADE -->
+      <div style="background:#1e293b; padding:12px; border-radius:8px; margin-bottom:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div>
+            <div style="font-weight:600;">Auto Trade</div>
+            <div style="color:#94a3b8; font-size:11px;">RSI Strategy</div>
+          </div>
+          <label style="position:relative; display:inline-block; width:50px; height:26px;">
+            <input type="checkbox" id="autoToggle" style="opacity:0; width:0; height:0;">
+            <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#334155; border-radius:26px; transition:0.3s;"></span>
+          </label>
+        </div>
+        <select id="strategySelect" style="width:100%; padding:8px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px; font-size:12px;">
+          <option value="rsi">RSI < 30 Buy, > 70 Sell</option>
+          <option value="ma">MA Crossover</option>
+        </select>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -42,7 +77,7 @@ function renderTrading() {
               <div style="font-size:11px; color:#94a3b8;">${h.time}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-weight:600;">$${h.amount}</div>
+              <div style="font-weight:600;">${h.amount} ${h.unit}</div>
               <div style="font-size:11px; color:#94a3b8;">@${h.price}</div>
             </div>
           </div>
@@ -51,46 +86,101 @@ function renderTrading() {
     </div>
   `);
 
+  setupTradingEvents();
+}
+
+let currentTradeCurrency = "usdt";
+let currentOrderType = "amount";
+
+function setupTradingEvents() {
   document.getElementById('buyBtn').onclick = () => placeTrade('BUY');
   document.getElementById('sellBtn').onclick = () => placeTrade('SELL');
+  
+  // Currency Toggle
+  document.getElementById('currUsdt').onclick = () => switchCurrency('usdt');
+  document.getElementById('currInr').onclick = () => switchCurrency('inr');
+  
+  // Order Type Toggle
+  document.getElementById('typeAmount').onclick = () => switchOrderType('amount');
+  document.getElementById('typeQty').onclick = () => switchOrderType('qty');
+  
+  // Auto Trade Toggle
+  document.getElementById('autoToggle').onchange = (e) => toggleAutoTrade(e.target.checked);
+}
+
+function switchCurrency(curr) {
+  currentTradeCurrency = curr;
+  const symbol = curr === "inr"? "₹" : "$";
+  document.getElementById('balanceDisplay').innerText = `${symbol}${tradeBalance[curr].toFixed(2)}`;
+  document.getElementById('amountLabel').innerText = `Amount in ${curr.toUpperCase()}`;
+  document.getElementById('currUsdt').style.background = curr === "usdt"? "#0ea5e9" : "transparent";
+  document.getElementById('currInr').style.background = curr === "inr"? "#0ea5e9" : "transparent";
+}
+
+function switchOrderType(type) {
+  currentOrderType = type;
+  document.getElementById('amountLabel').innerText = type === "amount"? `Amount in ${currentTradeCurrency.toUpperCase()}` : "Coin Quantity";
+  document.getElementById('typeAmount').style.background = type === "amount"? "#0ea5e9" : "transparent";
+  document.getElementById('typeQty').style.background = type === "qty"? "#0ea5e9" : "transparent";
 }
 
 async function placeTrade(type) {
   const coinId = document.getElementById('tradeCoinSelect').value;
   const amount = parseFloat(document.getElementById('tradeAmount').value);
   const coin = top10Coins.find(c => c.id === coinId);
+  const symbol = currentTradeCurrency === "inr"? "₹" : "$";
 
-  if(!amount || amount <= 0){
-    alert("Enter valid amount");
-    return;
-  }
+  if(!amount || amount <= 0){ alert("Enter valid amount"); return; }
 
-  // Get current price
-  const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`);
+  const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd,inr`);
   const data = await res.json();
-  const price = data[coinId].usd;
+  const price = currentTradeCurrency === "inr"? data[coinId].inr : data[coinId].usd;
 
-  if(type === "BUY" && amount > tradeBalance){
-    alert("Insufficient Balance");
-    return;
+  let tradeAmount = amount;
+  if(currentOrderType === "qty") tradeAmount = amount * price; // Convert qty to amount
+
+  if(type === "BUY" && tradeAmount > tradeBalance[currentTradeCurrency]){
+    alert("Insufficient Balance"); return;
   }
 
-  // Update balance
-  if(type === "BUY") tradeBalance -= amount;
-  if(type === "SELL") tradeBalance += amount;
-  localStorage.setItem('balance', tradeBalance);
+  if(type === "BUY") tradeBalance[currentTradeCurrency] -= tradeAmount;
+  if(type === "SELL") tradeBalance[currentTradeCurrency] += tradeAmount;
 
-  // Save to history
   tradeHistory.unshift({
-    type: type,
-    coin: coin.symbol,
-    amount: amount.toFixed(2),
-    price: price.toFixed(2),
-    time: new Date().toLocaleString()
+    type: type, coin: coin.symbol,
+    amount: currentOrderType === "amount"? tradeAmount.toFixed(2) : amount.toFixed(4),
+    unit: currentOrderType === "amount"? currentTradeCurrency.toUpperCase() : coin.symbol,
+    price: `${symbol}${price.toFixed(2)}`, time: new Date().toLocaleString()
   });
-  tradeHistory = tradeHistory.slice(0, 5);
+  tradeHistory = tradeHistory.slice(0, 10);
   localStorage.setItem('tradeHistory', JSON.stringify(tradeHistory));
 
-  alert(`${type} Order Placed for ${coin.name} - $${amount}`);
-  renderTrading(); // Refresh
+  alert(`${type} Order Placed`);
+  renderTrading();
+}
+
+// NAYA: AUTO TRADE LOGIC
+async function toggleAutoTrade(status) {
+  autoTrade = status;
+  if(status){
+    alert("Auto Trade ON - RSI Strategy Active");
+    autoTradeInterval = setInterval(runAutoStrategy, 60000); // 1 min check
+  } else {
+    clearInterval(autoTradeInterval);
+    alert("Auto Trade OFF");
+  }
+}
+
+async function runAutoStrategy() {
+  const coinId = document.getElementById('tradeCoinSelect').value;
+  const strategy = document.getElementById('strategySelect').value;
+  const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=14`);
+  const data = await res.json();
+  const prices = data.prices.map(p => p[1]);
+  const rsi = calculateRSI(prices);
+  
+  if(strategy === "rsi"){
+    if(rsi < 30) placeTrade('BUY');
+    if(rsi > 70) placeTrade('SELL');
+  }
 }
