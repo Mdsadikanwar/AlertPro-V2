@@ -13,13 +13,12 @@ const top10Coins = [
 
 let currentCoin = "bitcoin";
 let currentCurrency = "usd";
-let lastFetchTime = 0; // 60sec cooldown के लिए
+let lastFetchTime = 0;
 
 function renderDashboard() {
   showScreen(`
     ${getNavbar()}
     <div class="card">
-      <!-- Selectors -->
       <div style="display:flex; gap:10px; margin-bottom:20px;">
         <select id="coinSelect" style="flex:1; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; font-size:14px;">
           ${top10Coins.map(c => `<option value="${c.id}">${c.name} (${c.symbol})</option>`).join('')}
@@ -31,7 +30,6 @@ function renderDashboard() {
         </select>
       </div>
 
-      <!-- Price Section -->
       <div style="text-align:center;">
         <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
@@ -42,7 +40,6 @@ function renderDashboard() {
         <div style="margin:10px 0; font-size:11px; color:#64748b;" id="lastUpdate">Last Update: --</div>
       </div>
 
-      <!-- 24h High Low -->
       <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:20px; border-top:1px solid #1e293b;">
         <div style="text-align:center;">
           <div style="color:#94a3b8; font-size:12px;">24h High</div>
@@ -61,25 +58,22 @@ function renderDashboard() {
 
   document.getElementById('coinSelect').onchange = (e) => {
     currentCoin = e.target.value;
-    lastFetchTime = 0; // force fetch on change
+    lastFetchTime = 0;
     fetchPrice();
   }
   document.getElementById('currencySelect').onchange = (e) => {
     currentCurrency = e.target.value;
-    lastFetchTime = 0; // force fetch on change
+    lastFetchTime = 0;
     fetchPrice();
   }
 
-  fetchPrice(); // First load
-  setInterval(fetchPrice, 60000); // 60sec cooldown auto refresh
+  fetchPrice();
+  setInterval(fetchPrice, 60000);
 }
 
 async function fetchPrice() {
   const now = Date.now();
-  if (now - lastFetchTime < 60000) {
-    console.log("60sec cooldown active");
-    return;
-  }
+  if (now - lastFetchTime < 60000) return;
   lastFetchTime = now;
 
   const coin = top10Coins.find(c => c.id === currentCoin);
@@ -88,32 +82,39 @@ async function fetchPrice() {
 
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading...";
-  document.getElementById('livePrice').style.color = "#e2e8f0";
 
-  try {
-    // PROXY LAGAYA HAI - CORS ERROR FIX
-    const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=${currentCurrency}&include_24hr_change=true&include_24hr_high_low=true`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
-    
-    const res = await fetch(proxyUrl);
-    const data = await res.json();
-    const coinData = data[currentCoin];
+  // PROXY LIST - 2 backup
+  const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${currentCoin}&vs_currencies=${currentCurrency}&include_24hr_change=true&include_24hr_high_low=true`;
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`
+  ];
 
-    const price = coinData[currentCurrency].toLocaleString('en-IN');
-    const change = coinData[`${currentCurrency}_24h_change`].toFixed(2);
-    const high = coinData[`${currentCurrency}_24h_high`].toLocaleString('en-IN');
-    const low = coinData[`${currentCurrency}_24h_low`].toLocaleString('en-IN');
+  for (let proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
+      const coinData = data[currentCoin];
 
-    document.getElementById('livePrice').innerText = `${symbol}${price}`;
-    document.getElementById('change24h').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}% (24h)`;
-    document.getElementById('change24h').style.color = change >= 0? '#10b981' : '#ef4444';
-    document.getElementById('high24h').innerText = `${symbol}${high}`;
-    document.getElementById('low24h').innerText = `${symbol}${low}`;
-    document.getElementById('lastUpdate').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+      const price = coinData[currentCurrency].toLocaleString('en-IN');
+      const change = coinData[`${currentCurrency}_24h_change`].toFixed(2);
+      const high = coinData[`${currentCurrency}_24h_high`].toLocaleString('en-IN');
+      const low = coinData[`${currentCurrency}_24h_low`].toLocaleString('en-IN');
 
-  } catch (error) {
-    console.error(error);
-    document.getElementById('livePrice').innerText = "Error fetching data";
-    document.getElementById('livePrice').style.color = "#ef4444";
+      document.getElementById('livePrice').innerText = `${symbol}${price}`;
+      document.getElementById('change24h').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}% (24h)`;
+      document.getElementById('change24h').style.color = change >= 0? '#10b981' : '#ef4444';
+      document.getElementById('high24h').innerText = `${symbol}${high}`;
+      document.getElementById('low24h').innerText = `${symbol}${low}`;
+      document.getElementById('lastUpdate').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+      return; // success, exit loop
+
+    } catch (error) {
+      console.log("Proxy failed, trying next...", error);
+    }
   }
+  
+  // agar dono proxy fail
+  document.getElementById('livePrice').innerText = "Error fetching data";
+  document.getElementById('livePrice').style.color = "#ef4444";
 }
