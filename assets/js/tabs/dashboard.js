@@ -6,14 +6,24 @@ const top10Coins = [
   {name: "Avalanche", symbol: "AVAX", id: "avalanche-2"}, {name: "Shiba Inu", symbol: "SHIB", id: "shiba-inu"}
 ];
 
-let currentCoin = "bitcoin";
-let currentCurrency = "usd";
-let currentTimeframe = "1d";
-let priceTimeframe = "24h";
+// UX FIX: LocalStorage से यूजर की पसंद लोड करना
+let currentCoin = localStorage.getItem('currentCoin') || "bitcoin";
+let currentCurrency = localStorage.getItem('currentCurrency') || "usd";
+let currentTimeframe = localStorage.getItem('currentTimeframe') || "1d";
+let priceTimeframe = localStorage.getItem('priceTimeframe') || "24h";
 let countdown = 60;
+
+// MEMORY LEAK FIX: टाइमर्स को ट्रैक करने के लिए ग्लोबल वैरिएबल्स
 let countdownInterval;
+let priceInterval;
+let sentimentInterval;
 
 function renderDashboard() {
+  // पहले से चल रहे सभी पुराने टाइमर्स को साफ़ करना (Crucial Bug Fix)
+  clearInterval(countdownInterval);
+  clearInterval(priceInterval);
+  clearInterval(sentimentInterval);
+
   showScreen(`
     ${getNavbar()}
 
@@ -64,7 +74,7 @@ function renderDashboard() {
         </select>
       </div>
 
-      <!-- NAYA: MARKET MOOD -->
+      <!-- MARKET MOOD -->
       <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding:15px; border-radius:10px; margin-bottom:12px; text-align:center; border:1px solid #334155;">
         <div style="color:#94a3b8; font-size:11px; margin-bottom:5px;">MARKET MOOD</div>
         <div style="font-size:22px; font-weight:800;" id="marketMood">--</div>
@@ -78,7 +88,7 @@ function renderDashboard() {
           <div style="font-size:10px;" id="sentimentLabel">Loading...</div>
         </div>
         <div style="background:#1e293b; padding:12px; border-radius:8px;">
-          <div style="color:#94a3b8; font-size:11px;">RSI <span id="rsiTime">1D</span></div>
+          <div style="color:#94a3b8; font-size:11px;">RSI <span id="rsiTime">${currentTimeframe.toUpperCase()}</span></div>
           <div style="font-size:20px; font-weight:800;" id="rsiValue">--</div>
           <div style="font-size:10px;" id="rsiLabel">--</div>
         </div>
@@ -90,132 +100,114 @@ function renderDashboard() {
     </div>
   `);
 
+  // सिलेक्टेड वैल्यूज सेट करना
   document.getElementById('coinSelect').value = currentCoin;
   document.getElementById('currencySelect').value = currentCurrency;
   document.getElementById('timeframeSelect').value = currentTimeframe;
   document.getElementById('priceTimeframeSelect').value = priceTimeframe;
 
-  document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; countdown = 60; fetchPrice(); fetchSentiment()};
-  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
-  document.getElementById('timeframeSelect').onchange = (e) => {currentTimeframe = e.target.value; document.getElementById('rsiTime').innerText = e.target.value.toUpperCase(); document.getElementById('mcapTime').innerText = e.target.value.toUpperCase(); fetchSentiment()};
-  document.getElementById('priceTimeframeSelect').onchange = (e) => {priceTimeframe = e.target.value; fetchPrice()};
+  // इवेंट लिसनर्स और LocalStorage सेविंग लॉजिक
+  document.getElementById('coinSelect').onchange = (e) => {
+    currentCoin = e.target.value;
+    localStorage.setItem('currentCoin', currentCoin);
+    countdown = 60; 
+    fetchPrice(); 
+    fetchSentiment();
+  };
+  
+  document.getElementById('currencySelect').onchange = (e) => {
+    currentCurrency = e.target.value;
+    localStorage.setItem('currentCurrency', currentCurrency);
+    countdown = 60; 
+    fetchPrice();
+  };
+  
+  document.getElementById('timeframeSelect').onchange = (e) => {
+    currentTimeframe = e.target.value;
+    localStorage.setItem('currentTimeframe', currentTimeframe);
+    document.getElementById('rsiTime').innerText = e.target.value.toUpperCase(); 
+    fetchSentiment();
+  };
+  
+  document.getElementById('priceTimeframeSelect').onchange = (e) => {
+    priceTimeframe = e.target.value;
+    localStorage.setItem('priceTimeframe', priceTimeframe);
+    fetchPrice();
+  };
 
+  // इनिशियल फेच और इंटरवल मैनेजमेंट (Fix)
   fetchPrice();
   fetchSentiment();
-  setInterval(fetchPrice, 60000);
-  setInterval(fetchSentiment, 300000);
+  priceInterval = setInterval(fetchPrice, 60000);
+  sentimentInterval = setInterval(fetchSentiment, 300000);
   startCountdown();
 }
 
 function startCountdown() {
-  clearInterval(countdownInterval);
   countdown = 60;
   countdownInterval = setInterval(() => {
-    countdown--; if(countdown < 0) countdown = 60;
+    countdown--; 
+    if(countdown < 0) countdown = 60;
     const timerEl = document.getElementById('cooldownTimer');
     if(timerEl){
       timerEl.innerText = `Next update in ${countdown}s`;
-      timerEl.style.background = countdown <= 10? '#ef4444' : '#f59e0b';
+      timerEl.style.background = countdown <= 10 ? '#ef4444' : '#f59e0b';
     }
   }, 1000);
 }
 
 async function fetchPrice() {
   const coin = top10Coins.find(c => c.id === currentCoin);
-  const symbol = currentCurrency === "inr"? "₹" : "$";
-  const currencyName = currentCurrency === "inr"? "INR" : "USDT";
-  document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
-  document.getElementById('livePrice').innerText = "Loading..."; countdown = 60;
+  const symbol = currentCurrency === "inr" ? "₹" : "$";
+  const currencyName = currentCurrency === "inr" ? "INR" : "USDT";
+  
+  const pairTitleEl = document.getElementById('pairTitle');
+  const livePriceEl = document.getElementById('livePrice');
+  if (pairTitleEl) pairTitleEl.innerText = `${coin.symbol}/${currencyName}`;
+  if (livePriceEl) livePriceEl.innerText = "Loading..."; 
+  
+  countdown = 60;
+  
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=${priceTimeframe}`;
-    const res = await fetch(url); const data = await res.json(); const coinData = data[0];
-    document.getElementById('livePrice').innerText = `${symbol}${coinData.current_price.toLocaleString('en-IN')}`;
+    // API URL FIX: अतिरिक्त टाइमफ्रेम डेटा फेच करने के लिए पैरामीटर जोड़ा गया है
+    const url = `https://coingecko.com{currentCurrency}&ids=${currentCoin}&price_change_percentage=1h,24h,7d`;
+    const res = await fetch(url); 
+    if (!res.ok) throw new Error("API Limit");
+    const data = await res.json(); 
+    const coinData = data[0];
+    
+    if(livePriceEl) livePriceEl.innerText = `${symbol}${coinData.current_price.toLocaleString('en-IN')}`;
 
-    const changeKey = `price_change_percentage_${priceTimeframe}_in_currency`;
-    const change = coinData[changeKey].toFixed(2);
-    document.getElementById('changePrice').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}%`;
-    document.getElementById('changePrice').style.color = change >= 0? '#10b981' : '#ef4444';
+    // डायनामिक चेंज की-मैपिंग फिक्स
+    let changeKey = `price_change_percentage_24h_in_currency`;
+    if(priceTimeframe === "1h") changeKey = `price_change_percentage_1h_in_currency`;
+    if(priceTimeframe === "7d") changeKey = `price_change_percentage_7d_in_currency`;
+    
+    const changeVal = coinData[changeKey] || coinData.price_change_percentage_24h || 0;
+    const change = changeVal.toFixed(2);
+    
+    const changePriceEl = document.getElementById('changePrice');
+    if(changePriceEl) {
+      changePriceEl.innerText = `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}%`;
+      changePriceEl.style.color = change >= 0 ? '#10b981' : '#ef4444';
+    }
 
-    document.getElementById('high24h').innerText = `${symbol}${coinData.high_24h.toLocaleString('en-IN')}`;
-    document.getElementById('low24h').innerText = `${symbol}${coinData.low_24h.toLocaleString('en-IN')}`;
-    document.getElementById('lastUpdate').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
-  } catch (error) { document.getElementById('livePrice').innerText = "Error"; }
+    const highEl = document.getElementById('high24h');
+    const lowEl = document.getElementById('low24h');
+    const updateEl = document.getElementById('lastUpdate');
+    
+    if(highEl) highEl.innerText = `${symbol}${coinData.high_24h.toLocaleString('en-IN')}`;
+    if(lowEl) lowEl.innerText = `${symbol}${coinData.low_24h.toLocaleString('en-IN')}`;
+    if(updateEl) updateEl.innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+  } catch (error) { 
+    if(livePriceEl) livePriceEl.innerText = "Rate Limit / Error"; 
+  }
 }
 
-// FIXED + MARKET MOOD ADDED
+// COMPLETELY FIXED + DYNAMIC MARKET MOOD
 async function fetchSentiment() {
   try {
-    // 1. FEAR & GREED FIX
-    const fngRes = await fetch('https://api.alternative.me/fng/');
+    // 1. FEAR & GREED API Implementation
+    const fngRes = await fetch('https://alternative.me');
     const fngData = await fngRes.json();
-    if(fngData.data && fngData.data[0]){
-      const score = fngData.data[0].value;
-      const label = fngData.data[0].value_class;
-      document.getElementById('sentimentScore').innerText = score;
-      document.getElementById('sentimentLabel').innerText = label;
-      document.getElementById('sentimentLabel').style.color = score <= 50? '#ef4444' : '#10b981';
-    }
-
-    const coin = top10Coins.find(c => c.id === currentCoin);
-    let days = 14;
-    if(currentTimeframe === "1h") days = 1;
-    if(currentTimeframe === "4h") days = 1;
-    if(currentTimeframe === "7d") days = 30;
-
-    const chartRes = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=${currentCurrency}&days=${days}`);
-    const chartData = await chartRes.json();
-    const prices = chartData.prices.map(p => p[1]);
-    const marketCaps = chartData.market_caps.map(p => p[1]);
-
-    const rsi = calculateRSI(prices);
-    document.getElementById('rsiValue').innerText = rsi.toFixed(2);
-    document.getElementById('rsiLabel').innerText = rsi < 30? "Oversold/Buy" : rsi > 70? "Overbought/Sell" : "Neutral";
-    document.getElementById('rsiLabel').style.color = rsi < 30? '#10b981' : rsi > 70? '#ef4444' : '#94a3b8';
-
-    // 2. MARKET MOOD LOGIC - NAYA
-    const fngScore = parseInt(document.getElementById('sentimentScore').innerText);
-    let mood = "NEUTRAL";
-    let moodDesc = "Market is sideways";
-    let moodColor = "#94a3b8";
-
-    if(rsi > 60 && fngScore > 60){
-      mood = "BULLISH";
-      moodDesc = "Strong uptrend, Greed in market";
-      moodColor = "#10b981";
-    } else if(rsi < 40 && fngScore < 40){
-      mood = "BEARISH";
-      moodDesc = "Downtrend, Fear in market";
-      moodColor = "#ef4444";
-    } else if(rsi >= 40 && rsi <= 60){
-      mood = "SIDEWAYS";
-      moodDesc = "Consolidation phase";
-      moodColor = "#f59e0b";
-    }
-
-    document.getElementById('marketMood').innerText = mood;
-    document.getElementById('marketMood').style.color = moodColor;
-    document.getElementById('marketMoodDesc').innerText = moodDesc;
-
-    let pointsToCheck = currentTimeframe === "1h"? 4 : currentTimeframe === "4h"? 16 : currentTimeframe === "1d"? 1 : 7;
-    if(marketCaps.length > pointsToCheck){
-      const oldCap = marketCaps[marketCaps.length - pointsToCheck - 1];
-      const newCap = marketCaps[marketCaps.length - 1];
-      const mcapChange = ((newCap - oldCap) / oldCap) * 100;
-      document.getElementById('marketCapChange').innerText = `${mcapChange >= 0? '+' : ''}${mcapChange.toFixed(2)}%`;
-      document.getElementById('marketCapChange').style.color = mcapChange >= 0? '#10b981' : '#ef4444';
-    }
-  } catch (error) { console.error("Sentiment error", error); }
-}
-
-function calculateRSI(prices) {
-  let gains = 0, losses = 0;
-  for(let i = 1; i < prices.length; i++){
-    const diff = prices[i] - prices[i-1];
-    if(diff > 0) gains += diff; else losses -= diff;
-  }
-  const avgGain = gains / (prices.length-1);
-  const avgLoss = losses / (prices.length-1);
-  if(avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
-}
+    const fngValue = parseInt(fngData.data[0].value);
