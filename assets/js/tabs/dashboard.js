@@ -13,6 +13,8 @@ const top10Coins = [
 
 let currentCoin = "bitcoin";
 let currentCurrency = "usd";
+let countdown = 60; // countdown timer
+let countdownInterval;
 
 function renderDashboard() {
   showScreen(`
@@ -32,7 +34,9 @@ function renderDashboard() {
         <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
         <div class="change" id="change24h">--</div>
-        <div style="margin:15px 0;"><span style="background:#10b981; padding:4px 12px; border-radius:6px; font-size:12px;">LIVE</span></div>
+        <div style="margin:15px 0;">
+          <span id="cooldownTimer" style="background:#f59e0b; padding:4px 12px; border-radius:6px; font-size:12px; color:white;">Next update in 60s</span>
+        </div>
         <div style="font-size:11px; color:#64748b;" id="lastUpdate">Last Update: --</div>
       </div>
 
@@ -45,14 +49,29 @@ function renderDashboard() {
 
   document.getElementById('coinSelect').value = currentCoin;
   document.getElementById('currencySelect').value = currentCurrency;
-  document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; fetchPrice()};
-  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; fetchPrice()};
+  document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; countdown = 60; fetchPrice()};
+  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
 
   fetchPrice();
-  setInterval(fetchPrice, 60000); // 60sec
+  setInterval(fetchPrice, 60000); // 60sec auto fetch
+  startCountdown(); // countdown start
 }
 
-// NAYA TARIKA: CoinGecko v3 /coins/markets
+function startCountdown() {
+  clearInterval(countdownInterval);
+  countdown = 60;
+  countdownInterval = setInterval(() => {
+    countdown--;
+    if(countdown < 0) countdown = 60;
+    const timerEl = document.getElementById('cooldownTimer');
+    if(timerEl){
+      timerEl.innerText = `Next update in ${countdown}s`;
+      timerEl.style.background = countdown <= 10 ? '#ef4444' : '#f59e0b'; // 10s pe red
+    }
+  }, 1000);
+}
+
+// CoinGecko v3 /coins/markets
 async function fetchPrice() {
   const coin = top10Coins.find(c => c.id === currentCoin);
   const symbol = currentCurrency === "inr"? "₹" : "$";
@@ -60,9 +79,9 @@ async function fetchPrice() {
 
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading...";
+  countdown = 60; // reset countdown on fetch
 
   try {
-    // YE WALA API CORS BLOCK NAHI KARTA
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h`;
     
     const res = await fetch(url);
