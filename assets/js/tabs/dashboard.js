@@ -20,24 +20,7 @@ function renderDashboard() {
   showScreen(`
     ${getNavbar()}
 
-    <!-- MARKET SENTIMENT CARD -->
-    <div class="card" style="margin-bottom:15px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div style="color:#94a3b8; font-size:12px;">Market Sentiment</div>
-          <div style="font-size:18px; font-weight:700;" id="sentimentLabel">Loading...</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:24px; font-weight:800;" id="sentimentScore">--</div>
-          <div style="font-size:10px; color:#94a3b8;">Fear & Greed</div>
-        </div>
-      </div>
-      <div style="height:6px; background:#1e293b; border-radius:3px; margin-top:10px;">
-        <div id="sentimentBar" style="height:6px; border-radius:3px; width:0%; transition:width 0.5s;"></div>
-      </div>
-    </div>
-
-    <!-- PRICE CARD -->
+    <!-- 1. PRICE CARD - UPAR -->
     <div class="card">
       <div style="display:flex; gap:10px; margin-bottom:20px;">
         <select id="coinSelect" style="flex:1; padding:12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
@@ -64,6 +47,23 @@ function renderDashboard() {
         <div><div style="color:#94a3b8; font-size:12px;">24h Low</div><div style="font-size:16px; font-weight:600;" id="low24h">--</div></div>
       </div>
     </div>
+
+    <!-- 2. MARKET SENTIMENT CARD - NICHE -->
+    <div class="card" style="margin-top:15px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="color:#94a3b8; font-size:12px;">Market Sentiment</div>
+          <div style="font-size:18px; font-weight:700;" id="sentimentLabel">Loading...</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:24px; font-weight:800;" id="sentimentScore">--</div>
+          <div style="font-size:10px; color:#94a3b8;">Fear & Greed</div>
+        </div>
+      </div>
+      <div style="height:6px; background:#1e293b; border-radius:3px; margin-top:10px;">
+        <div id="sentimentBar" style="height:6px; border-radius:3px; width:0%; transition:width 0.5s;"></div>
+      </div>
+    </div>
   `);
 
   document.getElementById('coinSelect').value = currentCoin;
@@ -72,9 +72,9 @@ function renderDashboard() {
   document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
 
   fetchPrice();
-  fetchSentiment(); // नया function
+  fetchSentiment();
   setInterval(fetchPrice, 60000);
-  setInterval(fetchSentiment, 300000); // 5 min में 1 बार sentiment
+  setInterval(fetchSentiment, 300000);
   startCountdown();
 }
 
@@ -126,7 +126,6 @@ async function fetchPrice() {
   }
 }
 
-// NAYA FUNCTION: Fear & Greed Index
 async function fetchSentiment() {
   try {
     const res = await fetch('https://api.alternative.me/fng/');
@@ -141,10 +140,10 @@ async function fetchSentiment() {
     const bar = document.getElementById('sentimentBar');
     bar.style.width = `${score}%`;
 
-    if(score <= 25) bar.style.background = '#ef4444'; // Extreme Fear - Red
-    else if(score <= 50) bar.style.background = '#f97316'; // Fear - Orange
-    else if(score <= 75) bar.style.background = '#10b981'; // Greed - Green
-    else bar.style.background = '#22c55e'; // Extreme Greed - Bright Green
+    if(score <= 25) bar.style.background = '#ef4444';
+    else if(score <= 50) bar.style.background = '#f97316';
+    else if(score <= 75) bar.style.background = '#10b981';
+    else bar.style.background = '#22c55e';
 
   } catch (error) {
     console.error("Sentiment error", error);
