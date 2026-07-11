@@ -32,7 +32,6 @@ function renderDashboard() {
         <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
 
-        <!-- Timeframe Dropdown for Change -->
         <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin:10px 0;">
           <div class="change" id="changePrice">--</div>
           <select id="priceTimeframeSelect" style="padding:4px 8px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px; font-size:12px;">
@@ -63,6 +62,13 @@ function renderDashboard() {
           <option value="1d" selected>1 Day</option>
           <option value="7d">7 Day</option>
         </select>
+      </div>
+
+      <!-- NAYA: MARKET MOOD -->
+      <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding:15px; border-radius:10px; margin-bottom:12px; text-align:center; border:1px solid #334155;">
+        <div style="color:#94a3b8; font-size:11px; margin-bottom:5px;">MARKET MOOD</div>
+        <div style="font-size:22px; font-weight:800;" id="marketMood">--</div>
+        <div style="font-size:11px; color:#94a3b8;" id="marketMoodDesc">Analyzing...</div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -136,15 +142,19 @@ async function fetchPrice() {
   } catch (error) { document.getElementById('livePrice').innerText = "Error"; }
 }
 
+// FIXED + MARKET MOOD ADDED
 async function fetchSentiment() {
   try {
+    // 1. FEAR & GREED FIX
     const fngRes = await fetch('https://api.alternative.me/fng/');
     const fngData = await fngRes.json();
-    const score = fngData.data[0].value;
-    const label = fngData.data[0].value_class;
-    document.getElementById('sentimentScore').innerText = score;
-    document.getElementById('sentimentLabel').innerText = label;
-    document.getElementById('sentimentLabel').style.color = score <= 50? '#ef4444' : '#10b981';
+    if(fngData.data && fngData.data[0]){
+      const score = fngData.data[0].value;
+      const label = fngData.data[0].value_class;
+      document.getElementById('sentimentScore').innerText = score;
+      document.getElementById('sentimentLabel').innerText = label;
+      document.getElementById('sentimentLabel').style.color = score <= 50? '#ef4444' : '#10b981';
+    }
 
     const coin = top10Coins.find(c => c.id === currentCoin);
     let days = 14;
@@ -161,6 +171,30 @@ async function fetchSentiment() {
     document.getElementById('rsiValue').innerText = rsi.toFixed(2);
     document.getElementById('rsiLabel').innerText = rsi < 30? "Oversold/Buy" : rsi > 70? "Overbought/Sell" : "Neutral";
     document.getElementById('rsiLabel').style.color = rsi < 30? '#10b981' : rsi > 70? '#ef4444' : '#94a3b8';
+
+    // 2. MARKET MOOD LOGIC - NAYA
+    const fngScore = parseInt(document.getElementById('sentimentScore').innerText);
+    let mood = "NEUTRAL";
+    let moodDesc = "Market is sideways";
+    let moodColor = "#94a3b8";
+
+    if(rsi > 60 && fngScore > 60){
+      mood = "BULLISH";
+      moodDesc = "Strong uptrend, Greed in market";
+      moodColor = "#10b981";
+    } else if(rsi < 40 && fngScore < 40){
+      mood = "BEARISH";
+      moodDesc = "Downtrend, Fear in market";
+      moodColor = "#ef4444";
+    } else if(rsi >= 40 && rsi <= 60){
+      mood = "SIDEWAYS";
+      moodDesc = "Consolidation phase";
+      moodColor = "#f59e0b";
+    }
+
+    document.getElementById('marketMood').innerText = mood;
+    document.getElementById('marketMood').style.color = moodColor;
+    document.getElementById('marketMoodDesc').innerText = moodDesc;
 
     let pointsToCheck = currentTimeframe === "1h"? 4 : currentTimeframe === "4h"? 16 : currentTimeframe === "1d"? 1 : 7;
     if(marketCaps.length > pointsToCheck){
