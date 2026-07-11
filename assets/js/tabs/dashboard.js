@@ -9,6 +9,7 @@ const top10Coins = [
 let currentCoin = "bitcoin";
 let currentCurrency = "usd";
 let currentTimeframe = "1d";
+let priceTimeframe = "24h"; // NAYA: Price change ka timeframe
 let countdown = 60;
 let countdownInterval;
 
@@ -30,7 +31,19 @@ function renderDashboard() {
       <div style="text-align:center;">
         <div style="color:#94a3b8; font-size:14px; margin-bottom:5px;" id="pairTitle">BTC/USDT</div>
         <div class="price" id="livePrice">Loading...</div>
-        <div class="change" id="change24h">--</div>
+
+        <!-- NAYA: Timeframe Dropdown for Change -->
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin:10px 0;">
+          <div class="change" id="changePrice">--</div>
+          <select id="priceTimeframeSelect" style="padding:4px 8px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px; font-size:12px;">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+            <option value="24h" selected>24h</option>
+            <option value="7d">7d</option>
+          </select>
+        </div>
+
         <div style="margin:15px 0;"><span id="cooldownTimer" style="background:#f59e0b; padding:4px 12px; border-radius:6px; font-size:12px; color:white;">Next update in 60s</span></div>
         <div style="font-size:11px; color:#64748b;" id="lastUpdate">Last Update: --</div>
       </div>
@@ -70,7 +83,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- 3. TOP 10 COINS LIST - NAYA -->
+    <!-- 3. TOP 10 COINS LIST - FIXED -->
     <div class="card" style="margin-top:15px;">
       <div style="font-size:16px; font-weight:700; margin-bottom:15px;">Top 10 Cryptocurrencies</div>
       <div id="top10List">Loading...</div>
@@ -80,17 +93,19 @@ function renderDashboard() {
   document.getElementById('coinSelect').value = currentCoin;
   document.getElementById('currencySelect').value = currentCurrency;
   document.getElementById('timeframeSelect').value = currentTimeframe;
+  document.getElementById('priceTimeframeSelect').value = priceTimeframe;
 
   document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; countdown = 60; fetchPrice(); fetchSentiment()};
   document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice(); fetchTop10()};
   document.getElementById('timeframeSelect').onchange = (e) => {currentTimeframe = e.target.value; document.getElementById('rsiTime').innerText = e.target.value.toUpperCase(); document.getElementById('mcapTime').innerText = e.target.value.toUpperCase(); fetchSentiment()};
+  document.getElementById('priceTimeframeSelect').onchange = (e) => {priceTimeframe = e.target.value; fetchPrice()}; // NAYA
 
   fetchPrice();
   fetchSentiment();
-  fetchTop10(); // NAYA
+  fetchTop10();
   setInterval(fetchPrice, 60000);
   setInterval(fetchSentiment, 300000);
-  setInterval(fetchTop10, 60000); // NAYA
+  setInterval(fetchTop10, 60000);
   startCountdown();
 }
 
@@ -114,27 +129,30 @@ async function fetchPrice() {
   document.getElementById('pairTitle').innerText = `${coin.symbol}/${currencyName}`;
   document.getElementById('livePrice').innerText = "Loading..."; countdown = 60;
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=24h`;
+    // NAYA: price_change_percentage me timeframe add kiya
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${currentCoin}&price_change_percentage=${priceTimeframe}`;
     const res = await fetch(url); const data = await res.json(); const coinData = data[0];
     document.getElementById('livePrice').innerText = `${symbol}${coinData.current_price.toLocaleString('en-IN')}`;
-    const change = coinData.price_change_percentage_24h.toFixed(2);
-    document.getElementById('change24h').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}% (24h)`;
-    document.getElementById('change24h').style.color = change >= 0? '#10b981' : '#ef4444';
+
+    const changeKey = `price_change_percentage_${priceTimeframe}_in_currency`;
+    const change = coinData[changeKey].toFixed(2);
+    document.getElementById('changePrice').innerText = `${change >= 0? '▲' : '▼'} ${Math.abs(change)}%`;
+    document.getElementById('changePrice').style.color = change >= 0? '#10b981' : '#ef4444';
+
     document.getElementById('high24h').innerText = `${symbol}${coinData.high_24h.toLocaleString('en-IN')}`;
     document.getElementById('low24h').innerText = `${symbol}${coinData.low_24h.toLocaleString('en-IN')}`;
     document.getElementById('lastUpdate').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
   } catch (error) { document.getElementById('livePrice').innerText = "Error"; }
 }
 
-// FIXED SENTIMENT
 async function fetchSentiment() {
   try {
     const fngRes = await fetch('https://api.alternative.me/fng/');
     const fngData = await fngRes.json();
     const score = fngData.data[0].value;
-    const label = fngData.data[0].value_class; // FIX: label add kiya
+    const label = fngData.data[0].value_class;
     document.getElementById('sentimentScore').innerText = score;
-    document.getElementById('sentimentLabel').innerText = label; // FIX
+    document.getElementById('sentimentLabel').innerText = label;
     document.getElementById('sentimentLabel').style.color = score <= 50? '#ef4444' : '#10b981';
 
     const coin = top10Coins.find(c => c.id === currentCoin);
@@ -153,7 +171,6 @@ async function fetchSentiment() {
     document.getElementById('rsiLabel').innerText = rsi < 30? "Oversold/Buy" : rsi > 70? "Overbought/Sell" : "Neutral";
     document.getElementById('rsiLabel').style.color = rsi < 30? '#10b981' : rsi > 70? '#ef4444' : '#94a3b8';
 
-    // FIX: NaN error ka solution
     let pointsToCheck = currentTimeframe === "1h"? 4 : currentTimeframe === "4h"? 16 : currentTimeframe === "1d"? 1 : 7;
     if(marketCaps.length > pointsToCheck){
       const oldCap = marketCaps[marketCaps.length - pointsToCheck - 1];
@@ -162,29 +179,28 @@ async function fetchSentiment() {
       document.getElementById('marketCapChange').innerText = `${mcapChange >= 0? '+' : ''}${mcapChange.toFixed(2)}%`;
       document.getElementById('marketCapChange').style.color = mcapChange >= 0? '#10b981' : '#ef4444';
     }
-
   } catch (error) { console.error("Sentiment error", error); }
 }
 
-// NAYA: TOP 10 LIST
+// FIXED: TOP 10 LIST with proper alignment
 async function fetchTop10() {
   try {
     const symbol = currentCurrency === "inr"? "₹" : "$";
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${top10Coins.map(c=>c.id).join(',')}&order=market_cap_desc`;
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${top10Coins.map(c=>c.id).join(',')}&order=market_cap_desc&price_change_percentage=24h`;
     const res = await fetch(url);
     const data = await res.json();
-    
+
     const listHtml = data.map((coin, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #1e293b;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="color:#94a3b8; font-size:12px;">${i+1}</div>
+        <div style="display:flex; align-items:center; gap:10px; flex:1;">
+          <div style="color:#94a3b8; font-size:12px; width:20px;">${i+1}</div>
           <img src="${coin.image}" style="width:24px; height:24px;">
           <div>
             <div style="font-weight:600;">${coin.name}</div>
             <div style="color:#94a3b8; font-size:11px;">${coin.symbol.toUpperCase()}</div>
           </div>
         </div>
-        <div style="text-align:right;">
+        <div style="text-align:right; width:120px;">
           <div style="font-weight:600;">${symbol}${coin.current_price.toLocaleString('en-IN')}</div>
           <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0? '#10b981' : '#ef4444'};">
             ${coin.price_change_percentage_24h >= 0? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
@@ -192,7 +208,7 @@ async function fetchTop10() {
         </div>
       </div>
     `).join('');
-    
+
     document.getElementById('top10List').innerHTML = listHtml;
   } catch (error) { document.getElementById('top10List').innerText = "Error loading data"; }
 }
