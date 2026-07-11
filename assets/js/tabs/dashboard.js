@@ -40,7 +40,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- 2. ADVANCED SENTIMENT CARD -->
+    <!-- 2. MARKET ANALYSIS CARD -->
     <div class="card" style="margin-top:15px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="font-size:16px; font-weight:700;">Market Analysis</div>
@@ -53,24 +53,27 @@ function renderDashboard() {
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <!-- Fear & Greed -->
         <div style="background:#1e293b; padding:12px; border-radius:8px;">
           <div style="color:#94a3b8; font-size:11px;">Fear & Greed</div>
           <div style="font-size:20px; font-weight:800;" id="sentimentScore">--</div>
-          <div style="font-size:10px;" id="sentimentLabel">--</div>
+          <div style="font-size:10px;" id="sentimentLabel">Loading...</div>
         </div>
-        <!-- RSI -->
         <div style="background:#1e293b; padding:12px; border-radius:8px;">
           <div style="color:#94a3b8; font-size:11px;">RSI <span id="rsiTime">1D</span></div>
           <div style="font-size:20px; font-weight:800;" id="rsiValue">--</div>
           <div style="font-size:10px;" id="rsiLabel">--</div>
         </div>
-        <!-- Market Cap Change - NAYA -->
         <div style="background:#1e293b; padding:12px; border-radius:8px; grid-column: span 2;">
-          <div style="color:#94a3b8; font-size:11px;">Total Market Cap Change <span id="mcapTime">24H</span></div>
+          <div style="color:#94a3b8; font-size:11px;">Market Cap Change <span id="mcapTime">24H</span></div>
           <div style="font-size:20px; font-weight:800;" id="marketCapChange">--%</div>
         </div>
       </div>
+    </div>
+
+    <!-- 3. TOP 10 COINS LIST - NAYA -->
+    <div class="card" style="margin-top:15px;">
+      <div style="font-size:16px; font-weight:700; margin-bottom:15px;">Top 10 Cryptocurrencies</div>
+      <div id="top10List">Loading...</div>
     </div>
   `);
 
@@ -79,13 +82,15 @@ function renderDashboard() {
   document.getElementById('timeframeSelect').value = currentTimeframe;
 
   document.getElementById('coinSelect').onchange = (e) => {currentCoin = e.target.value; countdown = 60; fetchPrice(); fetchSentiment()};
-  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice()};
+  document.getElementById('currencySelect').onchange = (e) => {currentCurrency = e.target.value; countdown = 60; fetchPrice(); fetchTop10()};
   document.getElementById('timeframeSelect').onchange = (e) => {currentTimeframe = e.target.value; document.getElementById('rsiTime').innerText = e.target.value.toUpperCase(); document.getElementById('mcapTime').innerText = e.target.value.toUpperCase(); fetchSentiment()};
 
   fetchPrice();
   fetchSentiment();
+  fetchTop10(); // NAYA
   setInterval(fetchPrice, 60000);
   setInterval(fetchSentiment, 300000);
+  setInterval(fetchTop10, 60000); // NAYA
   startCountdown();
 }
 
@@ -121,45 +126,75 @@ async function fetchPrice() {
   } catch (error) { document.getElementById('livePrice').innerText = "Error"; }
 }
 
-// ADVANCED SENTIMENT WITH TIMEFRAME
+// FIXED SENTIMENT
 async function fetchSentiment() {
   try {
-    // 1. Fear & Greed - same
     const fngRes = await fetch('https://api.alternative.me/fng/');
     const fngData = await fngRes.json();
     const score = fngData.data[0].value;
+    const label = fngData.data[0].value_class; // FIX: label add kiya
     document.getElementById('sentimentScore').innerText = score;
-    document.getElementById('sentimentLabel').innerText = fngData.data[0].value_class;
+    document.getElementById('sentimentLabel').innerText = label; // FIX
     document.getElementById('sentimentLabel').style.color = score <= 50? '#ef4444' : '#10b981';
 
-    // 2. RSI + Market Cap Change based on timeframe
     const coin = top10Coins.find(c => c.id === currentCoin);
-    let days = 1, interval = 'hourly';
-    if(currentTimeframe === "1h") { days = 1; interval = 'hourly'; }
-    if(currentTimeframe === "4h") { days = 1; interval = 'hourly'; }
-    if(currentTimeframe === "1d") { days = 14; interval = 'daily'; }
-    if(currentTimeframe === "7d") { days = 30; interval = 'daily'; }
+    let days = 14;
+    if(currentTimeframe === "1h") days = 1;
+    if(currentTimeframe === "4h") days = 1;
+    if(currentTimeframe === "7d") days = 30;
 
     const chartRes = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=${currentCurrency}&days=${days}`);
     const chartData = await chartRes.json();
     const prices = chartData.prices.map(p => p[1]);
     const marketCaps = chartData.market_caps.map(p => p[1]);
 
-    // RSI Calculate
     const rsi = calculateRSI(prices);
     document.getElementById('rsiValue').innerText = rsi.toFixed(2);
     document.getElementById('rsiLabel').innerText = rsi < 30? "Oversold/Buy" : rsi > 70? "Overbought/Sell" : "Neutral";
     document.getElementById('rsiLabel').style.color = rsi < 30? '#10b981' : rsi > 70? '#ef4444' : '#94a3b8';
 
-    // Market Cap Change Calculate
-    let pointsToCheck = currentTimeframe === "1h"? 4 : currentTimeframe === "4h"? 4 : currentTimeframe === "1d"? 1 : 7;
-    const oldCap = marketCaps[marketCaps.length - pointsToCheck - 1][1];
-    const newCap = marketCaps[marketCaps.length - 1][1];
-    const mcapChange = ((newCap - oldCap) / oldCap) * 100;
-    document.getElementById('marketCapChange').innerText = `${mcapChange >= 0? '+' : ''}${mcapChange.toFixed(2)}%`;
-    document.getElementById('marketCapChange').style.color = mcapChange >= 0? '#10b981' : '#ef4444';
+    // FIX: NaN error ka solution
+    let pointsToCheck = currentTimeframe === "1h"? 4 : currentTimeframe === "4h"? 16 : currentTimeframe === "1d"? 1 : 7;
+    if(marketCaps.length > pointsToCheck){
+      const oldCap = marketCaps[marketCaps.length - pointsToCheck - 1];
+      const newCap = marketCaps[marketCaps.length - 1];
+      const mcapChange = ((newCap - oldCap) / oldCap) * 100;
+      document.getElementById('marketCapChange').innerText = `${mcapChange >= 0? '+' : ''}${mcapChange.toFixed(2)}%`;
+      document.getElementById('marketCapChange').style.color = mcapChange >= 0? '#10b981' : '#ef4444';
+    }
 
   } catch (error) { console.error("Sentiment error", error); }
+}
+
+// NAYA: TOP 10 LIST
+async function fetchTop10() {
+  try {
+    const symbol = currentCurrency === "inr"? "₹" : "$";
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency}&ids=${top10Coins.map(c=>c.id).join(',')}&order=market_cap_desc`;
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    const listHtml = data.map((coin, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #1e293b;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="color:#94a3b8; font-size:12px;">${i+1}</div>
+          <img src="${coin.image}" style="width:24px; height:24px;">
+          <div>
+            <div style="font-weight:600;">${coin.name}</div>
+            <div style="color:#94a3b8; font-size:11px;">${coin.symbol.toUpperCase()}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:600;">${symbol}${coin.current_price.toLocaleString('en-IN')}</div>
+          <div style="font-size:12px; color:${coin.price_change_percentage_24h >= 0? '#10b981' : '#ef4444'};">
+            ${coin.price_change_percentage_24h >= 0? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    document.getElementById('top10List').innerHTML = listHtml;
+  } catch (error) { document.getElementById('top10List').innerText = "Error loading data"; }
 }
 
 function calculateRSI(prices) {
@@ -170,6 +205,7 @@ function calculateRSI(prices) {
   }
   const avgGain = gains / (prices.length-1);
   const avgLoss = losses / (prices.length-1);
+  if(avgLoss === 0) return 100;
   const rs = avgGain / avgLoss;
   return 100 - (100 / (1 + rs));
 }
