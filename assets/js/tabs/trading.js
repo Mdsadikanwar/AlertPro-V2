@@ -4,26 +4,42 @@ function renderTrading() {
       <h2>📈 Trading Terminal</h2>
       
       <div class="card">
+        <h3>Live Chart</h3>
+        <div id="tradingview_chart" style="height: 500px;"></div>
+      </div>
+
+      <div class="card">
         <h3>Balance</h3>
         <div id="balance-ui">Loading...</div>
       </div>
 
       <div class="card">
         <h3>Trade</h3>
-        <p>Coin: <b>${currentCoin.toUpperCase()}</b></p>
         <button onclick="placeTrade('BUY')" class="btn-buy">BUY</button>
         <button onclick="placeTrade('SELL')" class="btn-sell">SELL</button>
-      </div>
-
-      <div class="card">
-        <h3>Auto Trade</h3>
-        <button onclick="toggleAuto()" id="autoBtn">OFF</button>
       </div>
     </div>
   `);
   
+  loadTradingViewWidget(); 
   updateBalanceUI();
-  setupTradingEvents();
+}
+
+function loadTradingViewWidget() {
+  new TradingView.widget({
+    "width": "100%", 
+    "height": 500, 
+    "symbol": "BINANCE:BTCUSDT", 
+    "interval": "60",
+    "timezone": "Asia/Kolkata", 
+    "theme": "dark", 
+    "style": "1", 
+    "locale": "en",
+    "toolbar_bg": "#1f2937", 
+    "enable_publishing": false, 
+    "allow_symbol_change": true,
+    "container_id": "tradingview_chart"
+  });
 }
 
 function updateBalanceUI() {
@@ -34,15 +50,5 @@ function updateBalanceUI() {
 }
 
 function placeTrade(type) {
-  alert(`${type} order placed for ${currentCoin.toUpperCase()}`);
-  // yahan apna real trade logic daal dena
-}
-
-function toggleAuto() {
-  autoTrade = !autoTrade;
-  document.getElementById('autoBtn').innerText = autoTrade ? "ON" : "OFF";
-}
-
-function setupTradingEvents() {
-  // agar coin select dropdown hai to yahan event laga de
+  alert(`${type} order placed`);
 }
