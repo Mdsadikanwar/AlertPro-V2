@@ -1,51 +1,144 @@
 let tradeBalance = { usdt: 1000, inr: 83000 };
-let tradeHistory = JSON.parse(localStorage.getItem('tradeHistory') || "[]");
+let currentCurrency = 'usdt';
+let chartData = [];
 
 function renderTrading() {
-    console.log("Trading tab clicked"); // Debug के लिए
-    
     showScreen(`
         ${getNavbar()}
         <div class="card">
+            <!-- HEADER + AUTO TOGGLE -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <div style="font-size:18px; font-weight:700;">Trading Panel</div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="font-size:11px; font-weight:600;">Auto</div>
-                    <label style="position:relative; display:inline-block; width:44px; height:24px;">
-                        <input type="checkbox" id="autoToggle" style="opacity:0; width:0; height:0;">
-                        <span id="toggleSlider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#334155; border-radius:24px;"></span>
-                    </label>
+                <div>
+                    <div style="font-size:18px; font-weight:700;">Trading Terminal</div>
+                    <div style="font-size:11px; color:#94a3b8;">Auto Bot: <span id="autoStatus" style="color:#ef4444;">OFF</span></div>
+                </div>
+                <label style="position:relative; display:inline-block; width:50px; height:26px;">
+                    <input type="checkbox" id="autoToggle" style="opacity:0; width:0; height:0;">
+                    <span id="toggleSlider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#334155; border-radius:26px; transition:0.3s;"></span>
+                    <span id="toggleDot" style="position:absolute; height:22px; width:22px; left:2px; bottom:2px; background:white; border-radius:50%; transition:0.3s;"></span>
+                </label>
+            </div>
+
+            <!-- BALANCE -->
+            <div style="background:#1e293b; padding:15px; border-radius:12px; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="color:#94a3b8; font-size:12px;">Available Balance</div>
+                        <div style="font-size:24px; font-weight:800;" id="balanceText">$1000.00</div>
+                    </div>
+                    <div style="display:flex; gap:5px; background:#0f172a; padding:4px; border-radius:8px;">
+                        <button id="btnUsdt" style="padding:6px 12px; border:none; border-radius:6px; background:#0ea5e9; color:white; font-weight:600;">USDT</button>
+                        <button id="btnInr" style="padding:6px 12px; border:none; border-radius:6px; background:transparent; color:#94a3b8;">INR</button>
+                    </div>
                 </div>
             </div>
 
-            <div style="background:#1e293b; padding:15px; border-radius:10px; margin-bottom:15px;">
-                <div style="color:#94a3b8; font-size:12px;">Balance</div>
-                <div style="font-size:22px; font-weight:800;">$1000.00</div>
-            </div>
-
+            <!-- COIN SELECT + TIMEFRAME -->
             <div style="margin-bottom:15px;">
-                <select id="tradeCoinSelect" style="width:100%; padding:10px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
+                <select id="tradeCoinSelect" style="width:100%; padding:12px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px; margin-bottom:10px;">
                     <option value="bitcoin">Bitcoin (BTC)</option>
                     <option value="ethereum">Ethereum (ETH)</option>
                     <option value="solana">Solana (SOL)</option>
+                    <option value="binancecoin">BNB (BNB)</option>
+                    <option value="ripple">XRP (XRP)</option>
                 </select>
+                <div style="display:flex; gap:6px;">
+                    <button class="tfBtn active" data-days="1" style="flex:1; padding:8px; background:#0ea5e9; color:white; border:none; border-radius:6px;">1D</button>
+                    <button class="tfBtn" data-days="7" style="flex:1; padding:8px; background:#334155; color:white; border:none; border-radius:6px;">7D</button>
+                    <button class="tfBtn" data-days="30" style="flex:1; padding:8px; background:#334155; color:white; border:none; border-radius:6px;">30D</button>
+                </div>
             </div>
 
-            <div style="background:#0f172a; padding:10px; border-radius:10px; margin-bottom:15px; text-align:center; color:#94a3b8; height:200px;">
-                Chart yaha aayega
+            <!-- CHART -->
+            <div style="background:#0f172a; padding:10px; border-radius:12px; margin-bottom:15px;">
+                <canvas id="tradingChart" style="width:100%; height:280px;"></canvas>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <button id="buyBtn" style="background:#10b981; color:white; padding:14px; border:none; border-radius:8px; font-weight:700;">BUY</button>
-                <button id="sellBtn" style="background:#ef4444; color:white; padding:14px; border:none; border-radius:8px; font-weight:700;">SELL</button>
+            <!-- BUY/SELL -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <button id="buyBtn" style="background:#10b981; color:white; padding:16px; border:none; border-radius:10px; font-weight:800; font-size:16px;">BUY</button>
+                <button id="sellBtn" style="background:#ef4444; color:white; padding:16px; border:none; border-radius:10px; font-weight:800; font-size:16px;">SELL</button>
             </div>
         </div>
     `);
 
-    // Events lagao
-    document.getElementById('buyBtn').onclick = () => alert("BUY Clicked");
-    document.getElementById('sellBtn').onclick = () => alert("SELL Clicked");
-    document.getElementById('autoToggle').onchange = (e) => {
-        document.getElementById('toggleSlider').style.background = e.target.checked? "#10b981" : "#334155";
-    }
+    setupTradingEvents();
+    fetchChart(1); // Default 1D
+    updateBalanceUI();
+}
+
+function setupTradingEvents() {
+    document.getElementById('buyBtn').onclick = () => placeTrade('BUY');
+    document.getElementById('sellBtn').onclick = () => placeTrade('SELL');
+    document.getElementById('autoToggle').onchange = (e) => toggleAuto(e.target.checked);
+    document.getElementById('btnUsdt').onclick = () => switchCurrency('usdt');
+    document.getElementById('btnInr').onclick = () => switchCurrency('inr');
+    document.getElementById('tradeCoinSelect').onchange = () => fetchChart(1);
+
+    document.querySelectorAll('.tfBtn').forEach(btn => {
+        btn.onclick = (e) => {
+            document.querySelectorAll('.tfBtn').forEach(b => b.style.background = '#334155');
+            e.target.style.background = '#0ea5e9';
+            fetchChart(e.target.dataset.days);
+        }
+    });
+}
+
+// COINGECKO SE CHART DATA
+async function fetchChart(days) {
+    const coin = document.getElementById('tradeCoinSelect').value;
+    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=${days}`);
+    const data = await res.json();
+    chartData = data.prices; // [[timestamp, price],...]
+    drawChart();
+}
+
+function drawChart() {
+    const canvas = document.getElementById('tradingChart');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth; canvas.height = 280; ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const prices = chartData.map(p => p[1]);
+    const max = Math.max(...prices);
+    const min = Math.min(...prices);
+
+    ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.beginPath();
+    chartData.forEach((p, i) => {
+        const x = (i / chartData.length) * canvas.width;
+        const y = canvas.height - ((p[1] - min) / (max - min)) * canvas.height;
+        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+}
+
+// AUTO TRADE TOGGLE
+let autoTrade = false;
+function toggleAuto(status) {
+    autoTrade = status;
+    document.getElementById('toggleSlider').style.background = status? "#10b981" : "#334155";
+    document.getElementById('toggleDot').style.left = status? "26px" : "2px";
+    document.getElementById('autoStatus').innerText = status? "ON" : "OFF";
+    document.getElementById('autoStatus').style.color = status? "#10b981" : "#ef4444";
+    alert(status? "Auto Trading ON" : "Auto Trading OFF");
+}
+
+// BALANCE + TRADE
+function switchCurrency(curr) {
+    currentCurrency = curr;
+    document.getElementById('btnUsdt').style.background = curr === 'usdt'? '#0ea5e9' : 'transparent';
+    document.getElementById('btnInr').style.background = curr === 'inr'? '#0ea5e9' : 'transparent';
+    updateBalanceUI();
+}
+
+function updateBalanceUI() {
+    const symbol = currentCurrency === 'usdt'? '$' : '₹';
+    document.getElementById('balanceText').innerText = symbol + tradeBalance[currentCurrency].toFixed(2);
+}
+
+function placeTrade(type) {
+    const amount = 100; // Dummy 100$ trade
+    if(type === 'BUY') tradeBalance[currentCurrency] -= amount;
+    if(type === 'SELL') tradeBalance[currentCurrency] += amount;
+    updateBalanceUI();
+    alert(`${type} Order Placed: ${amount} ${currentCurrency.toUpperCase()}`);
 }
