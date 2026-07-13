@@ -2,7 +2,7 @@ let currentSymbol = "BINANCE:BTCUSDT";
 let orderType = "BUY";
 let orderMode = "Limit";
 let amountType = "USDT";
-let openPosition = null; // position store karne ke liye
+let openPosition = null;
 
 function renderTrading() {
   let coin = currentSymbol.split(":")[1].replace("USDT","");
@@ -77,7 +77,7 @@ function renderTrading() {
         <div id="balance-ui">Loading...</div>
       </div>
 
-      <!-- NAYA: OPEN POSITION CARD -->
+      <!-- OPEN POSITION CARD -->
       <div class="card">
         <h3>Open Position</h3>
         <div id="position-ui">No open position</div>
@@ -91,7 +91,7 @@ function renderTrading() {
   updateOrderUI();
   updatePositionUI();
   setInterval(updateOrderUI, 1000);
-  setInterval(updatePositionUI, 1000); // PNL live update
+  setInterval(updatePositionUI, 1000);
 }
 
 function setOrderType(type){
@@ -152,9 +152,12 @@ function updateBalanceUI() {
   `;
 }
 
+// FIXED: NaN BUG HATA DIYA
 function updateOrderUI(){
   let coin = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
   let price = livePrices?.usdt || 0;
+  if(price == 0) price = 1; // divide by 0 rokne ke liye
+  
   let amount = parseFloat(document.getElementById('orderAmount').value) || 0;
   let total = 0;
 
@@ -167,6 +170,7 @@ function updateOrderUI(){
   }
 }
 
+// FIXED: PNL CALCULATION SAHI KIYA
 function updatePositionUI(){
   let div = document.getElementById('position-ui');
   if(!openPosition){
@@ -176,17 +180,22 @@ function updatePositionUI(){
 
   let coin = openPosition.symbol.toUpperCase();
   let currentPrice = livePrices?.usdt || 0;
+  if(currentPrice == 0) currentPrice = openPosition.price;
+  
   let entryPrice = openPosition.price;
+  if(entryPrice == 0) entryPrice = 1;
 
   // PNL CALCULATE
   let pnl = 0;
+  let qty = openPosition.amount / entryPrice;
+  
   if(openPosition.type == 'BUY'){
-    pnl = (currentPrice - entryPrice) * (openPosition.amount / entryPrice);
+    pnl = (currentPrice - entryPrice) * qty;
   } else {
-    pnl = (entryPrice - currentPrice) * (openPosition.amount / entryPrice);
+    pnl = (entryPrice - currentPrice) * qty;
   }
 
-  let pnlPercent = entryPrice > 0? ((currentPrice - entryPrice) / entryPrice * 100).toFixed(2) : 0;
+  let pnlPercent = ((currentPrice - entryPrice) / entryPrice * 100).toFixed(2);
   let pnlColor = pnl >= 0? '#22c55e' : '#ef4444';
 
   div.innerHTML = `
@@ -217,8 +226,9 @@ function placeTrade() {
   let amount = document.getElementById('orderAmount').value || 0;
   let coin = coinName.toLowerCase();
   let price = livePrices?.usdt || 0;
+  if(price == 0) { alert("Price loading... 2 sec ruko"); return; }
 
-  let finalAmountUSDT = amountType == "USDT"? amount : amount * price;
+  let finalAmountUSDT = amountType == "USDT"? parseFloat(amount) : parseFloat(amount) * price;
 
   // POSITION SET
   openPosition = {
@@ -229,7 +239,7 @@ function placeTrade() {
   };
 
   addToHistory(orderType, coin, price, finalAmountUSDT);
-  alert(`${orderType} ${orderMode} order placed for ${finalAmountUSDT} USDT of ${coinName}`);
+  alert(`${orderType} ${orderMode} order placed for ${finalAmountUSDT.toFixed(2)} USDT of ${coinName}`);
   updatePositionUI();
   renderHistory();
 }
