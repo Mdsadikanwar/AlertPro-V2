@@ -1,6 +1,6 @@
 let currentSymbol = "BINANCE:BTCUSDT";
-let holdings = { BTC: 0, ETH: 0, SOL: 0 }; 
-let livePrices = {};
+let holdings = { BTC: 0, ETH: 0, SOL: 0 };
+let livePrices = { bitcoin: 0, ethereum: 0, solana: 0 };
 
 function renderTrading() {
   showScreen(getNavbar() + `
@@ -13,29 +13,23 @@ function renderTrading() {
           <option value="BINANCE:SOLUSDT">SOL / USDT</option>
         </select>
       </div>
-
       <div class="card">
         <h3>Live Chart</h3>
         <div id="tradingview_chart" style="height: 400px;"></div>
       </div>
-
       <div class="card">
-        <h3>Balance & Holdings</h3>
-        <div id="balance-ui">Loading...</div>
-        <div id="holdings-ui">Loading...</div>
+        <h3>Balance: $<span id="usdtBal">${tradeBalance.usdt.toFixed(2)}</span></h3>
+        <h3><span id="coinName">BTC</span> Holdings: <span id="coinHold">0.000000</span></h3>
+        <h3>Price: $<span id="coinPrice">0</span></h3>
       </div>
-
       <div class="card">
-        <h3>Trade - $10 per trade</h3>
-        <button onclick="placeTrade('BUY')" style="width:49%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px;">BUY</button>
-        <button onclick="placeTrade('SELL')" style="width:49%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px;">SELL</button>
+        <button onclick="placeTrade('BUY')" style="width:49%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px;">BUY $10</button>
+        <button onclick="placeTrade('SELL')" style="width:49%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px;">SELL $10</button>
       </div>
     </div>
   `);
-  
   loadTradingViewWidget();
   fetchPrice();
-  updateUI();
 }
 
 function loadTradingViewWidget() {
@@ -54,57 +48,43 @@ function changeCoin(symbol) {
 
 async function fetchPrice() {
   try {
-    let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usdt`);
+    let res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usdt");
     livePrices = await res.json();
     updateUI();
   } catch(e) {}
 }
 
-function getCoinKey() {
-  let coin = currentSymbol.split(":")[1].replace("USDT","");
-  let map = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana"};
-  return map;
-}
-
-function getPrice() {
-  let key = getCoinKey();
-  return livePrices[key]? livePrices[key].usdt : 0;
-}
-
 function placeTrade(type) {
   let coin = currentSymbol.split(":")[1].replace("USDT","");
-  let key = getCoinKey();
-  let price = getPrice();
-  let tradeAmount = 10;
+  let key = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana"}[coin];
+  let price = livePrices[key]?.usdt || 0;
+  let amount = 10;
 
-  if(price === 0) { alert("Price loading..."); return; }
+  if(price === 0) return alert("Price loading...");
 
   if(type === "BUY") {
-    if(tradeBalance.usdt < tradeAmount) { alert("USDT कम है"); return; }
-    tradeBalance.usdt -= tradeAmount;
-    holdings += tradeAmount / price; // FIXED
-    alert("Bought " + (tradeAmount/price).toFixed(6) + " + coin);
+    if(tradeBalance.usdt < amount) return alert("USDT कम है");
+    tradeBalance.usdt -= amount;
+    holdings += amount / price;
+    alert("Bought " + (amount/price).toFixed(6) + " " + coin);
   }
-
   if(type === "SELL") {
-    let coinAmount = tradeAmount / price;
-    if(holdings < coinAmount) { alert(coin + " कम है"); return; } // FIXED
-    holdings -= coinAmount;
-    tradeBalance.usdt += tradeAmount;
-    alert("Sold " + coinAmount.toFixed(6) + " + coin);
+    let coinAmt = amount / price;
+    if(holdings < coinAmt) return alert(coin + " कम है");
+    holdings -= coinAmt;
+    tradeBalance.usdt += amount;
+    alert("Sold " + coinAmt.toFixed(6) + " + coin);
   }
   updateUI();
 }
 
 function updateUI() {
   let coin = currentSymbol.split(":")[1].replace("USDT","");
-  document.getElementById('balance-ui').innerHTML = `
-    <div>USDT: <b>$${tradeBalance.usdt.toFixed(2)}</b></div>
-    <div>Price: <b>$${getPrice().toFixed(2)}</b></div>
-  `;
-  document.getElementById('holdings-ui').innerHTML = `
-    <div>${coin} Holdings: <b>${holdings.toFixed(6)}</b></div> // FIXED
-  `;
+  let key = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana"}[coin];
+  document.getElementById('usdtBal').innerText = tradeBalance.usdt.toFixed(2);
+  document.getElementById('coinName').innerText = coin;
+  document.getElementById('coinHold').innerText = holdings.toFixed(6);
+  document.getElementById('coinPrice').innerText = (livePrices[key]?.usdt || 0).toFixed(2);
 }
 
 setInterval(fetchPrice, 10000);
