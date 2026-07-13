@@ -1,22 +1,23 @@
 // GLOBAL DATA
 var orderHistory = JSON.parse(localStorage.getItem('orderHistory')) || [];
 var livePrices = { btc: { usdt: 65000 }, eth: { usdt: 3500 }, sol: { usdt: 150 } };
+var tradeBalance = { usdt: 10000, inr: 830000 };
 
 // NAVBAR + ROUTER
 function getNavbar() {
     return `
     <div class="topbar">
         <div class="logo" onclick="renderDashboard()" style="cursor:pointer;">⚡ ApexTraders</div>
-        <div class="nav">
-            <button class="nav-item" onclick="renderDashboard()">🏠 Home</button>
-            <button class="nav-item" onclick="renderDashboard()">📊 Dashboard</button>
-            <button class="nav-item" onclick="renderHistory()">💰 PNL & History</button>
-            <button class="nav-item" onclick="renderTrading()">💵 Trading</button>
-            <button class="nav-item" onclick="renderStrategies()">🤖 Strategies</button>
-            <button class="nav-item" onclick="renderBacktest()">📈 Backtest</button>
-            <button class="nav-item" onclick="renderSettings()">⚙️ Settings</button>
-            <button class="nav-item" onclick="renderLogs()">📝 Logs</button>
-            <button class="nav-item" onclick="renderHub()">🔧 Hub</button>
+        <div class="navbar">
+            <button class="nav-btn" onclick="renderHome()">🏠 Home</button>
+            <button class="nav-btn" onclick="renderDashboard()">📊 Dashboard</button>
+            <button class="nav-btn" onclick="renderHistory()">💰 PNL & History</button>  <!-- YE NAYA -->
+            <button class="nav-btn" onclick="renderTrading()">💵 Trading</button>
+            <button class="nav-btn" onclick="renderStrategies()">🤖 Strategies</button>
+            <button class="nav-btn" onclick="renderBacktest()">📈 Backtest</button>
+            <button class="nav-btn" onclick="renderSettings()">⚙️ Settings</button>
+            <button class="nav-btn" onclick="renderLogs()">📝 Logs</button>
+            <button class="nav-btn" onclick="renderHub()">🔧 Hub</button>
         </div>
     </div>
     `;
