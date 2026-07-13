@@ -30,6 +30,8 @@ function renderTrading() {
       <div class="card" style="padding:15px; text-align:center;">
         <h2 id="botStatus" style="color:#ef4444; margin-bottom:15px;">Bot: STOPPED</h2>
 
+        <div id="activeStratText" style="font-size:14px; color:#94a3b8; margin-bottom:8px;">Strategy: None</div>
+
         <div id="botSignal" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#94a3b8;">
           Waiting for signal...
         </div>
@@ -57,9 +59,27 @@ function renderTrading() {
   `);
 
   loadTradingViewWidget();
+  updateActiveStrategyText(); // strategy name show karega
+  setInterval(updateActiveStrategyText, 2000); // har 2 sec me update
+}
+
+function updateActiveStrategyText(){
+  let text = document.getElementById('activeStratText');
+  if(typeof activeStrategy!= 'undefined' && activeStrategy!= 'none'){
+    text.innerText = `Strategy: ${activeStrategy.toUpperCase()}`;
+    text.style.color = '#22c55e';
+  } else {
+    text.innerText = 'Strategy: None - Go to Strategy Tab';
+    text.style.color = '#ef4444';
+  }
 }
 
 function toggleBot(){
+  if(typeof activeStrategy == 'undefined' || activeStrategy == 'none'){
+    alert("पहले Strategy tab से कोई strategy ON करो!");
+    return;
+  }
+
   botRunning =!botRunning;
   let btn = document.getElementById('botBtn');
   let status = document.getElementById('botStatus');
@@ -89,15 +109,16 @@ function stopBot(){
   document.getElementById('botSignal').innerText = "Waiting for signal...";
 }
 
+// STEP 3: AB STRATEGY SE SIGNAL AAYEGA
 function checkSignal(){
-  let rand = Math.random();
+  let signal = getSignalFromStrategy(activeStrategy);
   let signalDiv = document.getElementById('botSignal');
 
-  if(rand > 0.7){
+  if(signal == 'BUY'){
     signalDiv.innerText = "BUY SIGNAL! Placing order...";
     signalDiv.style.color = "#22c55e";
     placeAutoTrade('BUY');
-  } else if(rand < 0.3){
+  } else if(signal == 'SELL'){
     signalDiv.innerText = "SELL SIGNAL! Placing order...";
     signalDiv.style.color = "#ef4444";
     placeAutoTrade('SELL');
@@ -107,20 +128,48 @@ function checkSignal(){
   }
 }
 
+// STRATEGY LOGIC - ABHI DUMMY HAI, BAAD ME REAL RSI DALENGE
+function getSignalFromStrategy(strategy){
+  if(!strategy || strategy == 'none') return 'NONE';
+
+  let r = Math.random();
+
+  if(strategy == 'rsi'){
+    // Dummy RSI: 70% upar = SELL, 30% niche = BUY
+    if(r > 0.7) return 'SELL';
+    if(r < 0.3) return 'BUY';
+  }
+
+  if(strategy == 'ma'){
+    // Dummy MA: 60% upar = BUY
+    if(r > 0.6) return 'BUY';
+    if(r < 0.4) return 'SELL';
+  }
+
+  if(strategy == 'bb'){
+    // Dummy BB: 50-50
+    if(r > 0.5) return 'BUY';
+    if(r < 0.5) return 'SELL';
+  }
+
+  return 'NONE';
+}
+
 function placeAutoTrade(type){
-  let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  let price = livePrices?.usdt || 69420; // dummy price agar live na ho
+  let coinName = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
+  let price = livePrices[coinName]?.usdt || 65000;
 
   botStats.trades++;
-  botStats.pnl += (Math.random() - 0.4) * 10; // dummy pnl
+  let tradePnl = (Math.random() - 0.4) * 10;
+  botStats.pnl += tradePnl;
 
-  addToHistory(type, coinName.toLowerCase(), price, 100);
+  addToHistory(type, coinName, price, 100);
 
   document.getElementById('totalTrades').innerText = botStats.trades;
   document.getElementById('botPnl').innerText = `$${botStats.pnl.toFixed(2)}`;
   document.getElementById('botPnl').style.color = botStats.pnl >= 0? '#22c55e' : '#ef4444';
 
-  let winRate = Math.floor(Math.random() * 100);
+  let winRate = botStats.pnl > 0? 60 : 40;
   document.getElementById('winRate').innerText = winRate + '%';
 
   setTimeout(()=>{
