@@ -1,7 +1,6 @@
 let currentSymbol = "BINANCE:BTCUSDT";
-let holdings = { BTC: 0, ETH: 0, SOL: 0 };
+let holdings = { BTC: 0, ETH: 0, SOL: 0 }; // तेरे पास कितना coin है
 let livePrices = { bitcoin: 0, ethereum: 0, solana: 0 };
-let tradeHistory = []; // NEW: सारे trade यहाँ save होंगे
 
 function renderTrading() {
   showScreen(getNavbar() + `
@@ -14,56 +13,37 @@ function renderTrading() {
           <option value="BINANCE:SOLUSDT">SOL / USDT</option>
         </select>
       </div>
-
       <div class="card">
         <h3>Live Chart</h3>
-        <div id="tradingview_chart" style="height: 400px;"></div>
+        <div id="tradingview_chart" style="height: 500px;"></div>
       </div>
 
+      <!-- NEW: BALANCE CARD -->
       <div class="card">
         <h3>Balance</h3>
         <div>USDT: $<span id="usdtBal">${tradeBalance.usdt.toFixed(2)}</span></div>
-        <div><span id="coinName">BTC</span>: <span id="coinHold">0.000</span></div>
+        <div><span id="coinName">BTC</span>: <span id="coinHold">0.000000</span></div>
         <div>Price: $<span id="coinPrice">0</span></div>
       </div>
 
+      <!-- NEW: TRADE CARD -->
       <div class="card">
         <h3>Trade - $10 per order</h3>
         <button onclick="placeTrade('BUY')" style="width:49%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px;">BUY</button>
         <button onclick="placeTrade('SELL')" style="width:49%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px;">SELL</button>
       </div>
-
-      <!-- NEW: ORDER HISTORY TABLE -->
-      <div class="card">
-        <h3>Order History</h3>
-        <div id="historyTable" style="overflow-x:auto;">
-          <table style="width:100%; color:white; font-size:12px;">
-            <thead>
-              <tr style="border-bottom:1px solid #374151;">
-                <th style="padding:8px; text-align:left;">Time</th>
-                <th style="padding:8px;">Type</th>
-                <th style="padding:8px;">Coin</th>
-                <th style="padding:8px;">Amount</th>
-                <th style="padding:8px;">Price</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   `);
   loadTradingViewWidget();
   fetchPrice();
   updateUI();
-  setInterval(fetchPrice, 10000);
+  setInterval(fetchPrice, 10000); // 10sec में price update
 }
 
 function loadTradingViewWidget() {
   document.getElementById('tradingview_chart').innerHTML = "";
   new TradingView.widget({
-    "width": "100%", "height": 400, "symbol": currentSymbol, "interval": "60",
+    "width": "100%", "height": 500, "symbol": currentSymbol, "interval": "60",
     "theme": "dark", "container_id": "tradingview_chart"
   });
 }
@@ -87,7 +67,6 @@ function placeTrade(type) {
   let key = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana"};
   let price = livePrices[key]?.usdt || 0;
   let amount = 10;
-  let time = new Date().toLocaleTimeString();
 
   if(price === 0) return alert("Price loading...");
 
@@ -95,8 +74,6 @@ function placeTrade(type) {
     if(tradeBalance.usdt < amount) return alert("USDT कम है");
     tradeBalance.usdt -= amount;
     holdings += amount / price;
-    // NEW: history में add करो
-    tradeHistory.unshift({time, type:"BUY", coin, amount: (amount/price).toFixed(6), price: price.toFixed(2)});
     alert("Bought " + (amount/price).toFixed(6) + " " + coin);
   }
   if(type === "SELL") {
@@ -104,8 +81,6 @@ function placeTrade(type) {
     if(holdings < coinAmt) return alert(coin + " कम है");
     holdings -= coinAmt;
     tradeBalance.usdt += amount;
-    // NEW: history में add करो
-    tradeHistory.unshift({time, type:"SELL", coin, amount: coinAmt.toFixed(6), price: price.toFixed(2)});
     alert("Sold " + coinAmt.toFixed(6) + " " + coin);
   }
   updateUI();
@@ -118,18 +93,4 @@ function updateUI() {
   document.getElementById('coinName').innerText = coin;
   document.getElementById('coinHold').innerText = holdings.toFixed(6);
   document.getElementById('coinPrice').innerText = (livePrices[key]?.usdt || 0).toFixed(2);
-
-  // NEW: History table update
-  let rows = "";
-  tradeHistory.slice(0,10).forEach(t => { // सिर्फ last 10 trade
-    let color = t.type === "BUY"? "#10b981" : "#ef4444";
-    rows += `<tr>
-      <td style="padding:8px;">${t.time}</td>
-      <td style="padding:8px; color:${color}; font-weight:bold;">${t.type}</td>
-      <td style="padding:8px;">${t.coin}</td>
-      <td style="padding:8px;">${t.amount}</td>
-      <td style="padding:8px;">$${t.price}</td>
-    </tr>`;
-  });
-  document.getElementById('historyBody').innerHTML = rows;
 }
