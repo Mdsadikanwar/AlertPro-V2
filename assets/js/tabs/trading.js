@@ -1,8 +1,7 @@
 let currentSymbol = "BINANCE:BTCUSDT";
-let orderType = "BUY";
-let orderMode = "Limit";
-let amountType = "USDT";
-let openPosition = null;
+let botRunning = false;
+let botInterval = null;
+let botStats = { trades: 0, pnl: 0 };
 
 function renderTrading() {
   let coin = currentSymbol.split(":")[1].replace("USDT","");
@@ -11,65 +10,47 @@ function renderTrading() {
     <div class="container">
 
       <div class="card">
-        <h3>Select Coin - Top 10</h3>
+        <h3>Select Coin for Auto Trading</h3>
         <select id="coinSelect" onchange="changeCoin(this.value)" style="width:100%; padding:10px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px; font-size:16px;">
           <option value="BINANCE:BTCUSDT">BTC / USDT</option>
           <option value="BINANCE:ETHUSDT">ETH / USDT</option>
           <option value="BINANCE:SOLUSDT">SOL / USDT</option>
           <option value="BINANCE:BNBUSDT">BNB / USDT</option>
           <option value="BINANCE:XRPUSDT">XRP / USDT</option>
-          <option value="BINANCE:DOGEUSDT">DOGE / USDT</option>
-          <option value="BINANCE:ADAUSDT">ADA / USDT</option>
-          <option value="BINANCE:TRXUSDT">TRX / USDT</option>
-          <option value="BINANCE:TONUSDT">TON / USDT</option>
-          <option value="BINANCE:SHIBUSDT">SHIB / USDT</option>
         </select>
       </div>
 
       <!-- CHART -->
       <div class="card">
-        <h3>Live Chart</h3>
+        <h3>Live Chart - ${coin}/USDT</h3>
         <div id="tradingview_chart" style="height: 500px;"></div>
       </div>
 
-      <!-- BINANCE WALA BUY/SELL PANEL -->
-      <div class="card" style="padding:15px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-          <h2 id="panelCoinName" style="margin:0;">${coin}/USDT</h2>
+      <!-- AUTO BOT PANEL -->
+      <div class="card" style="padding:15px; text-align:center;">
+        <h2 id="botStatus" style="color:#ef4444; margin-bottom:15px;">Bot: STOPPED</h2>
+        
+        <div id="botSignal" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#94a3b8;">
+          Waiting for signal...
         </div>
 
-        <!-- BUY/SELL TOGGLE -->
-        <div style="display:flex; background:#1f2937; border-radius:10px; padding:4px; margin-bottom:12px;">
-          <button id="buyTab" onclick="setOrderType('BUY')" style="flex:1; padding:10px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold;">Buy</button>
-          <button id="sellTab" onclick="setOrderType('SELL')" style="flex:1; padding:10px; background:transparent; color:#94a3b8; border:none; border-radius:8px; font-weight:bold;">Sell</button>
+        <button id="botBtn" onclick="toggleBot()" style="width:100%; padding:18px; background:#22c55e; color:white; border:none; border-radius:10px; font-size:18px; font-weight:bold;">
+          START AUTO TRADING
+        </button>
+      </div>
+
+      <!-- BOT STATS -->
+      <div class="card">
+        <h3>Bot Statistics</h3>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>Total Trades</span> <b id="totalTrades">0</b>
         </div>
-
-        <!-- ORDER TYPE -->
-        <select id="orderMode" onchange="orderMode=this.value" style="width:100%; padding:12px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px; margin-bottom:12px;">
-          <option value="Limit">Limit</option>
-          <option value="Market">Market</option>
-        </select>
-
-        <!-- AMOUNT TYPE TOGGLE USDT / BTC -->
-        <div style="display:flex; background:#1f2937; border-radius:10px; padding:4px; margin-bottom:12px;">
-          <button id="usdtTab" onclick="setAmountType('USDT')" style="flex:1; padding:8px; background:#22c55e; color:white; border:none; border-radius:8px; font-size:14px;">USDT</button>
-          <button id="btcTab" onclick="setAmountType('BTC')" style="flex:1; padding:8px; background:transparent; color:#94a3b8; border:none; border-radius:8px; font-size:14px;">${coin}</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>Bot PNL</span> <b id="botPnl" style="color:#22c55e;">$0.00</b>
         </div>
-
-        <!-- AMOUNT -->
-        <div style="margin-bottom:12px;">
-          <label id="amountLabel" style="color:#94a3b8; font-size:12px;">Amount (USDT)</label>
-          <input id="orderAmount" type="number" placeholder="0.00" oninput="updateOrderUI()" style="width:100%; padding:12px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span>Win Rate</span> <b id="winRate">0%</b>
         </div>
-
-        <!-- TOTAL -->
-        <div style="background:#1f2937; padding:12px; border-radius:8px; text-align:center; margin-bottom:12px;">
-          <label style="color:#94a3b8; font-size:12px;">Total</label>
-          <div id="orderTotal" style="font-size:16px; font-weight:bold;">0.00 USDT</div>
-        </div>
-
-        <!-- FINAL BUTTON -->
-        <button id="placeOrderBtn" onclick="placeTrade()" style="width:100%; padding:16px; background:#22c55e; color:white; border:none; border-radius:10px; font-size:16px; font-weight:bold;">Buy ${coin}</button>
       </div>
 
       <div class="card">
@@ -77,44 +58,80 @@ function renderTrading() {
         <div id="balance-ui">Loading...</div>
       </div>
 
-      <!-- OPEN POSITION CARD -->
-      <div class="card">
-        <h3>Open Position</h3>
-        <div id="position-ui">No open position</div>
-      </div>
-
     </div>
   `);
 
   loadTradingViewWidget();
   updateBalanceUI();
-  updateOrderUI();
-  updatePositionUI();
-  setInterval(updateOrderUI, 1000);
-  setInterval(updatePositionUI, 1000);
 }
 
-function setOrderType(type){
-  orderType = type;
-  let coin = currentSymbol.split(":")[1].replace("USDT","");
-  document.getElementById('buyTab').style.background = type == 'BUY'? '#22c55e' : 'transparent';
-  document.getElementById('buyTab').style.color = type == 'BUY'? 'white' : '#94a3b8';
-  document.getElementById('sellTab').style.background = type == 'SELL'? '#ef4444' : 'transparent';
-  document.getElementById('sellTab').style.color = type == 'SELL'? 'white' : '#94a3b8';
-  document.getElementById('placeOrderBtn').style.background = type == 'BUY'? '#22c55e' : '#ef4444';
-  document.getElementById('placeOrderBtn').innerText = `${type} ${coin}`;
+function toggleBot(){
+  botRunning =!botRunning;
+  let btn = document.getElementById('botBtn');
+  let status = document.getElementById('botStatus');
+
+  if(botRunning){
+    btn.innerText = "STOP AUTO TRADING";
+    btn.style.background = "#ef4444";
+    status.innerText = "Bot: RUNNING";
+    status.style.color = "#22c55e";
+    startBot();
+  } else {
+    btn.innerText = "START AUTO TRADING";
+    btn.style.background = "#22c55e";
+    status.innerText = "Bot: STOPPED";
+    status.style.color = "#ef4444";
+    stopBot();
+  }
 }
 
-function setAmountType(type){
-  amountType = type;
-  let coin = currentSymbol.split(":")[1].replace("USDT","");
-  document.getElementById('usdtTab').style.background = type == 'USDT'? '#22c55e' : 'transparent';
-  document.getElementById('usdtTab').style.color = type == 'USDT'? 'white' : '#94a3b8';
-  document.getElementById('btcTab').style.background = type == 'BTC'? '#22c55e' : 'transparent';
-  document.getElementById('btcTab').style.color = type == 'BTC'? 'white' : '#94a3b8';
-  document.getElementById('amountLabel').innerText = `Amount (${type})`;
-  document.getElementById('orderAmount').value = "";
-  updateOrderUI();
+function startBot(){
+  document.getElementById('botSignal').innerText = "Scanning market...";
+  // हर 10 sec me signal check करेगा
+  botInterval = setInterval(checkSignal, 10000); 
+}
+
+function stopBot(){
+  clearInterval(botInterval);
+  document.getElementById('botSignal').innerText = "Waiting for signal...";
+}
+
+// DUMMY SIGNAL LOGIC - yaha apna RSI/MA logic daal dena
+function checkSignal(){
+  let rand = Math.random();
+  let signalDiv = document.getElementById('botSignal');
+  
+  if(rand > 0.7){
+    signalDiv.innerText = "BUY SIGNAL! Placing order...";
+    signalDiv.style.color = "#22c55e";
+    placeAutoTrade('BUY');
+  } else if(rand < 0.3){
+    signalDiv.innerText = "SELL SIGNAL! Placing order...";
+    signalDiv.style.color = "#ef4444";
+    placeAutoTrade('SELL');
+  } else {
+    signalDiv.innerText = "No Signal. Waiting...";
+    signalDiv.style.color = "#94a3b8";
+  }
+}
+
+function placeAutoTrade(type){
+  let coinName = currentSymbol.split(":")[1].replace("USDT","");
+  let price = livePrices?.usdt || 0;
+  
+  botStats.trades++;
+  botStats.pnl += (Math.random() - 0.4) * 10; // dummy pnl
+
+  addToHistory(type, coinName.toLowerCase(), price, 100); // 100 USDT fixed
+  
+  document.getElementById('totalTrades').innerText = botStats.trades;
+  document.getElementById('botPnl').innerText = `$${botStats.pnl.toFixed(2)}`;
+  document.getElementById('botPnl').style.color = botStats.pnl >= 0? '#22c55e' : '#ef4444';
+  
+  setTimeout(()=>{
+    document.getElementById('botSignal').innerText = "Order Placed. Scanning again...";
+    document.getElementById('botSignal').style.color = "#94a3b8";
+  }, 2000);
 }
 
 function loadTradingViewWidget() {
@@ -123,7 +140,7 @@ function loadTradingViewWidget() {
     "width": "100%",
     "height": 500,
     "symbol": currentSymbol,
-    "interval": "60",
+    "interval": "1", // 1 min chart for bot
     "timezone": "Asia/Kolkata",
     "theme": "dark",
     "style": "1",
@@ -138,11 +155,8 @@ function loadTradingViewWidget() {
 function changeCoin(symbol) {
   currentSymbol = symbol;
   let coin = symbol.split(":")[1].replace("USDT","");
-  document.getElementById('panelCoinName').innerText = `${coin}/USDT`;
-  document.getElementById('btcTab').innerText = coin;
-  document.getElementById('placeOrderBtn').innerText = `${orderType} ${coin}`;
+  document.querySelector('h3').innerText = `Live Chart - ${coin}/USDT`;
   loadTradingViewWidget();
-  updateOrderUI();
 }
 
 function updateBalanceUI() {
@@ -150,103 +164,4 @@ function updateBalanceUI() {
     <div>USDT: <b>${tradeBalance.usdt}</b></div>
     <div>INR: <b>₹${tradeBalance.inr.toLocaleString()}</b></div>
   `;
-}
-
-// FIXED: NaN BUG HATA DIYA
-function updateOrderUI(){
-  let coin = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
-  let price = livePrices?.usdt || 0;
-  if(price == 0) price = 1; // divide by 0 rokne ke liye
-  
-  let amount = parseFloat(document.getElementById('orderAmount').value) || 0;
-  let total = 0;
-
-  if(amountType == "USDT"){
-    total = amount;
-    document.getElementById('orderTotal').innerText = `${total.toFixed(2)} USDT`;
-  } else {
-    total = amount * price;
-    document.getElementById('orderTotal').innerText = `${total.toFixed(2)} USDT`;
-  }
-}
-
-// FIXED: PNL CALCULATION SAHI KIYA
-function updatePositionUI(){
-  let div = document.getElementById('position-ui');
-  if(!openPosition){
-    div.innerHTML = `<div style="color:#94a3b8;">No open position</div>`;
-    return;
-  }
-
-  let coin = openPosition.symbol.toUpperCase();
-  let currentPrice = livePrices?.usdt || 0;
-  if(currentPrice == 0) currentPrice = openPosition.price;
-  
-  let entryPrice = openPosition.price;
-  if(entryPrice == 0) entryPrice = 1;
-
-  // PNL CALCULATE
-  let pnl = 0;
-  let qty = openPosition.amount / entryPrice;
-  
-  if(openPosition.type == 'BUY'){
-    pnl = (currentPrice - entryPrice) * qty;
-  } else {
-    pnl = (entryPrice - currentPrice) * qty;
-  }
-
-  let pnlPercent = ((currentPrice - entryPrice) / entryPrice * 100).toFixed(2);
-  let pnlColor = pnl >= 0? '#22c55e' : '#ef4444';
-
-  div.innerHTML = `
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span>Coin</span> <b>${coin}</b>
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span>Side</span> <b style="color:${openPosition.type=='BUY'?'#22c55e':'#ef4444'}">${openPosition.type}</b>
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span>Entry</span> <b>$${entryPrice.toFixed(2)}</b>
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span>Current</span> <b>$${currentPrice.toFixed(2)}</b>
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span>Amount</span> <b>$${openPosition.amount.toFixed(2)} USDT</b>
-    </div>
-    <div style="display:flex; justify-content:space-between; border-top:1px solid #374151; padding-top:8px; margin-top:8px;">
-      <span>PNL</span> <b style="color:${pnlColor}">${pnl >= 0? '+' : ''}$${pnl.toFixed(2)} (${pnlPercent}%)</b>
-    </div>
-    <button onclick="closePosition()" style="width:100%; padding:12px; margin-top:12px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold;">Close Position</button>
-  `;
-}
-
-function placeTrade() {
-  let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  let amount = document.getElementById('orderAmount').value || 0;
-  let coin = coinName.toLowerCase();
-  let price = livePrices?.usdt || 0;
-  if(price == 0) { alert("Price loading... 2 sec ruko"); return; }
-
-  let finalAmountUSDT = amountType == "USDT"? parseFloat(amount) : parseFloat(amount) * price;
-
-  // POSITION SET
-  openPosition = {
-    type: orderType,
-    symbol: coin,
-    price: price,
-    amount: parseFloat(finalAmountUSDT)
-  };
-
-  addToHistory(orderType, coin, price, finalAmountUSDT);
-  alert(`${orderType} ${orderMode} order placed for ${finalAmountUSDT.toFixed(2)} USDT of ${coinName}`);
-  updatePositionUI();
-  renderHistory();
-}
-
-function closePosition(){
-  if(!openPosition) return;
-  alert(`Position Closed!`);
-  openPosition = null;
-  updatePositionUI();
 }
