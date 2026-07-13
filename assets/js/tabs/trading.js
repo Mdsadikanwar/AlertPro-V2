@@ -1,135 +1,152 @@
-let currentSymbol = "BINANCE:BTCUSDT"; // default coin
+let currentSymbol = "BINANCE:BTCUSDT";
+let orderType = "BUY";
+let orderMode = "Limit";
 
 function renderTrading() {
+  let coin = currentSymbol.split(":")[1].replace("USDT","");
+  let change = "-2.14%"; // abhi dummy hai, baad me live karenge
+
   showScreen(`${getNavbar()}
     <div class="container">
 
+      <!-- COIN HEADER -->
+      <div class="card" style="padding:15px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h2 style="margin:0;">${coin}/USDT</h2>
+          <span>▼</span>
+        </div>
+        <div style="color:#ef4444; font-size:14px; margin-top:4px;">${change}</div>
+      </div>
+
+      <!-- BUY/SELL TOGGLE -->
+      <div class="card" style="padding:10px;">
+        <div style="display:flex; background:#1f2937; border-radius:10px; padding:4px;">
+          <button id="buyTab" onclick="setOrderType('BUY')" style="flex:1; padding:10px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold;">Buy</button>
+          <button id="sellTab" onclick="setOrderType('SELL')" style="flex:1; padding:10px; background:transparent; color:#94a3b8; border:none; border-radius:8px; font-weight:bold;">Sell</button>
+        </div>
+      </div>
+
+      <!-- ORDER FORM -->
       <div class="card">
-        <h3>Select Coin - Top 10</h3>
-        <select id="coinSelect" onchange="changeCoin(this.value)" style="width:100%; padding:10px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px; font-size:16px;">
-          <option value="BINANCE:BTCUSDT">BTC / USDT</option>
-          <option value="BINANCE:ETHUSDT">ETH / USDT</option>
-          <option value="BINANCE:SOLUSDT">SOL / USDT</option>
-          <option value="BINANCE:BNBUSDT">BNB / USDT</option>
-          <option value="BINANCE:XRPUSDT">XRP / USDT</option>
-          <option value="BINANCE:DOGEUSDT">DOGE / USDT</option>
-          <option value="BINANCE:ADAUSDT">ADA / USDT</option>
-          <option value="BINANCE:TRXUSDT">TRX / USDT</option>
-          <option value="BINANCE:TONUSDT">TON / USDT</option>
-          <option value="BINANCE:SHIBUSDT">SHIB / USDT</option>
+        <!-- ORDER TYPE -->
+        <select id="orderMode" onchange="orderMode=this.value" style="width:100%; padding:12px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px; margin-bottom:12px;">
+          <option value="Limit">Limit</option>
+          <option value="Market">Market</option>
         </select>
-      </div>
 
-      <div class="card">
-        <h3>Live Chart</h3>
-        <div id="tradingview_chart" style="height: 500px;"></div>
-      </div>
-
-      <div class="card">
-        <h3>Balance</h3>
-        <div id="balance-ui">Loading...</div>
-      </div>
-
-      <!-- YE NAYA BUY/SELL SECTION HAI -->
-      <div class="card">
-        <h3>Place Order</h3>
-        
-        <!-- BUY/SELL TOGGLE -->
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-          <button id="buyTab" onclick="setOrderType('BUY')" style="flex:1; padding:12px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold;">BUY</button>
-          <button id="sellTab" onclick="setOrderType('SELL')" style="flex:1; padding:12px; background:#374151; color:white; border:none; border-radius:8px; font-weight:bold;">SELL</button>
+        <!-- PRICE -->
+        <div style="margin-bottom:12px;">
+          <label style="color:#94a3b8; font-size:12px;">Price (USDT)</label>
+          <div style="display:flex; align-items:center; background:#1f2937; border:1px solid #374151; border-radius:8px; padding:0 12px;">
+            <button onclick="changePrice(-1)" style="background:none; border:none; color:#94a3b8; font-size:20px;">−</button>
+            <input id="orderPrice" type="number" value="0" style="flex:1; text-align:center; padding:12px; background:transparent; color:white; border:none; font-size:18px; font-weight:bold;">
+            <button onclick="changePrice(1)" style="background:none; border:none; color:#94a3b8; font-size:20px;">+</button>
+          </div>
         </div>
 
-        <!-- AMOUNT INPUT -->
-        <label style="color:#94a3b8; font-size:14px;">Amount (USDT)</label>
-        <input id="tradeAmount" type="number" placeholder="100" value="100" style="width:100%; padding:12px; margin:8px 0 15px 0; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px;">
-
-        <!-- LIVE PRICE -->
-        <div style="margin-bottom:15px;">
-          <span style="color:#94a3b8;">Price: </span>
-          <span id="orderPrice" style="font-weight:bold; font-size:18px;">$0.00</span>
+        <!-- AMOUNT -->
+        <div style="margin-bottom:12px;">
+          <label style="color:#94a3b8; font-size:12px;">Amount (${coin})</label>
+          <div style="display:flex; align-items:center; background:#1f2937; border:1px solid #374151; border-radius:8px; padding:0 12px;">
+            <button onclick="changeAmount(-0.001)" style="background:none; border:none; color:#94a3b8; font-size:20px;">−</button>
+            <input id="orderAmount" type="number" placeholder="0.00" style="flex:1; text-align:center; padding:12px; background:transparent; color:white; border:none; font-size:16px;">
+            <button onclick="changeAmount(0.001)" style="background:none; border:none; color:#94a3b8; font-size:20px;">+</button>
+          </div>
         </div>
+
+        <!-- SLIDER -->
+        <input type="range" id="amountSlider" min="0" max="100" value="0" oninput="setAmountBySlider(this.value)" style="width:100%; margin:10px 0;">
 
         <!-- TOTAL -->
-        <div style="margin-bottom:15px;">
-          <span style="color:#94a3b8;">Total: </span>
-          <span id="orderTotal" style="font-weight:bold;">0.00 USDT</span>
+        <div style="background:#1f2937; padding:12px; border-radius:8px; text-align:center; margin-bottom:12px;">
+          <label style="color:#94a3b8; font-size:12px;">Total (USDT)</label>
+          <div id="orderTotal" style="font-size:16px; font-weight:bold;">0.00</div>
         </div>
 
-        <!-- FINAL BUTTON -->
-        <button id="placeOrderBtn" onclick="placeTrade()" style="width:100%; padding:14px; background:#22c55e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:bold;">BUY BTC</button>
+        <!-- TP/SL CHECKBOX -->
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <input type="checkbox" id="tpSlCheck"> <span>TP/SL</span>
+        </label>
+
+        <!-- BALANCE INFO -->
+        <div style="font-size:14px; color:#94a3b8;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span>Avbl</span>
+            <span id="avblBalance">${tradeBalance.usdt} USDT</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span>Max Buy</span>
+            <span id="maxBuy">0 ${coin}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Est. Fee</span>
+            <span>-- ${coin}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINAL BUTTON -->
+      <div class="card" style="padding:10px;">
+        <button id="placeOrderBtn" onclick="placeTrade()" style="width:100%; padding:16px; background:#22c55e; color:white; border:none; border-radius:10px; font-size:16px; font-weight:bold;">Buy ${coin}</button>
+      </div>
+
+      <!-- OPEN ORDERS / HOLDINGS TABS -->
+      <div style="display:flex; gap:20px; padding:0 10px;">
+        <span style="color:#94a3b8;">Open Orders (0)</span>
+        <span style="color:white; border-bottom:2px solid #22c55e; padding-bottom:4px;">Holdings (0)</span>
       </div>
 
     </div>
   `);
 
-  loadTradingViewWidget();
-  updateBalanceUI();
   updateOrderUI();
-  setInterval(updateOrderUI, 1000); // har 1 sec price update
+  setInterval(updateOrderUI, 1000);
 }
-
-let orderType = "BUY"; // default
 
 function setOrderType(type){
   orderType = type;
-  document.getElementById('buyTab').style.background = type == 'BUY'? '#22c55e' : '#374151';
-  document.getElementById('sellTab').style.background = type == 'SELL'? '#ef4444' : '#374151';
+  let coin = currentSymbol.split(":")[1].replace("USDT","");
+  document.getElementById('buyTab').style.background = type == 'BUY'? '#22c55e' : 'transparent';
+  document.getElementById('buyTab').style.color = type == 'BUY'? 'white' : '#94a3b8';
+  document.getElementById('sellTab').style.background = type == 'SELL'? '#ef4444' : 'transparent';
+  document.getElementById('sellTab').style.color = type == 'SELL'? 'white' : '#94a3b8';
   document.getElementById('placeOrderBtn').style.background = type == 'BUY'? '#22c55e' : '#ef4444';
-  document.getElementById('placeOrderBtn').innerText = `${type} ${currentSymbol.split(":")[1].replace("USDT","")}`;
+  document.getElementById('placeOrderBtn').innerText = `${type} ${coin}`;
+}
+
+function changePrice(dir){
+  let el = document.getElementById('orderPrice');
+  el.value = (parseFloat(el.value) + dir).toFixed(2);
+  updateOrderUI();
+}
+function changeAmount(dir){
+  let el = document.getElementById('orderAmount');
+  el.value = (parseFloat(el.value || 0) + dir).toFixed(4);
+  updateOrderUI();
+}
+function setAmountBySlider(val){
+  let max = tradeBalance.usdt;
+  let price = parseFloat(document.getElementById('orderPrice').value) || 1;
+  document.getElementById('orderAmount').value = ((max * val/100) / price).toFixed(4);
   updateOrderUI();
 }
 
-function loadTradingViewWidget() {
-  document.getElementById('tradingview_chart').innerHTML = "";
-  new TradingView.widget({
-    "width": "100%",
-    "height": 500,
-    "symbol": currentSymbol,
-    "interval": "60",
-    "timezone": "Asia/Kolkata",
-    "theme": "dark",
-    "style": "1",
-    "locale": "en",
-    "toolbar_bg": "#1f2937",
-    "enable_publishing": false,
-    "allow_symbol_change": true,
-    "container_id": "tradingview_chart"
-  });
-}
-
-function changeCoin(symbol) {
-  currentSymbol = symbol;
-  loadTradingViewWidget();
-  document.getElementById('placeOrderBtn').innerText = `${orderType} ${symbol.split(":")[1].replace("USDT","")}`;
-  updateOrderUI();
-}
-
-function updateBalanceUI() {
-  document.getElementById('balance-ui').innerHTML = `
-    <div>USDT: <b>${tradeBalance.usdt}</b></div>
-    <div>INR: <b>₹${tradeBalance.inr.toLocaleString()}</b></div>
-  `;
-}
-
-// NAYA: ORDER UI UPDATE
 function updateOrderUI(){
-  let coinName = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
-  let price = livePrices[coinName]?.usdt || 0;
-  let amount = document.getElementById('tradeAmount').value || 0;
+  let coin = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
+  let price = livePrices[coin]?.usdt || 0;
+  let amount = parseFloat(document.getElementById('orderAmount').value) || 0;
   
-  document.getElementById('orderPrice').innerText = `$${price.toFixed(2)}`;
-  document.getElementById('orderTotal').innerText = `${amount} USDT`;
+  document.getElementById('orderPrice').value = price.toFixed(2);
+  document.getElementById('orderTotal').innerText = (price * amount).toFixed(2);
+  document.getElementById('maxBuy').innerText = (tradeBalance.usdt / price).toFixed(4) + ` ${coin.toUpperCase()}`;
 }
 
 function placeTrade() {
   let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  let amount = document.getElementById('tradeAmount').value || 100;
-  let price = livePrices[coinName.toLowerCase()]?.usdt || 0;
+  let amount = document.getElementById('orderAmount').value || 0;
+  let price = document.getElementById('orderPrice').value || 0;
 
-  // HISTORY ME SAVE
   addToHistory(orderType, coinName.toLowerCase(), price, amount);
-
-  alert(`${orderType} order placed for ${amount} USDT of ${coinName}`);
+  alert(`${orderType} ${orderMode} order placed for ${amount} ${coinName}`);
   renderHistory();
 }
