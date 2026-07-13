@@ -22,14 +22,14 @@ function renderTrading() {
 
       <!-- CHART -->
       <div class="card">
-        <h3>Live Chart - ${coin}/USDT</h3>
+        <h3 id="chartTitle">Live Chart - ${coin}/USDT</h3>
         <div id="tradingview_chart" style="height: 500px;"></div>
       </div>
 
       <!-- AUTO BOT PANEL -->
       <div class="card" style="padding:15px; text-align:center;">
         <h2 id="botStatus" style="color:#ef4444; margin-bottom:15px;">Bot: STOPPED</h2>
-        
+
         <div id="botSignal" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#94a3b8;">
           Waiting for signal...
         </div>
@@ -53,16 +53,10 @@ function renderTrading() {
         </div>
       </div>
 
-      <div class="card">
-        <h3>Balance</h3>
-        <div id="balance-ui">Loading...</div>
-      </div>
-
     </div>
   `);
 
   loadTradingViewWidget();
-  updateBalanceUI();
 }
 
 function toggleBot(){
@@ -87,8 +81,7 @@ function toggleBot(){
 
 function startBot(){
   document.getElementById('botSignal').innerText = "Scanning market...";
-  // हर 10 sec me signal check करेगा
-  botInterval = setInterval(checkSignal, 10000); 
+  botInterval = setInterval(checkSignal, 10000);
 }
 
 function stopBot(){
@@ -96,11 +89,10 @@ function stopBot(){
   document.getElementById('botSignal').innerText = "Waiting for signal...";
 }
 
-// DUMMY SIGNAL LOGIC - yaha apna RSI/MA logic daal dena
 function checkSignal(){
   let rand = Math.random();
   let signalDiv = document.getElementById('botSignal');
-  
+
   if(rand > 0.7){
     signalDiv.innerText = "BUY SIGNAL! Placing order...";
     signalDiv.style.color = "#22c55e";
@@ -117,17 +109,20 @@ function checkSignal(){
 
 function placeAutoTrade(type){
   let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  let price = livePrices?.usdt || 0;
-  
+  let price = livePrices?.usdt || 69420; // dummy price agar live na ho
+
   botStats.trades++;
   botStats.pnl += (Math.random() - 0.4) * 10; // dummy pnl
 
-  addToHistory(type, coinName.toLowerCase(), price, 100); // 100 USDT fixed
-  
+  addToHistory(type, coinName.toLowerCase(), price, 100);
+
   document.getElementById('totalTrades').innerText = botStats.trades;
   document.getElementById('botPnl').innerText = `$${botStats.pnl.toFixed(2)}`;
   document.getElementById('botPnl').style.color = botStats.pnl >= 0? '#22c55e' : '#ef4444';
-  
+
+  let winRate = Math.floor(Math.random() * 100);
+  document.getElementById('winRate').innerText = winRate + '%';
+
   setTimeout(()=>{
     document.getElementById('botSignal').innerText = "Order Placed. Scanning again...";
     document.getElementById('botSignal').style.color = "#94a3b8";
@@ -140,7 +135,7 @@ function loadTradingViewWidget() {
     "width": "100%",
     "height": 500,
     "symbol": currentSymbol,
-    "interval": "1", // 1 min chart for bot
+    "interval": "1",
     "timezone": "Asia/Kolkata",
     "theme": "dark",
     "style": "1",
@@ -155,13 +150,6 @@ function loadTradingViewWidget() {
 function changeCoin(symbol) {
   currentSymbol = symbol;
   let coin = symbol.split(":")[1].replace("USDT","");
-  document.querySelector('h3').innerText = `Live Chart - ${coin}/USDT`;
+  document.getElementById('chartTitle').innerText = `Live Chart - ${coin}/USDT`;
   loadTradingViewWidget();
-}
-
-function updateBalanceUI() {
-  document.getElementById('balance-ui').innerHTML = `
-    <div>USDT: <b>${tradeBalance.usdt}</b></div>
-    <div>INR: <b>₹${tradeBalance.inr.toLocaleString()}</b></div>
-  `;
 }
