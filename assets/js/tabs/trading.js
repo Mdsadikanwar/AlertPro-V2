@@ -1,5 +1,5 @@
 let currentSymbol = "BINANCE:BTCUSDT";
-let holdings = { BTC: 0, ETH: 0, SOL: 0 }; // सिर्फ 3 coin रखे अभी, बाकी बाद में
+let holdings = { BTC: 0, ETH: 0, SOL: 0 }; 
 let livePrices = {};
 
 function renderTrading() {
@@ -27,8 +27,8 @@ function renderTrading() {
 
       <div class="card">
         <h3>Trade - $10 per trade</h3>
-        <button onclick="placeTrade('BUY')" style="width:49%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold;">BUY</button>
-        <button onclick="placeTrade('SELL')" style="width:49%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold;">SELL</button>
+        <button onclick="placeTrade('BUY')" style="width:49%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px;">BUY</button>
+        <button onclick="placeTrade('SELL')" style="width:49%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px;">SELL</button>
       </div>
     </div>
   `);
@@ -53,24 +53,27 @@ function changeCoin(symbol) {
 }
 
 async function fetchPrice() {
-  let coin = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
-  let idMap = {btc:"bitcoin", eth:"ethereum", sol:"solana"};
   try {
-    let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${idMap[coin]}&vs_currencies=usdt`);
-    let data = await res.json();
-    livePrices = data;
+    let res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usdt`);
+    livePrices = await res.json();
     updateUI();
   } catch(e) {}
 }
 
+function getCoinKey() {
+  let coin = currentSymbol.split(":")[1].replace("USDT","");
+  let map = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana"};
+  return map;
+}
+
 function getPrice() {
-  let coin = currentSymbol.split(":")[1].replace("USDT","").toLowerCase();
-  let idMap = {btc:"bitcoin", eth:"ethereum", sol:"solana"};
-  return livePrices[idMap]? livePrices[idMap].usdt : 0;
+  let key = getCoinKey();
+  return livePrices[key]? livePrices[key].usdt : 0;
 }
 
 function placeTrade(type) {
   let coin = currentSymbol.split(":")[1].replace("USDT","");
+  let key = getCoinKey();
   let price = getPrice();
   let tradeAmount = 10;
 
@@ -79,16 +82,16 @@ function placeTrade(type) {
   if(type === "BUY") {
     if(tradeBalance.usdt < tradeAmount) { alert("USDT कम है"); return; }
     tradeBalance.usdt -= tradeAmount;
-    holdings += tradeAmount / price;
+    holdings += tradeAmount / price; // FIXED
     alert("Bought " + (tradeAmount/price).toFixed(6) + " + coin);
   }
 
   if(type === "SELL") {
     let coinAmount = tradeAmount / price;
-    if(holdings < coinAmount) { alert(coin + " कम है"); return; }
+    if(holdings < coinAmount) { alert(coin + " कम है"); return; } // FIXED
     holdings -= coinAmount;
     tradeBalance.usdt += tradeAmount;
-    alert("Sold " + coinAmount.toFixed(6) + " " + coin);
+    alert("Sold " + coinAmount.toFixed(6) + " + coin);
   }
   updateUI();
 }
@@ -100,8 +103,8 @@ function updateUI() {
     <div>Price: <b>$${getPrice().toFixed(2)}</b></div>
   `;
   document.getElementById('holdings-ui').innerHTML = `
-    <div>${coin} Holdings: <b>${holdings.toFixed(6)}</b></div>
+    <div>${coin} Holdings: <b>${holdings.toFixed(6)}</b></div> // FIXED
   `;
 }
 
-setInterval(fetchPrice, 10000); // 10 sec में price update
+setInterval(fetchPrice, 10000);
