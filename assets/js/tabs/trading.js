@@ -1,7 +1,6 @@
 function renderTrading() { 
   showScreen(`${getNavbar()}
     <div class="container">
-      <h2>📈 Trading Terminal</h2>
       
       <div class="card">
         <h3>Live Chart</h3>
