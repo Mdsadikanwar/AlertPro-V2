@@ -1,4 +1,4 @@
-let currentSymbol = "BINANCE:BTCUSDT"; // default coin
+let currentSymbol = "BINANCE:BTCUSDT";
 
 function renderTrading() {
   showScreen(`${getNavbar()}
@@ -26,12 +26,13 @@ function renderTrading() {
       </div>
 
       <div class="card">
-        <h3>Balance</h3>
+        <h3>Balance & Holdings</h3>
         <div id="balance-ui">Loading...</div>
+        <div id="holdings-ui">Loading...</div>
       </div>
 
       <div class="card">
-        <h3>Trade</h3>
+        <h3>Trade - $10 per trade</h3>
         <button onclick="placeTrade('BUY')" class="btn-buy">BUY</button>
         <button onclick="placeTrade('SELL')" class="btn-sell">SELL</button>
       </div>
@@ -39,24 +40,16 @@ function renderTrading() {
   `);
 
   loadTradingViewWidget();
+  fetchPrices(); // price fetch karo
   updateBalanceUI();
 }
 
 function loadTradingViewWidget() {
   document.getElementById('tradingview_chart').innerHTML = "";
-
   new TradingView.widget({
-    "width": "100%",
-    "height": 500,
-    "symbol": currentSymbol,
-    "interval": "60",
-    "timezone": "Asia/Kolkata",
-    "theme": "dark",
-    "style": "1",
-    "locale": "en",
-    "toolbar_bg": "#1f2937",
-    "enable_publishing": false,
-    "allow_symbol_change": true,
+    "width": "100%", "height": 500, "symbol": currentSymbol, "interval": "60",
+    "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "en",
+    "toolbar_bg": "#1f2937", "enable_publishing": false, "allow_symbol_change": true,
     "container_id": "tradingview_chart"
   });
 }
@@ -64,16 +57,61 @@ function loadTradingViewWidget() {
 function changeCoin(symbol) {
   currentSymbol = symbol;
   loadTradingViewWidget();
+  updateBalanceUI();
 }
 
-function updateBalanceUI() {
-  document.getElementById('balance-ui').innerHTML = `
-    <div>USDT: <b>${tradeBalance.usdt}</b></div>
-    <div>INR: <b>₹${tradeBalance.inr.toLocaleString()}</b></div>
-  `;
+async function fetchPrices() {
+  try {
+    let res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,toncoin,shiba-inu&vs_currencies=usdt");
+    livePrices = await res.json();
+  } catch(e) { console.log("Price fetch error") }
+}
+
+function getCoinName() {
+  return currentSymbol.split(":")[1].replace("USDT","");
+}
+
+function getPrice() {
+  let map = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana", BNB:"binancecoin", XRP:"ripple", DOGE:"dogecoin", ADA:"cardano", TRX:"tron", TON:"toncoin", SHIB:"shiba-inu"};
+  let coin = getCoinName();
+  return livePrices[map[coin]]? livePrices[map[coin]].usdt : 0;
 }
 
 function placeTrade(type) {
-  let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  alert(type + " order placed for " + coinName);
+  let coin = getCoinName();
+  let price = getPrice();
+  let tradeAmount = 10; // har trade $10 ka
+
+  if(price === 0) { alert("Price loading... 2 sec ruko"); return; }
+
+  if(type === "BUY") {
+    if(tradeBalance.usdt < tradeAmount) { alert("USDT kam hai"); return; }
+    tradeBalance.usdt -= tradeAmount;
+    holdings[coin] += tradeAmount / price;
+    alert("Bought " + (tradeAmount/price).toFixed(6) + " + coin);
+  }
+
+  if(type === "SELL") {
+    let coinAmount = tradeAmount / price;
+    if(holdings[coin] < coinAmount) { alert(coin + " kam hai"); return; }
+    holdings[coin] -= coinAmount;
+    tradeBalance.usdt += tradeAmount;
+    alert("Sold " + coinAmount.toFixed(6) + " " + coin);
+  }
+
+  updateBalanceUI();
 }
+
+function updateBalanceUI() {
+  let coin = getCoinName();
+  document.getElementById('balance-ui').innerHTML = `
+    <div>USDT: <b>$${tradeBalance.usdt.toFixed(2)}</b></div>
+    <div>Current Price: <b>$${getPrice().toFixed(2)}</b></div>
+  `;
+  document.getElementById('holdings-ui').innerHTML = `
+    <div>${coin} Holdings: <b>${holdings[coin].toFixed(6)}</b></div>
+  `;
+}
+
+// har 10 sec me price update
+setInterval(fetchPrices, 10000);
