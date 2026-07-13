@@ -32,6 +32,7 @@ function renderTrading() {
 
       <div class="card">
         <h3>Trade</h3>
+        <input id="tradeAmount" type="number" placeholder="Amount in USDT" value="100" style="width:100%; padding:10px; margin-bottom:10px; background:#1f2937; color:white; border:1px solid #374151; border-radius:8px;">
         <button onclick="placeTrade('BUY')" class="btn-buy">BUY</button>
         <button onclick="placeTrade('SELL')" class="btn-sell">SELL</button>
       </div>
@@ -44,7 +45,6 @@ function renderTrading() {
 
 function loadTradingViewWidget() {
   document.getElementById('tradingview_chart').innerHTML = "";
-
   new TradingView.widget({
     "width": "100%",
     "height": 500,
@@ -75,12 +75,12 @@ function updateBalanceUI() {
 
 function placeTrade(type) {
   let coinName = currentSymbol.split(":")[1].replace("USDT","");
-  let price = 0; // dummy price abhi ke liye
-  let amount = 100; // dummy amount. baad me input se lenge
+  let amount = document.getElementById('tradeAmount').value || 100; // ab input se lega
+  let price = livePrices[coinName.toLowerCase()]?.usdt || 0; // real price lega
 
-  // YE 2 LINE NAYI ADD KI - HISTORY ME SAVE HOGA
+  // HISTORY ME SAVE
   addToHistory(type, coinName.toLowerCase(), price, amount);
 
-  alert(type + " order placed for " + coinName);
+  alert(`${type} order placed for ${amount} USDT of ${coinName}`);
   renderHistory(); // trade ke baad direct history page
 }
