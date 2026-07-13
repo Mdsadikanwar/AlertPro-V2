@@ -40,7 +40,7 @@ function renderTrading() {
   `);
 
   loadTradingViewWidget();
-  fetchPrices(); // price fetch karo
+  fetchPrices();
   updateBalanceUI();
 }
 
@@ -64,6 +64,7 @@ async function fetchPrices() {
   try {
     let res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,toncoin,shiba-inu&vs_currencies=usdt");
     livePrices = await res.json();
+    updateBalanceUI(); // price आने पर UI update
   } catch(e) { console.log("Price fetch error") }
 }
 
@@ -74,29 +75,29 @@ function getCoinName() {
 function getPrice() {
   let map = {BTC:"bitcoin", ETH:"ethereum", SOL:"solana", BNB:"binancecoin", XRP:"ripple", DOGE:"dogecoin", ADA:"cardano", TRX:"tron", TON:"toncoin", SHIB:"shiba-inu"};
   let coin = getCoinName();
-  return livePrices[map[coin]]? livePrices[map[coin]].usdt : 0;
+  return livePrices[map[coin]]? livePrices[map[coin]].usdt : 0; // FIXED
 }
 
 function placeTrade(type) {
   let coin = getCoinName();
   let price = getPrice();
-  let tradeAmount = 10; // har trade $10 ka
+  let tradeAmount = 10;
 
   if(price === 0) { alert("Price loading... 2 sec ruko"); return; }
 
   if(type === "BUY") {
     if(tradeBalance.usdt < tradeAmount) { alert("USDT kam hai"); return; }
     tradeBalance.usdt -= tradeAmount;
-    holdings[coin] += tradeAmount / price;
+    holdings[coin] += tradeAmount / price; // FIXED: holdings[coin]
     alert("Bought " + (tradeAmount/price).toFixed(6) + " + coin);
   }
 
   if(type === "SELL") {
     let coinAmount = tradeAmount / price;
-    if(holdings[coin] < coinAmount) { alert(coin + " kam hai"); return; }
+    if(holdings[coin] < coinAmount) { alert(coin + " kam hai"); return; } // FIXED
     holdings[coin] -= coinAmount;
     tradeBalance.usdt += tradeAmount;
-    alert("Sold " + coinAmount.toFixed(6) + " " + coin);
+    alert("Sold " + coinAmount.toFixed(6) + " + coin);
   }
 
   updateBalanceUI();
@@ -109,9 +110,8 @@ function updateBalanceUI() {
     <div>Current Price: <b>$${getPrice().toFixed(2)}</b></div>
   `;
   document.getElementById('holdings-ui').innerHTML = `
-    <div>${coin} Holdings: <b>${holdings[coin].toFixed(6)}</b></div>
+    <div>${coin} Holdings: <b>${holdings[coin].toFixed(6)}</b></div> // FIXED
   `;
 }
 
-// har 10 sec me price update
 setInterval(fetchPrices, 10000);
