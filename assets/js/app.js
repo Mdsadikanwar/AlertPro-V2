@@ -1,6 +1,23 @@
-// App Initializer (Jaise hi page load hoga, yeh chalega)
+// App Initializer (Jaise hi page load hoga, check karega ki last time konsa page khula tha)
 window.onload = function() {  
-  navigateToMarket('home');  
+  // Browser memory se check karenge ki koi saved market hai ya nahi
+  const savedMarket = localStorage.getItem('last_active_market');
+  const savedTab = localStorage.getItem('last_active_tab');
+
+  if (savedMarket) {
+    // Agar pehle se koi market (jaise crypto ya stocks) select thi, toh wahi khulegi
+    navigateToMarket(savedMarket);
+    
+    // Agar koi specific tab (jaise dashboard, trading) active tha, toh wo load hoga
+    if (savedTab) {
+      setTimeout(() => {
+        switchTab(savedTab);
+      }, 50); // thoda sa delay taaki navbar load ho sake
+    }
+  } else {
+    // Agar pehli baar site kholi hai, toh home page khulega
+    navigateToMarket('home');  
+  }
 };  
   
 // Render home landing screen (Main entry dashboard)
