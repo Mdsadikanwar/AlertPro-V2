@@ -1,20 +1,21 @@
 // Top 10 Coins List (Base symbols and names)
 const cryptoCoins = [
-  { name: "Bitcoin", code: "BTC", icon: "🪙" },
-  { name: "Ethereum", code: "ETH", icon: "🔷" },
-  { name: "Solana", code: "SOL", icon: "☀️" },
-  { name: "Binance Coin", code: "BNB", icon: "🟡" },
-  { name: "Ripple", code: "XRP", icon: "✖️" },
-  { name: "Cardano", code: "ADA", icon: "🔵" },
-  { name: "Dogecoin", code: "DOGE", icon: "🐕" },
-  { name: "Shiba Inu", code: "SHIB", icon: "🐕‍🦺" },
-  { name: "Avalanche", code: "AVAX", icon: "🔺" },
-  { name: "Polkadot", code: "DOT", icon: "🔴" }
+  { name: "Bitcoin", code: "BTC", icon: "🪙", cgId: "bitcoin" },
+  { name: "Ethereum", code: "ETH", icon: "🔷", cgId: "ethereum" },
+  { name: "Solana", code: "SOL", icon: "☀️", cgId: "solana" },
+  { name: "Binance Coin", code: "BNB", icon: "🟡", cgId: "binancecoin" },
+  { name: "Ripple", code: "XRP", icon: "✖️", cgId: "ripple" },
+  { name: "Cardano", code: "ADA", icon: "🔵", cgId: "cardano" },
+  { name: "Dogecoin", code: "DOGE", icon: "🐕", cgId: "dogecoin" },
+  { name: "Shiba Inu", code: "SHIB", icon: "🐕‍🦺", cgId: "shiba-inu" },
+  { name: "Avalanche", code: "AVAX", icon: "🔺", cgId: "avalanche-2" },
+  { name: "Polkadot", code: "DOT", icon: "🔴", cgId: "polkadot" }
 ];
 
 // Current States
 let selectedCoinCode = "BTC";
 let selectedCurrency = "USDT"; // Default currency
+let priceIntervalId = null; // Storing interval reference to clear it
 
 // Crypto Dashboard render function
 function renderCryptoDashboard() {
@@ -27,7 +28,7 @@ function renderCryptoDashboard() {
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 20px;">
         <div>
           <h2 style="color: #38bdf8; margin: 0;">Crypto Live Dashboard</h2>
-          <p style="color: #94a3b8; margin: 5px 0 0 0;">Select coin and pair currency to view live chart</p>
+          <p style="color: #94a3b8; margin: 5px 0 0 0;">Select a coin and currency pair to view its real-time rate</p>
         </div>
         
         <!-- DROPDOWNS CONTAINER -->
@@ -57,69 +58,76 @@ function renderCryptoDashboard() {
         </div>
       </div>
 
-      <!-- Quick Stats Card Grid -->
-      <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 250px; background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-          <h4 style="color: #94a3b8; margin: 0 0 10px 0;">Selected Trading Pair</h4>
-          <h2 id="activePairLabel" style="color: #38bdf8; margin: 0; font-size: 24px;">
-            ${selectedCoinCode} / ${selectedCurrency}
-          </h2>
-        </div>
-        <div style="flex: 1; min-width: 250px; background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-          <h4 style="color: #94a3b8; margin: 0 0 10px 0;">Market Status</h4>
-          <h2 style="color: #22c55e; margin: 0; font-size: 24px;">● Live Feed</h2>
-        </div>
-      </div>
-
-      <!-- TradingView Chart Container -->
-      <div style="background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #374151;">
-        <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px;">Live Technical Chart</h3>
-        <div id="crypto_tradingview_widget" style="height: 500px; background: #151c2c; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
-          TradingView Chart Widget Loading...
+      <!-- Live Price Large Display Screen -->
+      <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 40px 20px; text-align: center; max-width: 600px; margin: 40px auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
+        <span id="priceLabel" style="color: #94a3b8; font-size: 18px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;">
+          ${selectedCoinCode} / ${selectedCurrency} LIVE PRICE
+        </span>
+        
+        <h1 id="livePriceValue" style="color: #22c55e; font-size: 48px; margin: 20px 0; font-family: monospace;">
+          Loading...
+        </h1>
+        
+        <div style="color: #94a3b8; font-size: 12px; display: flex; justify-content: center; align-items: center; gap: 5px;">
+          <span>🟢 Auto-refreshing every 5 seconds</span>
         </div>
       </div>
 
     </div>
   `;
 
-  // Init chart load
-  loadTradingViewWidget();
+  // Start fetching live price
+  startLivePriceStream();
 }
 
-// Function to construct symbol based on coin and currency
-function getTVSystemSymbol() {
-  if (selectedCurrency === "INR") {
-    // For INR, we use CoinDCX data on TradingView
-    return `COINDCX:${selectedCoinCode}INR`;
-  } else {
-    // For USDT, we use Binance data on TradingView
-    return `BINANCE:${selectedCoinCode}USDT`;
+// Function to fetch live price from CoinGecko API
+function fetchLivePrice() {
+  const activeCoin = cryptoCoins.find(coin => coin.code === selectedCoinCode);
+  if (!activeCoin) return;
+
+  const cgId = activeCoin.cgId;
+  const targetCurrency = selectedCurrency.toLowerCase(); // 'usd' (for usdt symbol query) or 'inr'
+  const apiCurrency = targetCurrency === 'usdt' ? 'usd' : 'inr';
+
+  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=${apiCurrency}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data[cgId] && data[cgId][apiCurrency]) {
+        const rawPrice = data[cgId][apiCurrency];
+        const symbolSymbol = selectedCurrency === "INR" ? "₹ " : "$ ";
+        
+        // Pretty formatting based on coin price scale (like Shiba Inu)
+        const formattedPrice = rawPrice < 1 
+          ? rawPrice.toFixed(6) 
+          : rawPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const priceElement = document.getElementById('livePriceValue');
+        if (priceElement) {
+          priceElement.innerText = symbolSymbol + formattedPrice;
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Price fetch error:", error);
+      const priceElement = document.getElementById('livePriceValue');
+      if (priceElement) {
+        priceElement.innerText = "Connection Error";
+      }
+    });
+}
+
+// Start auto fetching price stream
+function startLivePriceStream() {
+  // Clear any existing intervals first
+  if (priceIntervalId) {
+    clearInterval(priceIntervalId);
   }
-}
 
-// Function to load/reload TradingView widget
-function loadTradingViewWidget() {
-  const symbol = getTVSystemSymbol();
-  
-  setTimeout(() => {
-    if (typeof TradingView !== 'undefined' && document.getElementById('crypto_tradingview_widget')) {
-      new TradingView.widget({
-        "width": "100%",
-        "height": 500,
-        "symbol": symbol,
-        "interval": "15",
-        "timezone": "Asia/Kolkata",
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "toolbar_bg": "#f1f3f6",
-        "enable_publishing": false,
-        "hide_side_toolbar": false,
-        "allow_symbol_change": true,
-        "container_id": "crypto_tradingview_widget"
-      });
-    }
-  }, 100);
+  // Fetch immediately
+  fetchLivePrice();
+
+  // Then fetch every 5 seconds
+  priceIntervalId = setInterval(fetchLivePrice, 5000);
 }
 
 // Handler for dropdown changes
@@ -127,12 +135,16 @@ function updateCryptoFilters() {
   selectedCoinCode = document.getElementById('coinSelector').value;
   selectedCurrency = document.getElementById('currencySelector').value;
   
-  // Update the status panel label instantly
-  const labelElement = document.getElementById('activePairLabel');
+  // Update UI Labels instantly
+  const labelElement = document.getElementById('priceLabel');
   if (labelElement) {
-    labelElement.innerText = `${selectedCoinCode} / ${selectedCurrency}`;
+    labelElement.innerText = `${selectedCoinCode} / ${selectedCurrency} LIVE PRICE`;
+  }
+  const priceElement = document.getElementById('livePriceValue');
+  if (priceElement) {
+    priceElement.innerText = "Loading...";
   }
   
-  // Reload the widget with new filters
-  loadTradingViewWidget();
+  // Restart stream with new filters
+  startLivePriceStream();
 }
