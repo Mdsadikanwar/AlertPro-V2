@@ -1,81 +1,64 @@
-// GLOBAL DATA
-var orderHistory = JSON.parse(localStorage.getItem('orderHistory')) || [];
-var livePrices = { btc: { usdt: 65000 }, eth: { usdt: 3500 }, sol: { usdt: 150 } };
-var tradeBalance = { usdt: 10000, inr: 830000 };
-
-// STEP 2: LIVE PRICE FETCHER - BINANCE API
-async function fetchLivePrices() {
-  try {
-    let res = await fetch('https://api.binance.com/api/v3/ticker/price');
-    let data = await res.json();
-
-    data.forEach(d => {
-      if(d.symbol.endsWith('USDT')){
-        let coin = d.symbol.replace('USDT','').toLowerCase();
-        if(livePrices[coin]){ // <- [coin] FIX
-          livePrices[coin].usdt = parseFloat(d.price);
-        }
-      }
-    });
-    console.log("Prices Updated:", livePrices);
-  } catch(e) {
-    console.log("Price fetch error", e);
-  }
-}
-
-setInterval(fetchLivePrices, 3000);
-fetchLivePrices();
-
-function getNavbar() {
-    return `
-    <div class="topbar">
-        <div class="logo" onclick="renderDashboard()" style="cursor:pointer;">⚡ ApexTraders</div>
-        <div class="navbar">
-            <button class="nav-btn" onclick="renderHome()">🏠 Home</button>
-            <button class="nav-btn" onclick="renderDashboard()">📊 Dashboard</button>
-            <button class="nav-btn" onclick="renderHistory()">💰 PNL & History</button>
-            <button class="nav-btn" onclick="renderTrading()">💵 Trading</button>
-            <button class="nav-btn" onclick="renderStrategies()">🤖 Strategies</button>
-            <button class="nav-btn" onclick="renderBacktest()">📈 Backtest</button>
-            <button class="nav-btn" onclick="renderSettings()">⚙️ Settings</button>
-            <button class="nav-btn" onclick="renderLogs()">📝 Logs</button>
-            <button class="nav-btn" onclick="renderHub()">🔧 Hub</button>
-        </div>
-    </div>
-    `;
-}
-function showScreen(html){ document.getElementById('app').innerHTML = html; }
-
-function addToHistory(type, coin, price, amount){
-  let pnl = (Math.random() - 0.5) * 20;
-  orderHistory.unshift({type, coin, price, amount, time: new Date().toLocaleString(), pnl: pnl.toFixed(2)});
-  localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
-}
-function clearHistory(){
-  if(confirm("Clear All History?")){
-    orderHistory = [];
-    localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
-    renderHistory();
-  }
-}
-
-function renderHistory() {
-  showScreen(`${getNavbar()}
-    <div class="container">
-      <div class="card">
-        <h3>PNL & Order History</h3>
-        <button onclick="clearHistory()" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; float:right;">Clear All</button>
+// Global State  
+const appState = {  
+  currentMarket: 'home', // 'home', 'crypto', 'stocks', 'commodities'  
+  activeTab: 'dashboard'  // 'dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'  
+};  
+  
+// State Transition Engine  
+function navigateToMarket(market) {  
+  appState.currentMarket = market;  
+  appState.activeTab = 'dashboard'; // Switch hone par dashboard default rahega
+  renderActiveView();  
+}  
+  
+function navigateToTab(tab) {  
+  appState.activeTab = tab;  
+  renderActiveView();  
+}  
+  
+// Active market ke hisab se common topbar navigation bar banana  
+function getMarketNavbar(title, accentColor) {  
+  return `  
+    <div class="topbar" style="border-bottom: 2px solid ${accentColor}; background: #111827; padding: 15px; display: flex; justify-content: space-between; align-items: center;">  
+      <div class="logo" onclick="navigateToMarket('home')" style="cursor:pointer; font-weight: bold; font-size: 20px; color: #fff;">⚡ ApexTraders V2 (${title})</div>  
+      <div class="navbar" style="display: flex; gap: 10px;">  
+        <button class="nav-btn" onclick="navigateToMarket('home')" style="padding: 8px 12px; cursor: pointer;">🏠 Home</button>  
+        <button class="nav-btn ${appState.activeTab === 'dashboard' ? 'active' : ''}" onclick="navigateToTab('dashboard')" style="padding: 8px 12px; cursor: pointer;">📊 Dashboard</button>  
+        <button class="nav-btn ${appState.activeTab === 'trading' ? 'active' : ''}" onclick="navigateToTab('trading')" style="padding: 8px 12px; cursor: pointer;">💵 Trading</button>  
+        <button class="nav-btn ${appState.activeTab === 'strategies' ? 'active' : ''}" onclick="navigateToTab('strategies')" style="padding: 8px 12px; cursor: pointer;">🤖 Strategies</button>  
+        <button class="nav-btn ${appState.activeTab === 'backtest' ? 'active' : ''}" onclick="navigateToTab('backtest')" style="padding: 8px 12px; cursor: pointer;">📈 Backtest</button>  
+        <button class="nav-btn ${appState.activeTab === 'settings' ? 'active' : ''}" onclick="navigateToTab('settings')" style="padding: 8px 12px; cursor: pointer;">⚙️ Settings</button>  
+        <button class="nav-btn ${appState.activeTab === 'logs' ? 'active' : ''}" onclick="navigateToTab('logs')" style="padding: 8px 12px; cursor: pointer;">📝 Logs</button>  
+      </div>  
+    </div>  
+  `;  
+}  
+  
+// Global Screen Router
+function renderActiveView() {  
+  const root = document.getElementById('app');  
+    
+  if (appState.currentMarket === 'home') {  
+    renderLandingPage();  
+    return;  
+  }  
+  
+  // Market prefix (crypto, stocks, commodities) aur tab name ko jodkar function name banana  
+  const marketPrefix = appState.currentMarket; 
+  const tabName = appState.activeTab;         
+    
+  // Jaise: renderCryptoDashboard() ya renderStocksTrading()  
+  const functionName = "render" + marketPrefix.charAt(0).toUpperCase() + marketPrefix.slice(1) + tabName.charAt(0).toUpperCase() + tabName.slice(1);  
+    
+  if (window[functionName] && typeof window[functionName] === 'function') {  
+    window[functionName]();  
+  } else {  
+    root.innerHTML = `
+      ${getMarketNavbar(marketPrefix.toUpperCase(), '#ef4444')}
+      <div class="container" style="padding: 20px; text-align: center;">
+        <p style="color:#ef4444; font-size: 18px;">Error: Function <b>${functionName}()</b> is not implemented yet!</p>
+        <p style="color:#94a3b8;">Hum jald hi is file ko create karenge.</p>
       </div>
-      <div class="card">
-        ${orderHistory.length == 0? '<p style="color:#94a3b8;">No trades yet</p>' :
-          orderHistory.map(o => `
-            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #374151;">
-              <div><b style="color:${o.type=='BUY'?'#22c55e':'#ef4444'}">${o.type}</b> ${o.coin.toUpperCase()}<br><span style="font-size:12px; color:#94a3b8;">${o.time}</span></div>
-              <div style="text-align:right;"><div>$${o.price.toFixed(2)}</div><div style="color:${o.pnl>=0?'#22c55e':'#ef4444'}">${o.pnl>=0?'+':''}$${o.pnl}</div></div>
-            </div>
-          `).join('')
-        }
-      </div>
-    </div>
-  `);
+    `;  
+  }  
 }
