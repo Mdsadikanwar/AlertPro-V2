@@ -59,8 +59,8 @@ function renderTrading() {
   `);
 
   loadTradingViewWidget();
-  updateActiveStrategyText(); // strategy name show karega
-  setInterval(updateActiveStrategyText, 2000); // har 2 sec me update
+  updateActiveStrategyText();
+  setInterval(updateActiveStrategyText, 2000);
 }
 
 function updateActiveStrategyText(){
@@ -101,7 +101,7 @@ function toggleBot(){
 
 function startBot(){
   document.getElementById('botSignal').innerText = "Scanning market...";
-  botInterval = setInterval(checkSignal, 10000);
+  botInterval = setInterval(checkSignal, 10000); // 10 sec me 1 signal check
 }
 
 function stopBot(){
@@ -109,7 +109,7 @@ function stopBot(){
   document.getElementById('botSignal').innerText = "Waiting for signal...";
 }
 
-// STEP 3: AB STRATEGY SE SIGNAL AAYEGA
+// STRATEGY SE SIGNAL
 function checkSignal(){
   let signal = getSignalFromStrategy(activeStrategy);
   let signalDiv = document.getElementById('botSignal');
@@ -128,30 +128,23 @@ function checkSignal(){
   }
 }
 
-// STRATEGY LOGIC - ABHI DUMMY HAI, BAAD ME REAL RSI DALENGE
+// 3 STRATEGY KA DUMMY LOGIC
 function getSignalFromStrategy(strategy){
   if(!strategy || strategy == 'none') return 'NONE';
-
   let r = Math.random();
 
   if(strategy == 'rsi'){
-    // Dummy RSI: 70% upar = SELL, 30% niche = BUY
-    if(r > 0.7) return 'SELL';
-    if(r < 0.3) return 'BUY';
+    if(r > 0.7) return 'SELL'; // RSI > 70
+    if(r < 0.3) return 'BUY'; // RSI < 30
   }
-
   if(strategy == 'ma'){
-    // Dummy MA: 60% upar = BUY
-    if(r > 0.6) return 'BUY';
-    if(r < 0.4) return 'SELL';
+    if(r > 0.6) return 'BUY'; // MA 50 > 200
+    if(r < 0.4) return 'SELL'; // MA 50 < 200
   }
-
   if(strategy == 'bb'){
-    // Dummy BB: 50-50
-    if(r > 0.5) return 'BUY';
-    if(r < 0.5) return 'SELL';
+    if(r > 0.6) return 'BUY'; // Lower band touch
+    if(r < 0.4) return 'SELL'; // Upper band touch
   }
-
   return 'NONE';
 }
 
@@ -160,7 +153,7 @@ function placeAutoTrade(type){
   let price = livePrices[coinName]?.usdt || 65000;
 
   botStats.trades++;
-  let tradePnl = (Math.random() - 0.4) * 10;
+  let tradePnl = (Math.random() - 0.4) * 10; // 60% win chance
   botStats.pnl += tradePnl;
 
   addToHistory(type, coinName, price, 100);
