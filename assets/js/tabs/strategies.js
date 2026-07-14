@@ -1,6 +1,6 @@
-var activeStrategy = 'none'; // GLOBAL - let ki jagah var
+var activeStrategy = 'none'; // GLOBAL
 
-function renderStrategy() {
+function renderStrategies() {  // <-- yaha s add kar diya
   showScreen(`${getNavbar()}
     <div class="container">
 
@@ -82,7 +82,7 @@ function toggleStrategy(type, isOn){
     document.getElementById('rsiSettings').style.display = 'none';
     if(type == 'rsi') document.getElementById('rsiSettings').style.display = 'block';
 
-    activeStrategy = type; // GLOBAL me save
+    activeStrategy = type;
     document.getElementById('activeStrategy').innerText = type.toUpperCase();
     alert(`${type.toUpperCase()} Strategy Activated!`);
   } else {
