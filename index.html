@@ -3,32 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ApexTraders</title>
+  <title>ApexTraders V2</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <div id="app">Loading...</div>
-  
-  <!-- TRADINGVIEW CHART -->
+  <div id="app">Loading ApexTraders V2...</div>
+
+  <!-- TRADINGVIEW CHART CORE -->
   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-  
-  <!-- CORE -->
+
+  <!-- CORE & GLOBAL ENGINE -->
   <script src="assets/js/core.js"></script>
-  
-  <!-- STRATEGY SABSE PEHLE - KYUKI TRADING USE KAREGA -->
-  <script src="assets/js/tabs/strategies.js"></script> <!-- FIX: s add kar diya -->
-  
-  <!-- BAAKI TABS -->
-  <script src="assets/js/tabs/dashboard.js"></script>
-  <script src="assets/js/tabs/pnl-history.js"></script>
-  <script src="assets/js/tabs/trading.js"></script>
-  <script src="assets/js/tabs/backtest.js"></script>
-  <script src="assets/js/tabs/settings.js"></script>
-  <script src="assets/js/tabs/logs.js"></script>
-  <script src="assets/js/tabs/hub.js"></script>
-  
-  <!-- LAST -->
+
+  <!-- CRYPTO MODULE TABS -->
+  <script src="assets/js/crypto/dashboard.js"></script>
+  <script src="assets/js/crypto/trading.js"></script>
+  <script src="assets/js/crypto/strategies.js"></script>
+  <script src="assets/js/crypto/backtest.js"></script>
+  <script src="assets/js/crypto/settings.js"></script>
+  <script src="assets/js/crypto/logs.js"></script>
+
+  <!-- STOCKS MODULE TABS -->
+  <script src="assets/js/stocks/dashboard.js"></script>
+  <script src="assets/js/stocks/trading.js"></script>
+  <script src="assets/js/stocks/strategies.js"></script>
+  <script src="assets/js/stocks/backtest.js"></script>
+  <script src="assets/js/stocks/settings.js"></script>
+  <script src="assets/js/stocks/logs.js"></script>
+
+  <!-- COMMODITIES MODULE TABS -->
+  <script src="assets/js/commodities/dashboard.js"></script>
+  <script src="assets/js/commodities/trading.js"></script>
+  <script src="assets/js/commodities/strategies.js"></script>
+  <script src="assets/js/commodities/backtest.js"></script>
+  <script src="assets/js/commodities/settings.js"></script>
+  <script src="assets/js/commodities/logs.js"></script>
+
+  <!-- APP BOOTSTRAPPER (Always Last) -->
   <script src="assets/js/app.js"></script>
-  <script src="assets/js/main.js"></script>
 </body>
 </html>
