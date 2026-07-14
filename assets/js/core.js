@@ -37,7 +37,7 @@ function getNavbar() {
             <button class="nav-btn" onclick="renderDashboard()">📊 Dashboard</button>
             <button class="nav-btn" onclick="renderHistory()">💰 PNL & History</button>
             <button class="nav-btn" onclick="renderTrading()">💵 Trading</button>
-            <button class="nav-btn" onclick="renderStrategy()">🤖 Strategies</button> <!-- FIX: s hata diya -->
+            <button class="nav-btn" onclick="renderStrategies()">🤖 Strategies</button> <!-- FIX: s ADD KAR DIYA -->
             <button class="nav-btn" onclick="renderBacktest()">📈 Backtest</button>
             <button class="nav-btn" onclick="renderSettings()">⚙️ Settings</button>
             <button class="nav-btn" onclick="renderLogs()">📝 Logs</button>
