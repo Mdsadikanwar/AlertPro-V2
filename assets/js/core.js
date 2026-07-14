@@ -1,64 +1,102 @@
-// Global State  
-const appState = {  
-  currentMarket: 'home', // 'home', 'crypto', 'stocks', 'commodities'  
-  activeTab: 'dashboard'  // 'dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'  
-};  
+// Main Router: Market selection handler
+function navigateToMarket(market) {
+  currentMarket = market;
   
-// State Transition Engine  
-function navigateToMarket(market) {  
-  appState.currentMarket = market;  
-  appState.activeTab = 'dashboard'; // Switch hone par dashboard default rahega
-  renderActiveView();  
-}  
-  
-function navigateToTab(tab) {  
-  appState.activeTab = tab;  
-  renderActiveView();  
-}  
-  
-// Active market ke hisab se common topbar navigation bar banana  
-function getMarketNavbar(title, accentColor) {  
-  return `  
-    <div class="topbar" style="border-bottom: 2px solid ${accentColor}; background: #111827; padding: 15px; display: flex; justify-content: space-between; align-items: center;">  
-      <div class="logo" onclick="navigateToMarket('home')" style="cursor:pointer; font-weight: bold; font-size: 20px; color: #fff;">⚡ ApexTraders V2 (${title})</div>  
-      <div class="navbar" style="display: flex; gap: 10px;">  
-        <button class="nav-btn" onclick="navigateToMarket('home')" style="padding: 8px 12px; cursor: pointer;">🏠 Home</button>  
-        <button class="nav-btn ${appState.activeTab === 'dashboard' ? 'active' : ''}" onclick="navigateToTab('dashboard')" style="padding: 8px 12px; cursor: pointer;">📊 Dashboard</button>  
-        <button class="nav-btn ${appState.activeTab === 'trading' ? 'active' : ''}" onclick="navigateToTab('trading')" style="padding: 8px 12px; cursor: pointer;">💵 Trading</button>  
-        <button class="nav-btn ${appState.activeTab === 'strategies' ? 'active' : ''}" onclick="navigateToTab('strategies')" style="padding: 8px 12px; cursor: pointer;">🤖 Strategies</button>  
-        <button class="nav-btn ${appState.activeTab === 'backtest' ? 'active' : ''}" onclick="navigateToTab('backtest')" style="padding: 8px 12px; cursor: pointer;">📈 Backtest</button>  
-        <button class="nav-btn ${appState.activeTab === 'settings' ? 'active' : ''}" onclick="navigateToTab('settings')" style="padding: 8px 12px; cursor: pointer;">⚙️ Settings</button>  
-        <button class="nav-btn ${appState.activeTab === 'logs' ? 'active' : ''}" onclick="navigateToTab('logs')" style="padding: 8px 12px; cursor: pointer;">📝 Logs</button>  
-      </div>  
-    </div>  
-  `;  
-}  
-  
-// Global Screen Router
-function renderActiveView() {  
-  const root = document.getElementById('app');  
+  // Browser state save karein taaki refresh par yaad rahe
+  localStorage.setItem('last_active_market', market);
+
+  if (market === 'home') {
+    localStorage.removeItem('last_active_market');
+    localStorage.removeItem('last_active_tab');
+    renderLandingPage();
+  } else {
+    // Default tabs configuration for different markets
+    if (market === 'crypto') activeTab = 'dashboard';
+    if (market === 'stocks') activeTab = 'dashboard';
+    if (market === 'commodities') activeTab = 'dashboard';
     
-  if (appState.currentMarket === 'home') {  
-    renderLandingPage();  
-    return;  
-  }  
+    localStorage.setItem('last_active_tab', activeTab);
+    loadMarketInterface();
+  }
+}
+
+// Global Core State Config
+var currentMarket = 'home'; 
+var activeTab = 'dashboard';
+
+// Active tab switcher
+function switchTab(tabId) {
+  activeTab = tabId;
+  localStorage.setItem('last_active_tab', tabId); // Tab memory state save
   
-  // Market prefix (crypto, stocks, commodities) aur tab name ko jodkar function name banana  
-  const marketPrefix = appState.currentMarket; 
-  const tabName = appState.activeTab;         
-    
-  // Jaise: renderCryptoDashboard() ya renderStocksTrading()  
-  const functionName = "render" + marketPrefix.charAt(0).toUpperCase() + marketPrefix.slice(1) + tabName.charAt(0).toUpperCase() + tabName.slice(1);  
-    
-  if (window[functionName] && typeof window[functionName] === 'function') {  
-    window[functionName]();  
-  } else {  
-    root.innerHTML = `
-      ${getMarketNavbar(marketPrefix.toUpperCase(), '#ef4444')}
-      <div class="container" style="padding: 20px; text-align: center;">
-        <p style="color:#ef4444; font-size: 18px;">Error: Function <b>${functionName}()</b> is not implemented yet!</p>
-        <p style="color:#94a3b8;">Hum jald hi is file ko create karenge.</p>
+  // Clear any active interval (like live crypto prices) if switching tabs
+  if (typeof priceIntervalId !== 'undefined' && priceIntervalId) {
+    clearInterval(priceIntervalId);
+  }
+
+  // UI Tabs update highlights
+  const tabs = document.querySelectorAll('.nav-tab');
+  tabs.forEach(tab => {
+    if (tab.getAttribute('onclick').includes(`'${tabId}'`)) {
+      tab.style.borderBottom = `3px solid ${tab.dataset.color || '#fff'}`;
+      tab.style.color = '#fff';
+      tab.style.opacity = '1';
+    } else {
+      tab.style.borderBottom = 'none';
+      tab.style.color = '#94a3b8';
+      tab.style.opacity = '0.7';
+    }
+  });
+
+  // Render correct panel
+  executeTabRender();
+}
+
+// Router for specific UI views
+function executeTabRender() {
+  const marketPrefix = currentMarket.toLowerCase();
+  
+  if (marketPrefix === 'crypto') {
+    if (activeTab === 'dashboard') renderCryptoDashboard();
+    if (activeTab === 'trading') renderCryptoTrading();
+    if (activeTab === 'strategies') renderCryptoStrategies();
+    if (activeTab === 'backtest') renderCryptoBacktest();
+    if (activeTab === 'settings') renderCryptoSettings();
+    if (activeTab === 'logs') renderCryptoLogs();
+  } else if (marketPrefix === 'stocks') {
+    if (activeTab === 'dashboard') renderStocksDashboard();
+    // baaki tabs ko hum aage chalkar render karenge
+  }
+}
+
+// Universal Navigation Head Bar Template generator
+function getMarketNavbar(marketName, colorCode) {
+  const tabs = ['dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'];
+  
+  return `
+    <div style="background: #1e293b; padding: 15px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-family: sans-serif;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span onclick="navigateToMarket('home')" style="cursor: pointer; font-size: 20px; color: #94a3b8;" title="Go Home">🏠</span>
+        <h2 style="color: ${colorCode}; margin: 0; font-size: 20px;">ApexTraders [${marketName}]</h2>
       </div>
-    `;  
-  }  
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        ${tabs.map(tab => {
+          const isActive = tab === activeTab;
+          return `
+            <button class="nav-tab" 
+                    data-color="${colorCode}"
+                    onclick="switchTab('${tab}')" 
+                    style="background: none; border: none; padding: 8px 12px; color: ${isActive ? '#fff' : '#94a3b8'}; border-bottom: ${isActive ? `3px solid ${colorCode}` : 'none'}; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: capitalize; opacity: ${isActive ? '1' : '0.7'};">
+              ${tab}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// Load current ecosystem setup
+function loadMarketInterface() {
+  executeTabRender();
 }
