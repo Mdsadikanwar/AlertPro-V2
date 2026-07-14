@@ -1,3 +1,5 @@
+var activeStrategy = 'none'; // GLOBAL - let ki jagah var
+
 function renderStrategy() {
   showScreen(`${getNavbar()}
     <div class="container">
@@ -69,8 +71,6 @@ function renderStrategy() {
   `);
 }
 
-let activeStrategy = 'none';
-
 function toggleStrategy(type, isOn){
   if(isOn){
     // बाकी सब बंद कर दो
@@ -82,7 +82,7 @@ function toggleStrategy(type, isOn){
     document.getElementById('rsiSettings').style.display = 'none';
     if(type == 'rsi') document.getElementById('rsiSettings').style.display = 'block';
 
-    activeStrategy = type;
+    activeStrategy = type; // GLOBAL me save
     document.getElementById('activeStrategy').innerText = type.toUpperCase();
     alert(`${type.toUpperCase()} Strategy Activated!`);
   } else {
