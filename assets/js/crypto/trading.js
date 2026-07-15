@@ -43,106 +43,100 @@ function renderCryptoTrading() {
 
   root.innerHTML = `
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
-    <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
+    <div class="container" style="padding: 15px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff; max-width: 480px; margin: 0 auto;">
       
-      <!-- Top Action Bar with Balance & Reset Only (Individual Coin Cards Removed) -->
-      <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <div style="background: #1e293b; padding: 12px 25px; border-radius: 12px; border: 1px solid #334155; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          <span style="color: #94a3b8; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">USDT Wallet Balance:</span>
-          <h2 style="color: #22c55e; margin: 0; font-size: 24px; font-family: monospace;">$${cryptoBalance.usdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+      <!-- Top Action Bar -->
+      <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="background: #1e293b; padding: 12px 15px; border-radius: 12px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+          <span style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase;">USDT Balance:</span>
+          <h2 style="color: #22c55e; margin: 0; font-size: 20px; font-family: monospace;">$${cryptoBalance.usdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
         </div>
         
-        <button onclick="resetBalance()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;">
+        <button onclick="resetBalance()" style="width: 100%; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px;">
           🔄 Reset Wallet ($10k)
         </button>
       </div>
 
-      <!-- Two-Column Layout: Huge Chart Left, Order-book Right -->
-      <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
+      <!-- Vertical Mobile Layout: Chart Top, Order-book Bottom -->
+      <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
         
-        <!-- TradingView Embedded Chart Widget - Double Sized for Half Screen Feel -->
-        <div style="flex: 4; min-width: 500px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 850px; display: flex; flex-direction: column;">
-          <div style="background: #0f172a; padding: 14px 20px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-            <span>📈 TradingView Interactive Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
-            <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 3px 8px; border-radius: 4px; font-weight: bold;">LIVE</span>
+        <!-- TradingView Embedded Chart Widget - Mobile Width, Custom High Length -->
+        <div style="width: 100%; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 850px; display: flex; flex-direction: column;">
+          <div style="background: #0f172a; padding: 12px 15px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+            <span>📈 Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
+            <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-weight: bold;">LIVE</span>
           </div>
           <div id="chartContainer" style="flex: 1; position: relative;">
             <!-- TradingView Widget Will Mount Here Dynamically -->
           </div>
         </div>
 
-        <!-- Place Instant Order Desk Card -->
-        <div style="flex: 1.2; min-width: 320px; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column; justify-content: flex-start; gap: 25px; height: 850px; box-sizing: border-box;">
-          <div>
-            <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; font-size: 18px;">Place Instant Order</h3>
-            
-            <!-- Top 10 Crypto Selection Menu -->
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Select Crypto Asset (Top 10)</label>
-              <select id="tradeCoin" onchange="changeTradingCoin(this.value)" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; font-weight: bold; outline: none; cursor: pointer; font-size: 14px;">
-                ${coinOptions}
-              </select>
-            </div>
+        <!-- Place Instant Order Desk Card (Now Below Chart) -->
+        <div style="width: 100%; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-sizing: border-box;">
+          <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; font-size: 16px;">Place Instant Order</h3>
+          
+          <!-- Top 10 Crypto Selection Menu -->
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #94a3b8; margin-bottom: 6px; font-size: 12px; font-weight: bold;">Select Crypto Asset</label>
+            <select id="tradeCoin" onchange="changeTradingCoin(this.value)" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; font-weight: bold; outline: none; font-size: 14px;">
+              ${coinOptions}
+            </select>
+          </div>
 
-            <!-- Direction Selection (BUY/SELL) -->
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Order Side</label>
-              <div style="display: flex; gap: 10px;">
-                <button id="buyBtn" onclick="setOrderSide('BUY')" style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; opacity: ${selectedSide === 'BUY' ? '1' : '0.4'}; transition: 0.2s;">
-                  BUY (LONG)
-                </button>
-                <button id="sellBtn" onclick="setOrderSide('SELL')" style="flex: 1; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; opacity: ${selectedSide === 'SELL' ? '1' : '0.4'}; transition: 0.2s;">
-                  SELL (SHORT)
-                </button>
-              </div>
-              <input type="hidden" id="orderSide" value="${selectedSide}">
+          <!-- Direction Selection (BUY/SELL) -->
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #94a3b8; margin-bottom: 6px; font-size: 12px; font-weight: bold;">Order Side</label>
+            <div style="display: flex; gap: 10px;">
+              <button id="buyBtn" onclick="setOrderSide('BUY')" style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; opacity: ${selectedSide === 'BUY' ? '1' : '0.4'};">
+                BUY
+              </button>
+              <button id="sellBtn" onclick="setOrderSide('SELL')" style="flex: 1; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; opacity: ${selectedSide === 'SELL' ? '1' : '0.4'};">
+                SELL
+              </button>
             </div>
+            <input type="hidden" id="orderSide" value="${selectedSide}">
+          </div>
 
-            <!-- Input Amount -->
-            <div style="margin-bottom: 25px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <label style="color: #94a3b8; font-size: 13px; font-weight: bold;">Amount (in Coins)</label>
-                <span id="maxBalanceBtn" onclick="fillMaxAmount()" style="color: #38bdf8; font-size: 11px; cursor: pointer; text-decoration: underline;">Use Max Balance</span>
-              </div>
-              <div style="position: relative; display: flex; align-items: center;">
-                <input type="number" id="tradeAmount" placeholder="0.00" step="any" min="0" oninput="calculateTotalEstimate()" style="width: 100%; padding: 12px; padding-right: 60px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; box-sizing: border-box; font-family: monospace; font-size: 15px; outline: none;">
-                <span style="position: absolute; right: 15px; color: #64748b; font-weight: bold; font-size: 13px;" id="coinSymbolSuffix">${selectedTradingCoin.toUpperCase()}</span>
-              </div>
+          <!-- Input Amount -->
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <label style="color: #94a3b8; font-size: 12px; font-weight: bold;">Amount</label>
+              <span id="maxBalanceBtn" onclick="fillMaxAmount()" style="color: #38bdf8; font-size: 11px; cursor: pointer; text-decoration: underline;">Max Balance</span>
+            </div>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="number" id="tradeAmount" placeholder="0.00" step="any" min="0" oninput="calculateTotalEstimate()" style="width: 100%; padding: 12px; padding-right: 60px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; box-sizing: border-box; font-family: monospace; font-size: 14px; outline: none;">
+              <span style="position: absolute; right: 15px; color: #64748b; font-weight: bold; font-size: 12px;" id="coinSymbolSuffix">${selectedTradingCoin.toUpperCase()}</span>
             </div>
           </div>
 
-          <!-- Total Estimations & Execution Button aligned nicely -->
-          <div style="margin-top: auto;">
-            <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #94a3b8; font-size: 12px;">Estimated Value:</span>
-              <span id="estimatedCost" style="font-weight: bold; font-family: monospace; font-size: 15px; color: #fff;">$0.00</span>
-            </div>
-
-            <button onclick="executeCryptoOrder()" style="width: 100%; padding: 16px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(56, 189, 248, 0.2);">
-              Execute ${selectedSide} Order
-            </button>
+          <!-- Total Estimations & Execution Button -->
+          <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #94a3b8; font-size: 12px;">Est. Value:</span>
+            <span id="estimatedCost" style="font-weight: bold; font-family: monospace; font-size: 14px; color: #fff;">$0.00</span>
           </div>
+
+          <button onclick="executeCryptoOrder()" style="width: 100%; padding: 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer;">
+            Execute ${selectedSide} Order
+          </button>
         </div>
 
       </div>
 
-      <!-- Bottom Panel: Active Paper Trading Positions -->
-      <div style="background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 20px; overflow-x: auto;">
-        <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #334155; padding-bottom: 10px;">
-          💼 Active Positions & Logs
+      <!-- Bottom Panel: Active Positions -->
+      <div style="background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 15px; overflow-x: auto;">
+        <h3 style="color: #fff; margin-top: 0; margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+          💼 Active Positions
         </h3>
         
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; min-width: 400px;">
           <thead>
             <tr style="border-bottom: 1px solid #334155; color: #94a3b8;">
-              <th style="padding: 12px;">Asset Pair</th>
-              <th style="padding: 12px;">Type</th>
-              <th style="padding: 12px;">Size (Qty)</th>
-              <th style="padding: 12px;">Entry Price</th>
-              <th style="padding: 12px;">Current Price</th>
-              <th style="padding: 12px;">Initial Margin</th>
-              <th style="padding: 12px;">P&L (%)</th>
-              <th style="padding: 12px; text-align: right;">Actions</th>
+              <th style="padding: 8px;">Pair</th>
+              <th style="padding: 8px;">Type</th>
+              <th style="padding: 8px;">Qty</th>
+              <th style="padding: 8px;">Entry</th>
+              <th style="padding: 8px;">P&L</th>
+              <th style="padding: 8px; text-align: right;">Action</th>
             </tr>
           </thead>
           <tbody id="positionsTableBody">
@@ -199,7 +193,7 @@ function embedTradingViewChart(coinCode) {
       "locale": "en",
       "toolbar_bg": "#0f172a",
       "enable_publishing": false,
-      "hide_side_toolbar": false,
+      "hide_side_toolbar": true, // Hidden for mobile cleanliness
       "allow_symbol_change": false,
       "container_id": "chartContainer",
       "backgroundColor": "#1e293b",
@@ -216,7 +210,7 @@ function startTradingPricesStream() {
   }
 
   fetchTradingPrices();
-  tradingIntervalId = setInterval(fetchTradingPrices, 60000); // 60 seconds interval
+  tradingIntervalId = setInterval(fetchTradingPrices, 60000);
 }
 
 // Fetch live CoinGecko prices and calculate unrealized P&L
@@ -235,7 +229,6 @@ function fetchTradingPrices() {
         }
       });
 
-      // Update Select Dropdown options inline if select element is open
       const selectEl = document.getElementById('tradeCoin');
       if (selectEl) {
         const currentIdx = selectEl.selectedIndex;
@@ -249,17 +242,16 @@ function fetchTradingPrices() {
         selectEl.selectedIndex = currentIdx;
       }
 
-      // Update estimations & live positions
       calculateTotalEstimate();
       updatePositionsTable();
     })
     .catch(err => {
-      console.warn("Pricing Fetch warning, utilizing latest available client cache:", err);
+      console.warn("Pricing Fetch warning:", err);
       updatePositionsTable();
     });
 }
 
-// Set Order direction & toggle element transparency
+// Set Order direction
 function setOrderSide(side) {
   selectedSide = side;
   const buyBtn = document.getElementById('buyBtn');
@@ -277,22 +269,20 @@ function setOrderSide(side) {
   calculateTotalEstimate();
 }
 
-// Triggered on Dropdown Selector Change
+// Dropdown Change
 function changeTradingCoin(val) {
   selectedTradingCoin = val;
   const suffix = document.getElementById('coinSymbolSuffix');
   if (suffix) suffix.innerText = val.toUpperCase();
 
-  // Reset inputs
   const amountInput = document.getElementById('tradeAmount');
   if (amountInput) amountInput.value = "";
   
-  // Rerender specific chart container to change symbol dynamically
   embedTradingViewChart(val);
   calculateTotalEstimate();
 }
 
-// Quick autofill based on balance
+// Quick autofill
 function fillMaxAmount() {
   const currentPrice = livePrices[selectedTradingCoin] || 1;
   const amountInput = document.getElementById('tradeAmount');
@@ -300,7 +290,7 @@ function fillMaxAmount() {
 
   if (selectedSide === 'BUY') {
     const maxBuyQty = cryptoBalance.usdt / currentPrice;
-    amountInput.value = (maxBuyQty * 0.99).toFixed(5); // 1% buffer
+    amountInput.value = (maxBuyQty * 0.99).toFixed(5);
   } else {
     const currentHoldings = cryptoBalance[selectedTradingCoin] || 0;
     amountInput.value = currentHoldings.toFixed(5);
@@ -308,7 +298,7 @@ function fillMaxAmount() {
   calculateTotalEstimate();
 }
 
-// Dynamic input field calculator
+// Calculator
 function calculateTotalEstimate() {
   const amountInput = document.getElementById('tradeAmount');
   const costLabel = document.getElementById('estimatedCost');
@@ -325,7 +315,7 @@ function calculateTotalEstimate() {
   costLabel.innerText = `$${estVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-// Execute Trading Engine Logic (Mock/Paper Execution)
+// Order Execution
 function executeCryptoOrder() {
   const coinInput = document.getElementById('tradeCoin');
   const amountInput = document.getElementById('tradeAmount');
@@ -344,14 +334,14 @@ function executeCryptoOrder() {
 
   if (selectedSide === 'BUY') {
     if (cryptoBalance.usdt < totalCost) {
-      alert(`⚠️ Insufficient USDT Balance! You need $${totalCost.toFixed(2)} but only have $${cryptoBalance.usdt.toFixed(2)}`);
+      alert(`⚠️ Insufficient USDT!`);
       return;
     }
     cryptoBalance.usdt -= totalCost;
     cryptoBalance[coin] = (cryptoBalance[coin] || 0) + amount;
   } else {
     if ((cryptoBalance[coin] || 0) < amount) {
-      alert(`⚠️ Insufficient ${coin.toUpperCase()} Balance! You have ${cryptoBalance[coin] || 0} but trying to sell ${amount}`);
+      alert(`⚠️ Insufficient Balance!`);
       return;
     }
     cryptoBalance[coin] = (cryptoBalance[coin] || 0) - amount;
@@ -367,13 +357,12 @@ function executeCryptoOrder() {
     timestamp: new Date().toLocaleTimeString()
   });
 
-  alert(`🚀 Order Executed Successfully!\n\nSide: ${selectedSide}\nQty: ${amount} ${coin.toUpperCase()}\nPrice: $${currentPrice.toLocaleString()}`);
-  
+  alert(`🚀 Order Executed!\n${selectedSide} ${amount} ${coin.toUpperCase()}`);
   amountInput.value = "";
   renderCryptoTrading();
 }
 
-// Calculate and render live position profits/losses
+// Positions Table Render
 function updatePositionsTable() {
   const tableBody = document.getElementById('positionsTableBody');
   if (!tableBody) return;
@@ -381,8 +370,8 @@ function updatePositionsTable() {
   if (activePositions.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="8" style="padding: 25px; text-align: center; color: #64748b; font-style: italic;">
-          No active positions. Buy or Sell some coins on the right to start trading!
+        <td colspan="6" style="padding: 15px; text-align: center; color: #64748b; font-style: italic;">
+          No active positions.
         </td>
       </tr>
     `;
@@ -391,16 +380,12 @@ function updatePositionsTable() {
 
   tableBody.innerHTML = activePositions.map(pos => {
     const currentLivePrice = livePrices[pos.coin] || pos.entryPrice;
-    const initialMargin = pos.qty * pos.entryPrice;
     
     let pnlPct = 0;
-    let pnlCash = 0;
     if (pos.type === 'BUY') {
       pnlPct = ((currentLivePrice - pos.entryPrice) / pos.entryPrice) * 100;
-      pnlCash = (currentLivePrice - pos.entryPrice) * pos.qty;
     } else {
       pnlPct = ((pos.entryPrice - currentLivePrice) / pos.entryPrice) * 100;
-      pnlCash = (pos.entryPrice - currentLivePrice) * pos.qty;
     }
 
     const pnlColor = pnlPct >= 0 ? "#22c55e" : "#ef4444";
@@ -408,22 +393,14 @@ function updatePositionsTable() {
 
     return `
       <tr style="border-bottom: 1px solid #1e293b; color: #e2e8f0; vertical-align: middle;">
-        <td style="padding: 12px; font-weight: bold;">🪙 ${pos.coin.toUpperCase()}/USDT</td>
-        <td style="padding: 12px;">
-          <span style="background: ${pos.type === 'BUY' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; color: ${pos.type === 'BUY' ? '#22c55e' : '#ef4444'}; font-weight: bold; padding: 3px 8px; border-radius: 4px; font-size: 11px;">
-            ${pos.type}
-          </span>
-        </td>
-        <td style="padding: 12px; font-family: monospace;">${pos.qty.toFixed(4)}</td>
-        <td style="padding: 12px; font-family: monospace; color: #94a3b8;">$${pos.entryPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-        <td style="padding: 12px; font-family: monospace; color: #38bdf8;">$${currentLivePrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-        <td style="padding: 12px; font-family: monospace; color: #94a3b8;">$${initialMargin.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
-        <td style="padding: 12px; font-family: monospace; color: ${pnlColor}; font-weight: bold;">
-          ${sign}${pnlPct.toFixed(2)}% (${sign}$${pnlCash.toLocaleString(undefined, {maximumFractionDigits: 2})})
-        </td>
-        <td style="padding: 12px; text-align: right;">
-          <button onclick="closePosition(${pos.id})" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">
-            Close Position
+        <td style="padding: 8px; font-weight: bold;">${pos.coin.toUpperCase()}</td>
+        <td style="padding: 8px; color: ${pos.type === 'BUY' ? '#22c55e' : '#ef4444'}; font-weight: bold;">${pos.type}</td>
+        <td style="padding: 8px; font-family: monospace;">${pos.qty.toFixed(3)}</td>
+        <td style="padding: 8px; font-family: monospace; color: #94a3b8;">$${pos.entryPrice.toFixed(1)}</td>
+        <td style="padding: 8px; font-family: monospace; color: ${pnlColor}; font-weight: bold;">${sign}${pnlPct.toFixed(2)}%</td>
+        <td style="padding: 8px; text-align: right;">
+          <button onclick="closePosition(${pos.id})" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+            ✕
           </button>
         </td>
       </tr>
@@ -431,7 +408,7 @@ function updatePositionsTable() {
   }).join('');
 }
 
-// Close a trade position and process cash adjustments
+// Close Position
 function closePosition(id) {
   const index = activePositions.findIndex(pos => pos.id === id);
   if (index === -1) return;
@@ -439,27 +416,22 @@ function closePosition(id) {
   const pos = activePositions[index];
   const currentLivePrice = livePrices[pos.coin] || pos.entryPrice;
   
-  let finalReturn = 0;
   if (pos.type === 'BUY') {
-    finalReturn = pos.qty * currentLivePrice;
-    cryptoBalance.usdt += finalReturn;
+    cryptoBalance.usdt += pos.qty * currentLivePrice;
     cryptoBalance[pos.coin] = Math.max(0, (cryptoBalance[pos.coin] || 0) - pos.qty);
   } else {
     const pnlCash = (pos.entryPrice - currentLivePrice) * pos.qty;
-    const originalMargin = pos.qty * pos.entryPrice;
-    cryptoBalance.usdt += (originalMargin + pnlCash);
+    cryptoBalance.usdt += ((pos.qty * pos.entryPrice) + pnlCash);
     cryptoBalance[pos.coin] = (cryptoBalance[pos.coin] || 0) + pos.qty;
   }
 
-  alert(`💼 Position Closed!\nAsset: ${pos.coin.toUpperCase()}/USDT\nExecution Price: $${currentLivePrice.toLocaleString()}`);
-  
   activePositions.splice(index, 1);
   renderCryptoTrading();
 }
 
-// Reset Wallet to Default Demo $10k
+// Reset Balance
 function resetBalance() {
-  if (confirm("Are you sure you want to reset your wallet balance back to starting demo funds ($10,000 USDT)?")) {
+  if (confirm("Reset wallet back to $10,000 USDT?")) {
     cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0, bnb: 0, xrp: 0, ada: 0, doge: 0, dot: 0, matic: 0, avax: 0 };
     activePositions = [];
     renderCryptoTrading();
