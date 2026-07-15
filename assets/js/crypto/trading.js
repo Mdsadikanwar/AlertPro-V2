@@ -48,7 +48,7 @@ function renderCryptoTrading() {
   }).join('');
 
   root.innerHTML = `
-    \${getMarketNavbar('CRYPTO', '#38bdf8')}
+    ${getMarketNavbar('CRYPTO', '#38bdf8')}
     <div class="container" style="padding: 15px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box;">
       
       <!-- Wallet Balance Bar -->
@@ -66,8 +66,8 @@ function renderCryptoTrading() {
       <!-- Main Columns Flex wrapper -->
       <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
         
-        <!-- Live TradingView Chart (Optimized Mobile Height) -->
-        <div style="width: 100%; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 750px; display: flex; flex-direction: column;">
+        <!-- Live TradingView Chart (Tall Format) -->
+        <div style="width: 100%; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 1700px; display: flex; flex-direction: column;">
           <div style="background: #0f172a; padding: 12px 15px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
             <span>📈 Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
             <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-weight: bold;">LIVE</span>
@@ -412,7 +412,7 @@ function embedTradingViewChart(coinCode) {
   widgetScript.onload = () => {
     new TradingView.widget({
       "width": "100%",
-      "height": "750px", // Changed from 1700px to 750px
+      "height": "1700px",
       "symbol": widgetSymbol,
       "interval": "15",
       "timezone": "Etc/UTC",
