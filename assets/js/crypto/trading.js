@@ -42,7 +42,6 @@ function renderCryptoTrading() {
       <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
           <h2 style="color: #38bdf8; margin: 0; font-size: 26px;">Crypto Trading Desk</h2>
-          <p style="color: #94a3b8; margin: 5px 0 0 0;">Interactive real-time Paper Trading terminal with live P&L</p>
         </div>
         <button onclick="resetBalance()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;">
           🔄 Reset Wallet ($10k)
@@ -81,7 +80,7 @@ function renderCryptoTrading() {
       <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
         
         <!-- TradingView Embedded Chart Widget -->
-        <div style="flex: 2; min-width: 320px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 450px; display: flex; flex-direction: column;">
+        <div style="flex: 3; min-width: 400px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 600px; display: flex; flex-direction: column;">
           <div style="background: #0f172a; padding: 12px 18px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
             <span>📈 TradingView Interactive Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
             <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 2px 6px; border-radius: 4px;">LIVE</span>
