@@ -1,6 +1,6 @@
 // Global State Balance Reference
 if (typeof cryptoBalance === 'undefined') {
-  var cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0 };
+  var cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0, bnb: 0, xrp: 0, ada: 0, doge: 0, dot: 0, matic: 0, avax: 0 };
 }
 
 // Track active paper trading positions to calculate live Profit/Loss
@@ -8,11 +8,18 @@ if (typeof activePositions === 'undefined') {
   var activePositions = []; 
 }
 
-// Available coins list with CoinGecko IDs for real-time pricing
+// Top 10 Cryptocurrencies list with CoinGecko IDs for real-time pricing
 const tradingCoins = [
   { name: "Bitcoin", code: "btc", cgId: "bitcoin", icon: "🪙" },
   { name: "Ethereum", code: "eth", cgId: "ethereum", icon: "🔷" },
-  { name: "Solana", code: "sol", cgId: "solana", icon: "☀️" }
+  { name: "Solana", code: "sol", cgId: "solana", icon: "☀️" },
+  { name: "BNB", code: "bnb", cgId: "binancecoin", icon: "🔶" },
+  { name: "Ripple", code: "xrp", cgId: "ripple", icon: "💧" },
+  { name: "Cardano", code: "ada", cgId: "cardano", icon: "₳" },
+  { name: "Dogecoin", code: "doge", cgId: "dogecoin", icon: "🐕" },
+  { name: "Polkadot", code: "dot", cgId: "polkadot", icon: "⚫" },
+  { name: "Polygon", code: "matic", cgId: "matic-network", icon: "💜" },
+  { name: "Avalanche", code: "avax", cgId: "avalanche-2", icon: "🔺" }
 ];
 
 // Active selection states
@@ -38,11 +45,8 @@ function renderCryptoTrading() {
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
     <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
       
-      <!-- Header -->
-      <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <div>
-          <h2 style="color: #38bdf8; margin: 0; font-size: 26px;">Crypto Trading Desk</h2>
-        </div>
+      <!-- Top Action Bar (Crypto Trading Desk Title Removed) -->
+      <div style="margin-bottom: 25px; display: flex; justify-content: flex-end; align-items: center;">
         <button onclick="resetBalance()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;">
           🔄 Reset Wallet ($10k)
         </button>
@@ -58,20 +62,20 @@ function renderCryptoTrading() {
 
         <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
           <span style="color: #f59e0b; font-size: 12px; font-weight: bold; text-transform: uppercase;">Bitcoin Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${cryptoBalance.btc.toFixed(4)} BTC</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${(cryptoBalance.btc * livePrices.btc).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.btc || 0).toFixed(4)} BTC</h2>
+          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.btc || 0) * (livePrices.btc || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
         </div>
 
         <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
           <span style="color: #a855f7; font-size: 12px; font-weight: bold; text-transform: uppercase;">Ethereum Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${cryptoBalance.eth.toFixed(4)} ETH</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${(cryptoBalance.eth * livePrices.eth).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.eth || 0).toFixed(4)} ETH</h2>
+          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.eth || 0) * (livePrices.eth || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
         </div>
 
         <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
           <span style="color: #06b6d4; font-size: 12px; font-weight: bold; text-transform: uppercase;">Solana Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${cryptoBalance.sol.toFixed(2)} SOL</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${(cryptoBalance.sol * livePrices.sol).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.sol || 0).toFixed(2)} SOL</h2>
+          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.sol || 0) * (livePrices.sol || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
         </div>
 
       </div>
@@ -95,10 +99,10 @@ function renderCryptoTrading() {
           <div>
             <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; font-size: 18px;">Place Instant Order</h3>
             
-            <!-- Coin Selection -->
+            <!-- Top 10 Crypto Selection Menu -->
             <div style="margin-bottom: 18px;">
-              <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Select Coin</label>
-              <select id="tradeCoin" onchange="changeTradingCoin(this.value)" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; font-weight: bold; outline: none; cursor: pointer;">
+              <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Select Crypto Asset (Top 10)</label>
+              <select id="tradeCoin" onchange="changeTradingCoin(this.value)" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; font-weight: bold; outline: none; cursor: pointer; font-size: 14px;">
                 ${coinOptions}
               </select>
             </div>
@@ -188,7 +192,14 @@ function embedTradingViewChart(coinCode) {
   const symbolMapping = {
     btc: "BINANCE:BTCUSDT",
     eth: "BINANCE:ETHUSDT",
-    sol: "BINANCE:SOLUSDT"
+    sol: "BINANCE:SOLUSDT",
+    bnb: "BINANCE:BNBUSDT",
+    xrp: "BINANCE:XRPUSDT",
+    ada: "BINANCE:ADAUSDT",
+    doge: "BINANCE:DOGEUSDT",
+    dot: "BINANCE:DOTUSDT",
+    matic: "BINANCE:MATICUSDT",
+    avax: "BINANCE:AVAXUSDT"
   };
 
   const widgetSymbol = symbolMapping[coinCode] || "BINANCE:BTCUSDT";
@@ -250,12 +261,12 @@ function fetchTradingPrices() {
       // Update Select Dropdown options inline if select element is open
       const selectEl = document.getElementById('tradeCoin');
       if (selectEl) {
-        // Keep selected index
         const currentIdx = selectEl.selectedIndex;
         selectEl.innerHTML = tradingCoins.map(coin => {
           const currentPrice = livePrices[coin.code] || 0;
+          const formattedPrice = currentPrice < 1 ? currentPrice.toFixed(4) : currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 });
           return `<option value="${coin.code}" ${coin.code === selectedTradingCoin ? 'selected' : ''}>
-            ${coin.icon} ${coin.name} (${coin.code.toUpperCase()}) - Live: $${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ${coin.icon} ${coin.name} (${coin.code.toUpperCase()}) - Live: $${formattedPrice}
           </option>`;
         }).join('');
         selectEl.selectedIndex = currentIdx;
@@ -299,7 +310,7 @@ function changeTradingCoin(val) {
   const amountInput = document.getElementById('tradeAmount');
   if (amountInput) amountInput.value = "";
   
-  // Rerender specific chart container to change symbol
+  // Rerender specific chart container to change symbol dynamically
   embedTradingViewChart(val);
   calculateTotalEstimate();
 }
@@ -311,11 +322,9 @@ function fillMaxAmount() {
   if (!amountInput) return;
 
   if (selectedSide === 'BUY') {
-    // Max Buy depends on total wallet USDT
     const maxBuyQty = cryptoBalance.usdt / currentPrice;
     amountInput.value = (maxBuyQty * 0.99).toFixed(5); // 1% buffer
   } else {
-    // Max Sell depends on current coin holdings
     const currentHoldings = cryptoBalance[selectedTradingCoin] || 0;
     amountInput.value = currentHoldings.toFixed(5);
   }
@@ -357,27 +366,21 @@ function executeCryptoOrder() {
   const totalCost = amount * currentPrice;
 
   if (selectedSide === 'BUY') {
-    // Check if sufficient USDT balance is there
     if (cryptoBalance.usdt < totalCost) {
       alert(`⚠️ Insufficient USDT Balance! You need $${totalCost.toFixed(2)} but only have $${cryptoBalance.usdt.toFixed(2)}`);
       return;
     }
-    // Deduct USDT, Add Coin
     cryptoBalance.usdt -= totalCost;
     cryptoBalance[coin] = (cryptoBalance[coin] || 0) + amount;
   } else {
-    // SELL / SHORT Position
-    // Check if sufficient coin is there to sell
     if ((cryptoBalance[coin] || 0) < amount) {
-      alert(`⚠️ Insufficient ${coin.toUpperCase()} Balance! You have ${cryptoBalance[coin]} but trying to sell ${amount}`);
+      alert(`⚠️ Insufficient ${coin.toUpperCase()} Balance! You have ${cryptoBalance[coin] || 0} but trying to sell ${amount}`);
       return;
     }
-    // Deduct Coin, Add USDT
-    cryptoBalance[coin] -= amount;
+    cryptoBalance[coin] = (cryptoBalance[coin] || 0) - amount;
     cryptoBalance.usdt += totalCost;
   }
 
-  // Push into Mock Position logs array
   activePositions.push({
     id: Date.now(),
     coin: coin,
@@ -389,7 +392,6 @@ function executeCryptoOrder() {
 
   alert(`🚀 Order Executed Successfully!\n\nSide: ${selectedSide}\nQty: ${amount} ${coin.toUpperCase()}\nPrice: $${currentPrice.toLocaleString()}`);
   
-  // Wipe text field & update view state
   amountInput.value = "";
   renderCryptoTrading();
 }
@@ -414,14 +416,12 @@ function updatePositionsTable() {
     const currentLivePrice = livePrices[pos.coin] || pos.entryPrice;
     const initialMargin = pos.qty * pos.entryPrice;
     
-    // Calculate simulated Profit/Loss Percentage
     let pnlPct = 0;
     let pnlCash = 0;
     if (pos.type === 'BUY') {
       pnlPct = ((currentLivePrice - pos.entryPrice) / pos.entryPrice) * 100;
       pnlCash = (currentLivePrice - pos.entryPrice) * pos.qty;
     } else {
-      // For Sell order simulation
       pnlPct = ((pos.entryPrice - currentLivePrice) / pos.entryPrice) * 100;
       pnlCash = (pos.entryPrice - currentLivePrice) * pos.qty;
     }
@@ -462,15 +462,12 @@ function closePosition(id) {
   const pos = activePositions[index];
   const currentLivePrice = livePrices[pos.coin] || pos.entryPrice;
   
-  // Calculate final return on investment
   let finalReturn = 0;
   if (pos.type === 'BUY') {
     finalReturn = pos.qty * currentLivePrice;
-    // Put back the final cash return to USDT balance, and clear actual holdings
     cryptoBalance.usdt += finalReturn;
     cryptoBalance[pos.coin] = Math.max(0, (cryptoBalance[pos.coin] || 0) - pos.qty);
   } else {
-    // For Shorts, refund the margin and the simulated PnL cash difference
     const pnlCash = (pos.entryPrice - currentLivePrice) * pos.qty;
     const originalMargin = pos.qty * pos.entryPrice;
     cryptoBalance.usdt += (originalMargin + pnlCash);
@@ -479,14 +476,14 @@ function closePosition(id) {
 
   alert(`💼 Position Closed!\nAsset: ${pos.coin.toUpperCase()}/USDT\nExecution Price: $${currentLivePrice.toLocaleString()}`);
   
-  activePositions.splice(index, 1); // remove position
+  activePositions.splice(index, 1);
   renderCryptoTrading();
 }
 
 // Reset Wallet to Default Demo $10k
 function resetBalance() {
   if (confirm("Are you sure you want to reset your wallet balance back to starting demo funds ($10,000 USDT)?")) {
-    cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0 };
+    cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0, bnb: 0, xrp: 0, ada: 0, doge: 0, dot: 0, matic: 0, avax: 0 };
     activePositions = [];
     renderCryptoTrading();
   }
