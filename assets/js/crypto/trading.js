@@ -45,49 +45,26 @@ function renderCryptoTrading() {
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
     <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
       
-      <!-- Top Action Bar (Crypto Trading Desk Title Removed) -->
-      <div style="margin-bottom: 25px; display: flex; justify-content: flex-end; align-items: center;">
-        <button onclick="resetBalance()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;">
+      <!-- Top Action Bar with Balance & Reset Only (Individual Coin Cards Removed) -->
+      <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="background: #1e293b; padding: 12px 25px; border-radius: 12px; border: 1px solid #334155; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+          <span style="color: #94a3b8; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">USDT Wallet Balance:</span>
+          <h2 style="color: #22c55e; margin: 0; font-size: 24px; font-family: monospace;">$${cryptoBalance.usdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+        </div>
+        
+        <button onclick="resetBalance()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;">
           🔄 Reset Wallet ($10k)
         </button>
       </div>
 
-      <!-- Wallet Balances & Assets Row -->
-      <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
-        
-        <div style="flex: 1; min-width: 180px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          <span style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase;">USDT Wallet Balance</span>
-          <h2 style="color: #22c55e; margin: 8px 0 0 0; font-size: 22px; font-family: monospace;">$${cryptoBalance.usdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
-        </div>
-
-        <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          <span style="color: #f59e0b; font-size: 12px; font-weight: bold; text-transform: uppercase;">Bitcoin Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.btc || 0).toFixed(4)} BTC</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.btc || 0) * (livePrices.btc || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
-        </div>
-
-        <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          <span style="color: #a855f7; font-size: 12px; font-weight: bold; text-transform: uppercase;">Ethereum Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.eth || 0).toFixed(4)} ETH</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.eth || 0) * (livePrices.eth || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
-        </div>
-
-        <div style="flex: 1; min-width: 150px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          <span style="color: #06b6d4; font-size: 12px; font-weight: bold; text-transform: uppercase;">Solana Holdings</span>
-          <h2 style="color: #fff; margin: 8px 0 0 0; font-size: 20px; font-family: monospace;">${(cryptoBalance.sol || 0).toFixed(2)} SOL</h2>
-          <span style="color: #64748b; font-size: 11px;">≈ $${((cryptoBalance.sol || 0) * (livePrices.sol || 0)).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
-        </div>
-
-      </div>
-
-      <!-- Two-Column Layout: Chart Left, Order-book Right -->
+      <!-- Two-Column Layout: Huge Chart Left, Order-book Right -->
       <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
         
-        <!-- TradingView Embedded Chart Widget -->
-        <div style="flex: 3; min-width: 400px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 600px; display: flex; flex-direction: column;">
-          <div style="background: #0f172a; padding: 12px 18px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+        <!-- TradingView Embedded Chart Widget - Double Sized for Half Screen Feel -->
+        <div style="flex: 4; min-width: 500px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 850px; display: flex; flex-direction: column;">
+          <div style="background: #0f172a; padding: 14px 20px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
             <span>📈 TradingView Interactive Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
-            <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 2px 6px; border-radius: 4px;">LIVE</span>
+            <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 3px 8px; border-radius: 4px; font-weight: bold;">LIVE</span>
           </div>
           <div id="chartContainer" style="flex: 1; position: relative;">
             <!-- TradingView Widget Will Mount Here Dynamically -->
@@ -95,12 +72,12 @@ function renderCryptoTrading() {
         </div>
 
         <!-- Place Instant Order Desk Card -->
-        <div style="flex: 1; min-width: 300px; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="flex: 1.2; min-width: 320px; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column; justify-content: flex-start; gap: 25px; height: 850px; box-sizing: border-box;">
           <div>
             <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; font-size: 18px;">Place Instant Order</h3>
             
             <!-- Top 10 Crypto Selection Menu -->
-            <div style="margin-bottom: 18px;">
+            <div style="margin-bottom: 20px;">
               <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Select Crypto Asset (Top 10)</label>
               <select id="tradeCoin" onchange="changeTradingCoin(this.value)" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #4b5563; border-radius: 8px; color: #fff; font-weight: bold; outline: none; cursor: pointer; font-size: 14px;">
                 ${coinOptions}
@@ -108,7 +85,7 @@ function renderCryptoTrading() {
             </div>
 
             <!-- Direction Selection (BUY/SELL) -->
-            <div style="margin-bottom: 18px;">
+            <div style="margin-bottom: 20px;">
               <label style="display: block; color: #94a3b8; margin-bottom: 8px; font-size: 13px; font-weight: bold;">Order Side</label>
               <div style="display: flex; gap: 10px;">
                 <button id="buyBtn" onclick="setOrderSide('BUY')" style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; opacity: ${selectedSide === 'BUY' ? '1' : '0.4'}; transition: 0.2s;">
@@ -122,7 +99,7 @@ function renderCryptoTrading() {
             </div>
 
             <!-- Input Amount -->
-            <div style="margin-bottom: 22px;">
+            <div style="margin-bottom: 25px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <label style="color: #94a3b8; font-size: 13px; font-weight: bold;">Amount (in Coins)</label>
                 <span id="maxBalanceBtn" onclick="fillMaxAmount()" style="color: #38bdf8; font-size: 11px; cursor: pointer; text-decoration: underline;">Use Max Balance</span>
@@ -134,14 +111,14 @@ function renderCryptoTrading() {
             </div>
           </div>
 
-          <!-- Total Estimations & Execution Button -->
-          <div>
-            <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+          <!-- Total Estimations & Execution Button aligned nicely -->
+          <div style="margin-top: auto;">
+            <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
               <span style="color: #94a3b8; font-size: 12px;">Estimated Value:</span>
-              <span id="estimatedCost" style="font-weight: bold; font-family: monospace; font-size: 14px; color: #fff;">$0.00</span>
+              <span id="estimatedCost" style="font-weight: bold; font-family: monospace; font-size: 15px; color: #fff;">$0.00</span>
             </div>
 
-            <button onclick="executeCryptoOrder()" style="width: 100%; padding: 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(56, 189, 248, 0.2);">
+            <button onclick="executeCryptoOrder()" style="width: 100%; padding: 16px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(56, 189, 248, 0.2);">
               Execute ${selectedSide} Order
             </button>
           </div>
