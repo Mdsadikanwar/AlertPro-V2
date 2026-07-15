@@ -16,7 +16,7 @@ const cryptoCoins = [
 let selectedCoinCode = "BTC";
 let selectedCurrency = "USDT"; 
 let selectedTimeframeHours = "24"; // Default 24 hours (Options: 1, 4, 12, 24)
-let cooldownTime = 5; 
+let cooldownTime = 60; // Set default cooldown to 60 seconds to avoid CoinGecko block
 let priceIntervalId = null; 
 
 // Crypto Dashboard render function
@@ -97,7 +97,7 @@ function renderCryptoDashboard() {
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: #94a3b8; font-size: 13px;">Refresh:</span>
             <div style="display: flex; align-items: center; background: #1e293b; padding: 4px 8px; border-radius: 6px; border: 1px solid #4b5563;">
-              <input type="number" id="cooldownInput" value="${cooldownTime}" min="2" max="60" onchange="updateCooldown(this.value)" style="background: none; border: none; color: #fff; width: 35px; font-weight: bold; font-size: 14px; outline: none; text-align: center;">
+              <input type="number" id="cooldownInput" value="${cooldownTime}" min="10" max="300" onchange="updateCooldown(this.value)" style="background: none; border: none; color: #fff; width: 35px; font-weight: bold; font-size: 14px; outline: none; text-align: center;">
               <span style="color: #94a3b8; font-size: 12px; margin-left: 2px;">s</span>
             </div>
           </div>
@@ -137,7 +137,12 @@ function fetchLivePrice() {
 
   // CoinGecko Market Chart API using historical points to calculate High/Low for 1h, 4h, 12h, 24h
   fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=${apiCurrency}&days=1`)
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP Error Status: ${response.status} (Likely Rate Limited)`);
+      }
+      return response.json();
+    })
     .then(data => {
       if (data && data.prices) {
         const pricesList = data.prices; // Array of [timestamp, price]
@@ -191,7 +196,9 @@ function fetchLivePrice() {
       console.error("Price fetch error:", error);
       const priceElement = document.getElementById('livePriceValue');
       if (priceElement) {
-        priceElement.innerText = "Connection Error";
+        // If Rate limited, display a helpful tip to the user
+        priceElement.innerText = "API Rate Limit";
+        priceElement.style.fontSize = "38px";
       }
     });
 }
@@ -232,8 +239,8 @@ function updateTimeframe(val) {
 // Handler for Cooldown modification
 function updateCooldown(val) {
   let numVal = parseInt(val);
-  if (isNaN(numVal) || numVal < 2) numVal = 2;
-  if (numVal > 60) numVal = 60;
+  if (isNaN(numVal) || numVal < 10) numVal = 10; // Minimum limit raised to 10s
+  if (numVal > 300) numVal = 300;
   
   cooldownTime = numVal;
   startLivePriceStream();
@@ -250,7 +257,10 @@ function resetLoadingUI() {
   const lowElement = document.getElementById('lowPriceValue');
   const changeElement = document.getElementById('priceChangeLabel');
 
-  if (priceElement) priceElement.innerText = "Loading...";
+  if (priceElement) {
+    priceElement.innerText = "Loading...";
+    priceElement.style.fontSize = "52px"; // Restore size
+  }
   if (highElement) highElement.innerText = "Loading...";
   if (lowElement) lowElement.innerText = "Loading...";
   if (changeElement) {
