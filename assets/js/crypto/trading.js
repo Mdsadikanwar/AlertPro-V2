@@ -66,17 +66,6 @@ function renderCryptoTrading() {
       <!-- Main Columns Flex wrapper -->
       <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
         
-        <!-- Live TradingView Chart (Tall Format) -->
-        <div style="width: 100%; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; height: 1700px; display: flex; flex-direction: column;">
-          <div style="background: #0f172a; padding: 12px 15px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-            <span>📈 Chart (${selectedTradingCoin.toUpperCase()}/USDT)</span>
-            <span style="font-size: 11px; background: #38bdf8; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-weight: bold;">LIVE</span>
-          </div>
-          <div id="chartContainer" style="flex: 1; position: relative;">
-            <!-- TradingView Widget Dynamically Mounted -->
-          </div>
-        </div>
-
         <!-- Master Order Panel (Manual & Auto Switcher) -->
         <div style="width: 100%; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-sizing: border-box;">
           
@@ -221,8 +210,7 @@ function renderCryptoTrading() {
     </div>
   `;
 
-  // Inject the TradingView Chart dynamically
-  embedTradingViewChart(selectedTradingCoin);
+  // Start pricing stream without rendering TV chart
   startTradingPricesStream();
   
   // Scroll logs to bottom if open
@@ -385,52 +373,6 @@ function addBotLog(msg) {
   }
 }
 
-// Dynamically embed TradingView's official widget
-function embedTradingViewChart(coinCode) {
-  const container = document.getElementById('chartContainer');
-  if (!container) return;
-
-  const symbolMapping = {
-    btc: "BINANCE:BTCUSDT",
-    eth: "BINANCE:ETHUSDT",
-    sol: "BINANCE:SOLUSDT",
-    bnb: "BINANCE:BNBUSDT",
-    xrp: "BINANCE:XRPUSDT",
-    ada: "BINANCE:ADAUSDT",
-    doge: "BINANCE:DOGEUSDT",
-    dot: "BINANCE:DOTUSDT",
-    matic: "BINANCE:MATICUSDT",
-    avax: "BINANCE:AVAXUSDT"
-  };
-
-  const widgetSymbol = symbolMapping[coinCode] || "BINANCE:BTCUSDT";
-  container.innerHTML = "";
-
-  const widgetScript = document.createElement('script');
-  widgetScript.src = 'https://s3.tradingview.com/tv.js';
-  widgetScript.async = true;
-  widgetScript.onload = () => {
-    new TradingView.widget({
-      "width": "100%",
-      "height": "1700px",
-      "symbol": widgetSymbol,
-      "interval": "15",
-      "timezone": "Etc/UTC",
-      "theme": "dark",
-      "style": "1",
-      "locale": "en",
-      "toolbar_bg": "#0f172a",
-      "enable_publishing": false,
-      "hide_side_toolbar": true, 
-      "allow_symbol_change": false,
-      "container_id": "chartContainer",
-      "backgroundColor": "#1e293b",
-      "gridColor": "rgba(42, 46, 57, 0.3)"
-    });
-  };
-  document.head.appendChild(widgetScript);
-}
-
 // Continuous background updater for prices
 function startTradingPricesStream() {
   if (tradingIntervalId) {
@@ -505,7 +447,6 @@ function changeTradingCoin(val) {
   const amountInput = document.getElementById('tradeAmount');
   if (amountInput) amountInput.value = "";
   
-  embedTradingViewChart(val);
   calculateTotalEstimate();
 }
 
