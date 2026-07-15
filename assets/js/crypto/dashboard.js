@@ -60,7 +60,7 @@ function renderCryptoDashboard() {
       </div>
 
       <!-- MAIN ALL-IN-ONE CARD -->
-      <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 16px; padding: 30px; text-align: center; max-width: 550px; margin: 30px auto; box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 16px; padding: 30px; text-align: center; max-width: 550px; margin: 0 auto 30px auto; box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.5);">
         
         <!-- Live Price Heading -->
         <span id="priceLabel" style="color: #94a3b8; font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;">
@@ -119,11 +119,104 @@ function renderCryptoDashboard() {
 
       </div>
 
+      <!-- NEW CARD: MARKET SENTIMENT & FEAR/GREED INDEX -->
+      <div style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; max-width: 550px; margin: 0 auto; box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);">
+        <h3 style="color: #38bdf8; margin: 0 0 20px 0; font-size: 18px; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+          📊 Market Sentiment & Index
+        </h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <!-- Fear & Greed Index Meter -->
+          <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 4px;">GLOBAL CRYPTO INDEX</span>
+              <strong style="color: #fff; font-size: 15px;">Fear & Greed Index</strong>
+            </div>
+            <div style="text-align: right;">
+              <span id="fgIndexValue" style="font-size: 24px; font-weight: bold; font-family: monospace; color: #eab308; display: block;">--</span>
+              <span id="fgIndexLabel" style="font-size: 11px; text-transform: uppercase; font-weight: bold; color: #94a3b8; letter-spacing: 1px;">LOADING...</span>
+            </div>
+          </div>
+
+          <!-- Technical Sentiment Meter -->
+          <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 4px;">TECHNICAL BIAS (${selectedTimeframeHours}H)</span>
+              <strong style="color: #fff; font-size: 15px;">Trend Sentiment</strong>
+            </div>
+            <div style="text-align: right;">
+              <span id="sentimentLabel" style="font-size: 20px; font-weight: bold; display: block; color: #94a3b8;">--</span>
+              <span id="sentimentDesc" style="font-size: 11px; color: #94a3b8; display: block; margin-top: 3px; max-width: 180px;">Calculating price action...</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   `;
 
-  // Start fetching live price
+  // Start fetching live price and sentiments
   startLivePriceStream();
+}
+
+// Function to calculate and render sentiments based on price changes
+function calculateSentiment(priceChangePct) {
+  const sentLabelEl = document.getElementById('sentimentLabel');
+  const sentDescEl = document.getElementById('sentimentDesc');
+  if (!sentLabelEl || !sentDescEl) return;
+
+  if (priceChangePct > 1.5) {
+    sentLabelEl.innerText = "BULLISH 🟢";
+    sentLabelEl.style.color = "#22c55e";
+    sentDescEl.innerText = "Strong buying pressure, trend is positive.";
+  } else if (priceChangePct < -1.5) {
+    sentLabelEl.innerText = "BEARISH 🔴";
+    sentLabelEl.style.color = "#ef4444";
+    sentDescEl.innerText = "Strong selling pressure, trend is negative.";
+  } else {
+    sentLabelEl.innerText = "SIDEWAYS 🟡";
+    sentLabelEl.style.color = "#eab308";
+    sentDescEl.innerText = "Consolidating price range, low volatility.";
+  }
+}
+
+// Function to fetch Global Fear and Greed Index from alternative.me API
+function fetchFearAndGreedIndex() {
+  fetch('https://api.alternative.me/fng/')
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.data && data.data.length > 0) {
+        const fng = data.data[0];
+        const score = parseInt(fng.value);
+        const classification = fng.value_classification;
+
+        const valEl = document.getElementById('fgIndexValue');
+        const lblEl = document.getElementById('fgIndexLabel');
+
+        if (valEl && lblEl) {
+          valEl.innerText = score;
+          lblEl.innerText = classification;
+
+          // Dynamically color index score
+          if (score >= 75) {
+            valEl.style.color = "#22c55e"; // Extreme Greed (Green)
+          } else if (score >= 55) {
+            valEl.style.color = "#86efac"; // Greed (Light Green)
+          } else if (score >= 45) {
+            valEl.style.color = "#eab308"; // Neutral (Yellow)
+          } else if (score >= 25) {
+            valEl.style.color = "#f97316"; // Fear (Orange)
+          } else {
+            valEl.style.color = "#ef4444"; // Extreme Fear (Red)
+          }
+        }
+      }
+    })
+    .catch(err => {
+      console.error("F&G Index Fetch Error:", err);
+    });
 }
 
 // Function to fetch price data, High/Low and % Change dynamically based on timeframe
@@ -135,7 +228,10 @@ function fetchLivePrice() {
   const targetCurrency = selectedCurrency.toLowerCase();
   const apiCurrency = targetCurrency === 'usdt' ? 'usd' : 'inr';
 
-  // CoinGecko Market Chart API using historical points to calculate High/Low for 1h, 4h, 12h, 24h
+  // Fetch F&G Index once along with the price stream
+  fetchFearAndGreedIndex();
+
+  // CoinGecko Market Chart API
   fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=${apiCurrency}&days=1`)
     .then(response => {
       if (!response.ok) {
@@ -145,7 +241,7 @@ function fetchLivePrice() {
     })
     .then(data => {
       if (data && data.prices) {
-        const pricesList = data.prices; // Array of [timestamp, price]
+        const pricesList = data.prices; 
         
         // Filter prices based on selected timeframe hours
         const now = Date.now();
@@ -154,14 +250,14 @@ function fetchLivePrice() {
 
         if (filteredPrices.length === 0) return;
 
-        // Current price is the latest item in the list
+        // Current price
         const currentPrice = pricesList[pricesList.length - 1][1];
         
-        // Calculate dynamic High & Low for selected timeframe
+        // Calculate High & Low
         const highPrice = Math.max(...filteredPrices);
         const lowPrice = Math.min(...filteredPrices);
 
-        // Calculate % Change over selected timeframe
+        // Calculate % Change
         const initialPrice = filteredPrices[0];
         const priceChangePct = ((currentPrice - initialPrice) / initialPrice) * 100;
 
@@ -190,13 +286,15 @@ function fetchLivePrice() {
           changeElement.innerText = `${sign}${priceChangePct.toFixed(2)}% (${selectedTimeframeHours}h)`;
           changeElement.style.color = priceChangePct >= 0 ? "#22c55e" : "#ef4444";
         }
+
+        // Calculate Sentiment
+        calculateSentiment(priceChangePct);
       }
     })
     .catch(error => {
       console.error("Price fetch error:", error);
       const priceElement = document.getElementById('livePriceValue');
       if (priceElement) {
-        // If Rate limited, display a helpful tip to the user
         priceElement.innerText = "API Rate Limit";
         priceElement.style.fontSize = "38px";
       }
@@ -226,7 +324,6 @@ function updateCryptoFilters() {
 function updateTimeframe(val) {
   selectedTimeframeHours = val;
   
-  // Update UI Labels inside card instantly
   const highLbl = document.getElementById('highLabel');
   const lowLbl = document.getElementById('lowLabel');
   if (highLbl) highLbl.innerText = `▲ ${selectedTimeframeHours}H HIGH`;
@@ -239,7 +336,7 @@ function updateTimeframe(val) {
 // Handler for Cooldown modification
 function updateCooldown(val) {
   let numVal = parseInt(val);
-  if (isNaN(numVal) || numVal < 10) numVal = 10; // Minimum limit raised to 10s
+  if (isNaN(numVal) || numVal < 10) numVal = 10;
   if (numVal > 300) numVal = 300;
   
   cooldownTime = numVal;
@@ -256,15 +353,24 @@ function resetLoadingUI() {
   const highElement = document.getElementById('highPriceValue');
   const lowElement = document.getElementById('lowPriceValue');
   const changeElement = document.getElementById('priceChangeLabel');
+  const sentLabelEl = document.getElementById('sentimentLabel');
+  const sentDescEl = document.getElementById('sentimentDesc');
 
   if (priceElement) {
     priceElement.innerText = "Loading...";
-    priceElement.style.fontSize = "52px"; // Restore size
+    priceElement.style.fontSize = "52px";
   }
   if (highElement) highElement.innerText = "Loading...";
   if (lowElement) lowElement.innerText = "Loading...";
   if (changeElement) {
     changeElement.innerText = "--%";
     changeElement.style.color = "#94a3b8";
+  }
+  if (sentLabelEl) {
+    sentLabelEl.innerText = "--";
+    sentLabelEl.style.color = "#94a3b8";
+  }
+  if (sentDescEl) {
+    sentDescEl.innerText = "Calculating price action...";
   }
 }
