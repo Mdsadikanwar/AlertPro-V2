@@ -14,10 +14,10 @@ const cryptoCoins = [
 
 // Current States
 let selectedCoinCode = "BTC";
-let selectedCurrency = "USDT"; // Default currency
-let selectedTimeframe = "15m"; // Default timeframe
-let cooldownTime = 5; // Default cooldown in seconds
-let priceIntervalId = null; // Storing interval reference to clear it
+let selectedCurrency = "USDT"; 
+let selectedTimeframeHours = "24"; // Default 24 hours (Options: 1, 4, 12, 24)
+let cooldownTime = 5; 
+let priceIntervalId = null; 
 
 // Crypto Dashboard render function
 function renderCryptoDashboard() {
@@ -26,16 +26,16 @@ function renderCryptoDashboard() {
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
     <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
       
-      <!-- Welcome & Filter Controls Row -->
+      <!-- Filter Controls Row -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 20px;">
         <div>
           <h2 style="color: #38bdf8; margin: 0;">Crypto Live Dashboard</h2>
         </div>
         
-        <!-- DROPDOWNS & TIMEFRAME CONTAINER -->
+        <!-- DROPDOWNS CONTAINER -->
         <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
           
-          <!-- 1. COIN SELECTOR DROPDOWN -->
+          <!-- COIN SELECTOR -->
           <div style="display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 8px 12px; border-radius: 8px; border: 1px solid #38bdf8;">
             <span style="color: #94a3b8; font-size: 13px;">Coin:</span>
             <select id="coinSelector" onchange="updateCryptoFilters()" style="background: #0f172a; color: #fff; border: 1px solid #4b5563; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; outline: none;">
@@ -47,7 +47,7 @@ function renderCryptoDashboard() {
             </select>
           </div>
 
-          <!-- 2. CURRENCY SELECTOR (USDT / INR) DROPDOWN -->
+          <!-- CURRENCY SELECTOR -->
           <div style="display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 8px 12px; border-radius: 8px; border: 1px solid #38bdf8;">
             <span style="color: #94a3b8; font-size: 13px;">Pair:</span>
             <select id="currencySelector" onchange="updateCryptoFilters()" style="background: #0f172a; color: #fff; border: 1px solid #4b5563; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; outline: none;">
@@ -59,58 +59,62 @@ function renderCryptoDashboard() {
         </div>
       </div>
 
-      <!-- Live Dashboard Card Grid -->
-      <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+      <!-- MAIN ALL-IN-ONE CARD -->
+      <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 16px; padding: 30px; text-align: center; max-width: 550px; margin: 30px auto; box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.5);">
         
-        <!-- MAIN PRICE CARD -->
-        <div style="flex: 2; min-width: 300px; background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 30px 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
-          <span id="priceLabel" style="color: #94a3b8; font-size: 18px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;">
-            ${selectedCoinCode} / ${selectedCurrency} LIVE PRICE
-          </span>
-          
-          <h1 id="livePriceValue" style="color: #22c55e; font-size: 48px; margin: 15px 0; font-family: monospace;">
-            Loading...
-          </h1>
+        <!-- Live Price Heading -->
+        <span id="priceLabel" style="color: #94a3b8; font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;">
+          ${selectedCoinCode} / ${selectedCurrency} LIVE PRICE
+        </span>
+        
+        <!-- Big Price Display -->
+        <h1 id="livePriceValue" style="color: #22c55e; font-size: 52px; margin: 15px 0 5px 0; font-family: monospace;">
+          Loading...
+        </h1>
 
-          <!-- High / Low Metrics Row -->
-          <div style="display: flex; justify-content: space-around; background: #0f172a; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #374151;">
-            <div>
-              <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 5px;">▲ 24H HIGH</span>
-              <span id="highPriceValue" style="color: #22c55e; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
-            </div>
-            <div style="border-left: 1px solid #374151;"></div>
-            <div>
-              <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 5px;">▼ 24H LOW</span>
-              <span id="lowPriceValue" style="color: #ef4444; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
-            </div>
-          </div>
+        <!-- % Change Indicator -->
+        <div style="margin-bottom: 25px;">
+          <span id="priceChangeLabel" style="font-size: 16px; font-weight: bold; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05);">
+            --%
+          </span>
         </div>
 
-        <!-- CONTROLS & SETTINGS SIDE CARD -->
-        <div style="flex: 1; min-width: 250px; background: #1e293b; border: 1px solid #374151; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between;">
+        <!-- Timeframe & Cooldown Controls inside the Card -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px 20px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 20px; gap: 10px; flex-wrap: wrap;">
           
-          <!-- TIMEFRAME SELECTOR -->
-          <div>
-            <h4 style="color: #94a3b8; margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Select Timeframe</h4>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;">
-              ${['1m', '5m', '15m', '1h', '4h', '1D'].map(tf => `
-                <button onclick="setTimeframe('${tf}')" style="padding: 8px; border-radius: 6px; border: 1px solid #4b5563; background: ${tf === selectedTimeframe ? '#38bdf8' : '#0f172a'}; color: ${tf === selectedTimeframe ? '#0f172a' : '#fff'}; font-weight: bold; cursor: pointer; transition: 0.2s;">
-                  ${tf}
-                </button>
-              `).join('')}
+          <!-- TIMEFRAME DROPDOWN -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">Timeframe:</span>
+            <select id="timeframeSelector" onchange="updateTimeframe(this.value)" style="background: #1e293b; color: #fff; border: 1px solid #4b5563; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; outline: none;">
+              <option value="1" ${selectedTimeframeHours === '1' ? 'selected' : ''}>1 Hour</option>
+              <option value="4" ${selectedTimeframeHours === '4' ? 'selected' : ''}>4 Hours</option>
+              <option value="12" ${selectedTimeframeHours === '12' ? 'selected' : ''}>12 Hours</option>
+              <option value="24" ${selectedTimeframeHours === '24' ? 'selected' : ''}>24 Hours</option>
+            </select>
+          </div>
+
+          <!-- COOLDOWN REFRESH TIME -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">Refresh:</span>
+            <div style="display: flex; align-items: center; background: #1e293b; padding: 4px 8px; border-radius: 6px; border: 1px solid #4b5563;">
+              <input type="number" id="cooldownInput" value="${cooldownTime}" min="2" max="60" onchange="updateCooldown(this.value)" style="background: none; border: none; color: #fff; width: 35px; font-weight: bold; font-size: 14px; outline: none; text-align: center;">
+              <span style="color: #94a3b8; font-size: 12px; margin-left: 2px;">s</span>
             </div>
           </div>
 
-          <!-- COOLDOWN SETTINGS -->
-          <div>
-            <h4 style="color: #94a3b8; margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Refresh Cooldown</h4>
-            <div style="display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid #4b5563;">
-              <input type="number" id="cooldownInput" value="${cooldownTime}" min="2" max="60" onchange="updateCooldown(this.value)" style="background: none; border: none; color: #fff; width: 50px; font-weight: bold; font-size: 16px; outline: none; text-align: center;">
-              <span style="color: #94a3b8; font-size: 14px;">seconds</span>
-            </div>
-            <p style="color: #64748b; font-size: 11px; margin: 8px 0 0 0;">Min: 2s | Max: 60s</p>
-          </div>
+        </div>
 
+        <!-- High / Low Metrics Row -->
+        <div style="display: flex; justify-content: space-around; background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155;">
+          <div>
+            <span id="highLabel" style="color: #64748b; font-size: 11px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">▲ ${selectedTimeframeHours}H HIGH</span>
+            <span id="highPriceValue" style="color: #22c55e; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
+          </div>
+          <div style="border-left: 1px solid #334155;"></div>
+          <div>
+            <span id="lowLabel" style="color: #64748b; font-size: 11px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">▼ ${selectedTimeframeHours}H LOW</span>
+            <span id="lowPriceValue" style="color: #ef4444; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
+          </div>
         </div>
 
       </div>
@@ -122,7 +126,7 @@ function renderCryptoDashboard() {
   startLivePriceStream();
 }
 
-// Function to fetch live price and high/low stats from CoinGecko API
+// Function to fetch price data, High/Low and % Change dynamically based on timeframe
 function fetchLivePrice() {
   const activeCoin = cryptoCoins.find(coin => coin.code === selectedCoinCode);
   if (!activeCoin) return;
@@ -131,16 +135,31 @@ function fetchLivePrice() {
   const targetCurrency = selectedCurrency.toLowerCase();
   const apiCurrency = targetCurrency === 'usdt' ? 'usd' : 'inr';
 
-  // Fetching live price, 24h high, and 24h low in a single call
-  fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${apiCurrency}&ids=${cgId}`)
+  // CoinGecko Market Chart API using historical points to calculate High/Low for 1h, 4h, 12h, 24h
+  fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=${apiCurrency}&days=1`)
     .then(response => response.json())
     .then(data => {
-      if (data && data.length > 0) {
-        const marketData = data[0];
-        const currentPrice = marketData.current_price;
-        const highPrice = marketData.high_24h;
-        const lowPrice = marketData.low_24h;
+      if (data && data.prices) {
+        const pricesList = data.prices; // Array of [timestamp, price]
         
+        // Filter prices based on selected timeframe hours
+        const now = Date.now();
+        const cutoffTime = now - (parseInt(selectedTimeframeHours) * 60 * 60 * 1000);
+        const filteredPrices = pricesList.filter(item => item[0] >= cutoffTime).map(item => item[1]);
+
+        if (filteredPrices.length === 0) return;
+
+        // Current price is the latest item in the list
+        const currentPrice = pricesList[pricesList.length - 1][1];
+        
+        // Calculate dynamic High & Low for selected timeframe
+        const highPrice = Math.max(...filteredPrices);
+        const lowPrice = Math.min(...filteredPrices);
+
+        // Calculate % Change over selected timeframe
+        const initialPrice = filteredPrices[0];
+        const priceChangePct = ((currentPrice - initialPrice) / initialPrice) * 100;
+
         const currencySymbol = selectedCurrency === "INR" ? "₹ " : "$ ";
         
         // Formatter Helper
@@ -151,13 +170,21 @@ function fetchLivePrice() {
             : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
 
+        // DOM update
         const priceElement = document.getElementById('livePriceValue');
         const highElement = document.getElementById('highPriceValue');
         const lowElement = document.getElementById('lowPriceValue');
+        const changeElement = document.getElementById('priceChangeLabel');
 
         if (priceElement) priceElement.innerText = currencySymbol + formatNum(currentPrice);
         if (highElement) highElement.innerText = currencySymbol + formatNum(highPrice);
         if (lowElement) lowElement.innerText = currencySymbol + formatNum(lowPrice);
+
+        if (changeElement) {
+          const sign = priceChangePct >= 0 ? "+" : "";
+          changeElement.innerText = `${sign}${priceChangePct.toFixed(2)}% (${selectedTimeframeHours}h)`;
+          changeElement.style.color = priceChangePct >= 0 ? "#22c55e" : "#ef4444";
+        }
       }
     })
     .catch(error => {
@@ -176,8 +203,6 @@ function startLivePriceStream() {
   }
 
   fetchLivePrice();
-
-  // Set interval based on chosen cooldown time
   priceIntervalId = setInterval(fetchLivePrice, cooldownTime * 1000);
 }
 
@@ -186,15 +211,22 @@ function updateCryptoFilters() {
   selectedCoinCode = document.getElementById('coinSelector').value;
   selectedCurrency = document.getElementById('currencySelector').value;
   
-  // Reset fields to loading
   resetLoadingUI();
   startLivePriceStream();
 }
 
-// Handler for Timeframe selection
-function setTimeframe(tf) {
-  selectedTimeframe = tf;
-  renderCryptoDashboard(); // Re-render to highlight active button
+// Handler for Timeframe Dropdown
+function updateTimeframe(val) {
+  selectedTimeframeHours = val;
+  
+  // Update UI Labels inside card instantly
+  const highLbl = document.getElementById('highLabel');
+  const lowLbl = document.getElementById('lowLabel');
+  if (highLbl) highLbl.innerText = `▲ ${selectedTimeframeHours}H HIGH`;
+  if (lowLbl) lowLbl.innerText = `▼ ${selectedTimeframeHours}H LOW`;
+
+  resetLoadingUI();
+  startLivePriceStream();
 }
 
 // Handler for Cooldown modification
@@ -204,7 +236,7 @@ function updateCooldown(val) {
   if (numVal > 60) numVal = 60;
   
   cooldownTime = numVal;
-  startLivePriceStream(); // Restart stream with new cooldown
+  startLivePriceStream();
 }
 
 // Quick UI Reset helper
@@ -216,8 +248,13 @@ function resetLoadingUI() {
   const priceElement = document.getElementById('livePriceValue');
   const highElement = document.getElementById('highPriceValue');
   const lowElement = document.getElementById('lowPriceValue');
+  const changeElement = document.getElementById('priceChangeLabel');
 
   if (priceElement) priceElement.innerText = "Loading...";
   if (highElement) highElement.innerText = "Loading...";
   if (lowElement) lowElement.innerText = "Loading...";
+  if (changeElement) {
+    changeElement.innerText = "--%";
+    changeElement.style.color = "#94a3b8";
+  }
 }
