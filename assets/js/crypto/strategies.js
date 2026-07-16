@@ -45,16 +45,33 @@ function renderCryptoStrategies() {
 
     </div>
   `;
+
+  // [LOG] Strategies View Loaded
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "Strategies management panel rendered.");
+  }
 }
 
 // Toggle active status
 function toggleCryptoStrategy(id) {
+  let updatedStratName = "";
+  let currentStatus = "";
+
   cryptoStrategies = cryptoStrategies.map(strat => {
     if (strat.id === id) {
       strat.status = strat.status === 'Active' ? 'Inactive' : 'Active';
+      updatedStratName = strat.name;
+      currentStatus = strat.status;
     }
     return strat;
   });
+
+  // [LOG] Strategy Status Toggle
+  if (typeof addSystemLog === 'function' && updatedStratName) {
+    const logType = currentStatus === 'Active' ? 'SUCCESS' : 'SYSTEM';
+    addSystemLog(logType, `Strategy [${updatedStratName}] status changed to: ${currentStatus.toUpperCase()}`);
+  }
+
   renderCryptoStrategies();
 }
 
@@ -74,5 +91,11 @@ function addNewCryptoStrategy() {
   };
   
   cryptoStrategies.push(newStrat);
+
+  // [LOG] New Strategy Created
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SUCCESS", `New strategy successfully created: "${name}" for pair ${pair} (Initial Status: INACTIVE).`);
+  }
+
   renderCryptoStrategies();
 }
