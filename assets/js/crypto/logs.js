@@ -1,65 +1,127 @@
-// System Logs State (इसे भी ग्लोबल रख सकते हैं)
+// Global Logs State (अगर पहले से है, तो इसे केवल रेफरेंस के लिए रखें)
 var systemLogs = [
-  { time: "2026-07-15 10:00:05", type: "SYSTEM", message: "ApexTraders [CRYPTO] System Booted Successfully." },
-  { time: "2026-07-15 10:00:08", type: "SUCCESS", message: "Connected to Binance Live Websocket Streams." },
-  { time: "2026-07-15 10:00:12", type: "TELEGRAM", message: "Telegram Bot Status: Listening for signals..." }
+  { timestamp: "2026-07-16 18:30", type: "SYSTEM", message: "System initialized successfully." },
+  { timestamp: "2026-07-16 18:32", type: "SUCCESS", message: "Connected to Exchange API." }
 ];
 
-// नया लॉग जोड़ने के लिए हेल्पर फंक्शन
+/**
+ * 1. Master Log Injector (छोटा और सीधा नोटिफिकेशन रखने के लिए हेल्पर)
+ * यह फंक्शन लंबे मैसेजेस को छोटा (truncate) कर देगा ताकि लॉग स्क्रीन साफ़ रहे।
+ */
 function addSystemLog(type, message) {
   const now = new Date();
-  const timeStr = now.toISOString().replace('T', ' ').substring(0, 19);
-  systemLogs.unshift({ time: timeStr, type: type, message: message });
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+  // अगर मैसेज बहुत लंबा है, तो उसे सिर्फ 80 कैरेक्टर्स तक सीमित करके '...' लगा देंगे
+  let shortMessage = message;
+  if (message.length > 80) {
+    shortMessage = message.substring(0, 77) + "...";
+  }
+
+  // नए लॉग को सबसे ऊपर रखने के लिए unshift का उपयोग करेंगे
+  systemLogs.unshift({
+    timestamp: timestamp,
+    type: type.toUpperCase(), // SYSTEM, SUCCESS, ERROR, WARNING
+    message: shortMessage
+  });
+
+  // सिर्फ आखिरी 100 लॉग्स को ही मेमोरी में रखेंगे ताकि ब्राउज़र स्लो न हो
+  if (systemLogs.length > 100) {
+    systemLogs.pop();
+  }
+
+  // अगर अभी यूजर Logs टैब पर ही है, तो तुरंत स्क्रीन को अपडेट कर देंगे
+  const activeTab = document.querySelector('[data-active-tab]'); // आपकी नेविगेशन स्टेट के आधार पर
+  if (activeTab && activeTab.getAttribute('data-active-tab') === 'LOGS') {
+    renderCryptoLogs();
+  }
 }
 
+/**
+ * 2. Crypto Logs Tab Render Function
+ * एकदम क्लीन, मॉडर्न और स्पेस-सेविंग नोटिफिकेशन डिज़ाइन
+ */
 function renderCryptoLogs() {
   const root = document.getElementById('app');
   
-  const logRows = systemLogs.map(log => {
-    let tagColor = "#cbd5e1";
-    if (log.type === "SUCCESS") tagColor = "#22c55e";
-    if (log.type === "ERROR") tagColor = "#ef4444";
-    if (log.type === "TELEGRAM") tagColor = "#38bdf8";
-    if (log.type === "SYSTEM") tagColor = "#a855f7";
+  // स्टेटस के हिसाब से रंगों का सेट
+  const getBadgeStyle = (type) => {
+    switch (type) {
+      case 'SUCCESS':
+        return { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' };
+      case 'ERROR':
+        return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171' };
+      case 'WARNING':
+        return { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15' };
+      default: // SYSTEM
+        return { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' };
+    }
+  };
 
+  const logRows = systemLogs.map(log => {
+    const badge = getBadgeStyle(log.type);
     return `
-      <div style="display: flex; gap: 15px; font-family: monospace; font-size: 13px; line-height: 1.6; border-bottom: 1px solid #1e293b; padding: 6px 0;">
-        <span style="color: #64748b; min-width: 140px;">[${log.time}]</span>
-        <span style="color: ${tagColor}; font-weight: bold; min-width: 90px;">[${log.type}]</span>
-        <span style="color: #cbd5e1; flex: 1;">${log.message}</span>
+      <div style="display: grid; grid-template-columns: 160px 100px 1fr; gap: 15px; padding: 12px 15px; border-bottom: 1px solid #1e293b; align-items: center; font-size: 13.5px; font-family: monospace;">
+        <!-- 1. Time & Date -->
+        <div style="color: #64748b; white-space: nowrap;">
+          [${log.timestamp}]
+        </div>
+        
+        <!-- 2. Status Badge -->
+        <div>
+          <span style="background: ${badge.bg}; color: ${badge.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; text-align: center; min-width: 70px;">
+            ${log.type}
+          </span>
+        </div>
+        
+        <!-- 3. Short Clean Notification -->
+        <div style="color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${log.message}">
+          ${log.message}
+        </div>
       </div>
     `;
   }).join('');
 
   root.innerHTML = `
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
-    <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
+    <!-- डेटा ट्रैक करने के लिए कि हम अभी LOGS टैब में हैं -->
+    <div id="logs-tab-marker" data-active-tab="LOGS" class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
       
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <div>
-          <h2 style="color: #38bdf8; margin: 0;">Live System Logs</h2>
-          <p style="color: #94a3b8; margin: 5px 0 0 0;">Track background processes, bot operations, and execution alerts</p>
+          <h2 style="color: #38bdf8; margin: 0;">System Notifications</h2>
+          <p style="color: #94a3b8; margin: 5px 0 0 0;">Real-time execution alerts and bot operations</p>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <button onclick="simulateMockAlertLog()" style="padding: 10px 15px; background: #1e293b; color: #38bdf8; border: 1px solid #38bdf8; border-radius: 6px; font-weight: bold; cursor: pointer;">Simulate Signal</button>
-          <button onclick="clearCryptoLogs()" style="padding: 10px 15px; background: #ef4444; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Clear Logs</button>
-        </div>
+        <button onclick="clearSystemLogs()" style="background: #374151; color: #f87171; border: 1px solid #ef4444; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+          🗑️ Clear Logs
+        </button>
       </div>
 
-      <!-- Black Terminal Console -->
-      <div style="background: #090d16; border: 1px solid #334155; border-radius: 12px; padding: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);">
+      <!-- Compact Terminal Display -->
+      <div style="background: #0b0f19; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
         
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 12px;">
-          <div style="display: flex; gap: 6px;">
-            <span style="width: 12px; height: 12px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
-            <span style="width: 12px; height: 12px; background: #eab308; border-radius: 50%; display: inline-block;"></span>
-            <span style="width: 12px; height: 12px; background: #22c55e; border-radius: 50%; display: inline-block;"></span>
-          </div>
-          <span style="font-size: 11px; color: #64748b; font-family: monospace;">bash - apex-bot-console.sh</span>
+        <!-- Table Header -->
+        <div style="display: grid; grid-template-columns: 160px 100px 1fr; gap: 15px; padding: 12px 15px; background: #111827; border-bottom: 2px solid #1e293b; color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
+          <div>Timestamp</div>
+          <div>Status</div>
+          <div>Notification</div>
         </div>
 
-        <div style="max-height: 450px; overflow-y: auto; display: flex; flex-direction: column;">
-          ${logRows.length > 0 ? logRows : '<div style="color: #64748b; text-align: center; padding: 40px; font-family: monospace;">-- Terminal Empty: No logs recorded --</div>'}
+        <!-- Dynamic Logs List -->
+        <div id="logsListContainer" style="max-height: 600px; overflow-y: auto;">
+          ${systemLogs.length === 0 ? `
+            <div style="padding: 40px; text-align: center; color: #64748b;">
+              <span style="font-size: 40px; display: block; margin-bottom: 10px;">📭</span>
+              No logs or notifications recorded yet.
+            </div>
+          ` : logRows}
         </div>
 
       </div>
@@ -68,30 +130,11 @@ function renderCryptoLogs() {
   `;
 }
 
-function clearCryptoLogs() {
-  if (confirm("Are you sure you want to clear the logs history?")) {
+// Clear all logs helper
+function clearSystemLogs() {
+  if (confirm("Are you sure you want to clear all notification history?")) {
     systemLogs = [];
+    addSystemLog("SYSTEM", "Notification console cleared by user.");
     renderCryptoLogs();
   }
-}
-
-function simulateMockAlertLog() {
-  const assets = ["BTC", "ETH", "SOL"];
-  const directions = ["BUY", "SELL"];
-  const randomAsset = assets[Math.floor(Math.random() * assets.length)];
-  const randomDir = directions[Math.floor(Math.random() * directions.length)];
-  const mockPrice = randomAsset === "BTC" ? "64,520" : (randomAsset === "ETH" ? "3,410" : "142.50");
-
-  addSystemLog("TELEGRAM", `Received incoming signal from channel: ${randomDir} ${randomAsset}USDT`);
-  
-  setTimeout(() => {
-    addSystemLog("SYSTEM", `Executing automated trade order: ${randomDir} 0.05 ${randomAsset} at limit $${mockPrice}`);
-  }, 400);
-
-  setTimeout(() => {
-    addSystemLog("SUCCESS", `Position opened successfully on Exchange with Leverage ${appSettings.defaultLeverage}!`);
-    renderCryptoLogs();
-  }, 1000);
-
-  renderCryptoLogs();
 }
