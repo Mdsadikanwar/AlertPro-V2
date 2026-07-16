@@ -1,15 +1,15 @@
-// Global Firebase Setup Check
-var firebaseConfig = window.firebaseConfig || {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+// Global Firebase Setup with Sadiq's Credentials
+var firebaseConfig = {
+  apiKey: "AIzaSyDIPtw7gur2viWc4k39N3HBK_aPJ4EBWqk",
+  authDomain: "alertpro-bot.firebaseapp.com",
+  databaseURL: "https://alertpro-bot-default-rtdb.firebaseio.com",
+  projectId: "alertpro-bot",
+  storageBucket: "alertpro-bot.firebasestorage.app",
+  messagingSenderId: "834804229548",
+  appId: "1:834804229548:web:e46f165bd57b66e92f0609"
 };
 
-if (typeof firebase !== 'undefined' && !firebase.apps.length && firebaseConfig.apiKey) {
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
