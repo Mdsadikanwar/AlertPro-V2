@@ -157,6 +157,9 @@ function renderCryptoDashboard() {
     </div>
   `;
 
+  // [LOG] Dashboard Initialize
+  addSystemLog("SYSTEM", `Crypto Dashboard loaded. Initializing live stream for ${selectedCoinCode}/${selectedCurrency}.`);
+  
   // Start fetching live price and sentiments
   startLivePriceStream();
 }
@@ -167,19 +170,25 @@ function calculateSentiment(priceChangePct) {
   const sentDescEl = document.getElementById('sentimentDesc');
   if (!sentLabelEl || !sentDescEl) return;
 
+  let bias = "SIDEWAYS 🟡";
   if (priceChangePct > 1.5) {
     sentLabelEl.innerText = "BULLISH 🟢";
     sentLabelEl.style.color = "#22c55e";
     sentDescEl.innerText = "Strong buying pressure, trend is positive.";
+    bias = "BULLISH 🟢";
   } else if (priceChangePct < -1.5) {
     sentLabelEl.innerText = "BEARISH 🔴";
     sentLabelEl.style.color = "#ef4444";
     sentDescEl.innerText = "Strong selling pressure, trend is negative.";
+    bias = "BEARISH 🔴";
   } else {
     sentLabelEl.innerText = "SIDEWAYS 🟡";
     sentLabelEl.style.color = "#eab308";
     sentDescEl.innerText = "Consolidating price range, low volatility.";
   }
+  
+  // [LOG] Sentiment calculated
+  addSystemLog("SYSTEM", `Calculated ${selectedTimeframeHours}H technical bias for ${selectedCoinCode}: ${bias} (${priceChangePct.toFixed(2)}%)`);
 }
 
 // Function to fetch Global Fear and Greed Index from alternative.me API
@@ -211,11 +220,15 @@ function fetchFearAndGreedIndex() {
           } else {
             valEl.style.color = "#ef4444"; // Extreme Fear (Red)
           }
+          
+          // [LOG] Fear & Greed Fetched Successfully
+          addSystemLog("SUCCESS", `Global Fear & Greed Index updated: ${score} (${classification})`);
         }
       }
     })
     .catch(err => {
       console.error("F&G Index Fetch Error:", err);
+      addSystemLog("ERROR", "Failed to fetch Fear & Greed index from API.");
     });
 }
 
@@ -289,6 +302,9 @@ function fetchLivePrice() {
 
         // Calculate Sentiment
         calculateSentiment(priceChangePct);
+        
+        // [LOG] Successful live price update
+        addSystemLog("SUCCESS", `Live price updated for ${selectedCoinCode}/${selectedCurrency}: ${currencySymbol}${formatNum(currentPrice)}`);
       }
     })
     .catch(error => {
@@ -298,6 +314,8 @@ function fetchLivePrice() {
         priceElement.innerText = "API Rate Limit";
         priceElement.style.fontSize = "38px";
       }
+      // [LOG] Error on API Fetch
+      addSystemLog("ERROR", `Failed to fetch price for ${selectedCoinCode}/${selectedCurrency} (CoinGecko Rate Limit)`);
     });
 }
 
@@ -316,6 +334,9 @@ function updateCryptoFilters() {
   selectedCoinCode = document.getElementById('coinSelector').value;
   selectedCurrency = document.getElementById('currencySelector').value;
   
+  // [LOG] Filter modified
+  addSystemLog("SYSTEM", `Dashboard filters updated: Pair set to ${selectedCoinCode}/${selectedCurrency}`);
+  
   resetLoadingUI();
   startLivePriceStream();
 }
@@ -329,6 +350,9 @@ function updateTimeframe(val) {
   if (highLbl) highLbl.innerText = `▲ ${selectedTimeframeHours}H HIGH`;
   if (lowLbl) lowLbl.innerText = `▼ ${selectedTimeframeHours}H LOW`;
 
+  // [LOG] Timeframe updated
+  addSystemLog("SYSTEM", `Timeframe changed to ${selectedTimeframeHours} Hours`);
+
   resetLoadingUI();
   startLivePriceStream();
 }
@@ -340,6 +364,10 @@ function updateCooldown(val) {
   if (numVal > 300) numVal = 300;
   
   cooldownTime = numVal;
+  
+  // [LOG] Cooldown / Refresh Interval updated
+  addSystemLog("SYSTEM", `Live feed auto-refresh set to ${cooldownTime} seconds`);
+  
   startLivePriceStream();
 }
 
