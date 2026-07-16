@@ -62,6 +62,13 @@ function renderCryptoSettings() {
             <input type="text" id="setTelegramChatId" value="${appSettings.telegramChatId}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #4b5563; border-radius: 6px; color: #fff; box-sizing: border-box;">
           </div>
 
+          <!-- TEST TELEGRAM CONNECTION BUTTON -->
+          <div style="margin-bottom: 25px;">
+            <button onclick="sendTestTelegramMessage()" style="width: 100%; padding: 10px; background: transparent; color: #38bdf8; border: 1px solid #38bdf8; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">
+              ⚡ Test Telegram Connection
+            </button>
+          </div>
+
           <h3 style="color: #38bdf8; margin-top: 25px; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 10px;">🔑 Exchange API Keys</h3>
           
           <div style="margin-bottom: 15px;">
@@ -270,6 +277,59 @@ function pullDataFromFirebase() {
         addSystemLog("ERROR", `Failed to retrieve data from Firebase: ${error.message}`);
       }
     });
+}
+
+// ==========================================
+// TELEGRAM REAL-TIME ALERT TEST FUNCTION
+// ==========================================
+function sendTestTelegramMessage() {
+  const token = document.getElementById('setTelegramToken').value;
+  const chatId = document.getElementById('setTelegramChatId').value;
+
+  if (!token || !chatId || token.includes("mock")) {
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("ERROR", "Telegram configuration is missing or using dummy values.");
+    }
+    alert("❌ Please enter your valid Telegram Token and Chat ID first!");
+    return;
+  }
+
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "Sending test notification payload to Telegram API...");
+  }
+
+  const message = "🔔 *ApexTraders: Connection Successful!* \n\nYour real-time bot alert system is now online and connected. 🚀";
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: "Markdown"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.ok) {
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("SUCCESS", `Telegram alert sent successfully to Chat ID: ${chatId}`);
+      }
+      alert("🎉 Connection successful! Check your Telegram.");
+    } else {
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("ERROR", `Telegram API rejected request: ${data.description}`);
+      }
+      alert(`❌ Telegram Error: ${data.description}`);
+    }
+  })
+  .catch(err => {
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("ERROR", `Network failure while hitting Telegram API: ${err.message}`);
+    }
+    alert(`❌ Connection failed: ${err.message}`);
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
