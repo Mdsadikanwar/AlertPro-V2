@@ -9,6 +9,7 @@ var appSettings = {
   mockApiSecret: "ap_sec_99345xxxxxx"
 };
 
+// Crypto Settings tab render function
 function renderCryptoSettings() {
   const root = document.getElementById('app');
   root.innerHTML = `
@@ -86,6 +87,11 @@ function renderCryptoSettings() {
 
     </div>
   `;
+
+  // [LOG] Settings Tab Rendered
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "Settings configuration panel loaded.");
+  }
 }
 
 function saveCryptoSettings() {
@@ -97,9 +103,15 @@ function saveCryptoSettings() {
   appSettings.maxDailyLoss = document.getElementById('setMaxDailyLoss').value;
   appSettings.defaultLeverage = document.getElementById('setLeverage').value;
 
-  // Logs में भी सेव होने का इवेंट डाल देते हैं
-  addSystemLog("SYSTEM", "System configurations updated by user.");
-  addSystemLog("SUCCESS", `Risk Rules updated: Risk ${appSettings.riskPerTrade}%, Max Loss ${appSettings.maxDailyLoss}%`);
+  // [LOG] Master Logging with safety checks
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "System configurations updated by user.");
+    addSystemLog("SUCCESS", `Risk Rules updated: Risk ${appSettings.riskPerTrade}%, Max Loss ${appSettings.maxDailyLoss}%, Leverage set to ${appSettings.defaultLeverage}`);
+    
+    if (appSettings.telegramToken && appSettings.telegramChatId) {
+      addSystemLog("SUCCESS", `Telegram credentials stored successfully (Chat ID: ${appSettings.telegramChatId}).`);
+    }
+  }
 
   alert("⚙️ Settings saved successfully!");
   renderCryptoSettings();
