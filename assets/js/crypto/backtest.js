@@ -63,6 +63,11 @@ function renderCryptoBacktest() {
 
     </div>
   `;
+
+  // [LOG] Panel Loaded
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "Backtester management tab rendered.");
+  }
 }
 
 // Generate HTML for result panel
@@ -165,6 +170,11 @@ function runCryptoBacktest() {
   const timeframe = document.getElementById('backtestTimeframe').value;
   const rr = document.getElementById('backtestRR').value;
 
+  // [LOG] Trigger backtest simulation initiation
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Backtest initiated: Strategy [${strategy.toUpperCase()}], Target [${pair}], Interval [${timeframe}], Risk Profile [${rr}]`);
+  }
+
   // Show a loading text briefly
   const resultPanel = document.getElementById('backtestResultsPanel');
   resultPanel.innerHTML = `
@@ -265,6 +275,11 @@ function runCryptoBacktest() {
       netProfit: netProfitFormatted,
       trades: trades
     };
+
+    // [LOG] Master Backtest Completed
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("SUCCESS", `Backtest Finished for ${pair}! Sample Pool: ${totalTrades} trades. Win Rate: ${winRate}%. Net PnL Estimate: +$${netProfitFormatted}. Max Drawdown: ${maxDrawdown}%`);
+    }
     
     // Refresh the backtest view to show the result
     renderCryptoBacktest();
