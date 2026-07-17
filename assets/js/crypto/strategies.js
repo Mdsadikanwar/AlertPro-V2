@@ -1,10 +1,13 @@
 // Global State
 var cryptoStrategies = [];
-var editingStrategyId = null; // ट्रैक करने के लिए कि हम एडिट कर रहे हैं या नया बना रहे हैं
+var editingStrategyId = null; 
 
 // 1. फायरबेस से स्ट्रेटजी लाइव लोड करना
 function loadStrategiesFromFirebase() {
-  if (typeof firebase === 'undefined') return;
+  if (typeof firebase === 'undefined') {
+    console.log("❌ Firebase undefined है, लोड नहीं हो सका।");
+    return;
+  }
   
   const dbRef = firebase.database().ref('trading_strategies');
   dbRef.on('value', (snapshot) => {
@@ -18,12 +21,13 @@ function loadStrategiesFromFirebase() {
   });
 }
 
-// 2. मुख्य रेंडर फंक्शन (Form + List दोनों एक साथ)
+// 2. मुख्य रेंडर फंक्शन (बग-फ्री वर्जन)
 function renderCryptoStrategies() {
   const root = document.getElementById('app');
+  if (!root) return;
   
   root.innerHTML = `
-    ${getMarketNavbar('CRYPTO', '#38bdf8')}
+    ${typeof getMarketNavbar === 'function' ? getMarketNavbar('CRYPTO', '#38bdf8') : ''}
     <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff; max-width: 800px; margin: 0 auto;">
       
       <!-- Header -->
@@ -148,23 +152,22 @@ function renderCryptoStrategies() {
 
 // 3. सेव या अपडेट करने का कंबाइंड फंक्शन
 function saveStrategyData() {
-  const type = document.getElementById('stratType').value;
-  const pair = document.getElementById('stratPair').value.trim().toUpperCase();
-  const timeframe = document.getElementById('stratTimeframe').value;
-  const riskReward = document.getElementById('stratRR').value.trim();
+  const typeEl = document.getElementById('stratType');
+  const pairEl = document.getElementById('stratPair');
+  const timeframeEl = document.getElementById('stratTimeframe');
+  const rrEl = document.getElementById('stratRR');
+
+  if (!typeEl || !pairEl || !timeframeEl || !rrEl) return;
+
+  const type = typeEl.value;
+  const pair = pairEl.value.trim().toUpperCase();
+  const timeframe = timeframeEl.value;
+  const riskReward = rrEl.value.trim();
 
   if (!pair) {
     alert("Please enter an asset pair!");
     return;
   }
-
-  const payload = {
-    name: type,
-    pair: pair,
-    timeframe: timeframe,
-    riskReward: riskReward || "1:2",
-    status: "Inactive" // नई स्ट्रेटजी डिफॉल्ट रूप से पॉज रहेगी, आप खुद 'Start' दबाएंगे
-  };
 
   if (editingStrategyId) {
     // UPDATE LOGIC
@@ -176,14 +179,22 @@ function saveStrategyData() {
     }).then(() => {
       if (typeof addSystemLog === 'function') addSystemLog("SUCCESS", `Updated config for ${pair}`);
       cancelEditMode();
-    });
+    }).catch(err => alert("Error updating: " + err.message));
   } else {
     // CREATE LOGIC
+    const payload = {
+      name: type,
+      pair: pair,
+      timeframe: timeframe,
+      riskReward: riskReward || "1:2",
+      status: "Inactive"
+    };
+
     firebase.database().ref('trading_strategies').push(payload).then(() => {
       if (typeof addSystemLog === 'function') addSystemLog("SUCCESS", `New ${type} deployed for ${pair}`);
-      // Form fields resetting to defaults
+      // रीसेट सिर्फ पेयर को करेंगे ताकि लूप ब्रेक न हो
       document.getElementById('stratPair').value = "BTCUSDT";
-    });
+    }).catch(err => alert("Error saving: " + err.message));
   }
 }
 
@@ -193,15 +204,18 @@ function startEditMode(id) {
   if (!strat) return;
 
   editingStrategyId = id;
-  renderCryptoStrategies(); // री-रेंडर ताकि बटन 'Cancel' और टाइटल बदल जाए
+  renderCryptoStrategies(); 
 
-  // फॉर्म में पुरानी वैल्यूज भरना
-  document.getElementById('stratType').value = strat.name;
-  document.getElementById('stratPair').value = strat.pair;
-  document.getElementById('stratTimeframe').value = strat.timeframe;
-  document.getElementById('stratRR').value = strat.riskReward;
-  
-  document.getElementById('formTitle').scrollIntoView({ behavior: 'smooth' });
+  // फॉर्म एलिमेंट्स मिलने के बाद वैल्यू सेट करना
+  setTimeout(() => {
+    if(document.getElementById('stratType')) document.getElementById('stratType').value = strat.name;
+    if(document.getElementById('stratPair')) document.getElementById('stratPair').value = strat.pair;
+    if(document.getElementById('stratTimeframe')) document.getElementById('stratTimeframe').value = strat.timeframe;
+    if(document.getElementById('stratRR')) document.getElementById('stratRR').value = strat.riskReward;
+    
+    const titleEl = document.getElementById('formTitle');
+    if (titleEl) titleEl.scrollIntoView({ behavior: 'smooth' });
+  }, 50);
 }
 
 // एडिट मोड बंद करना
@@ -235,7 +249,14 @@ function deleteCryptoStrategy(id) {
   }
 }
 
-// Initialize
-if (typeof firebase !== 'undefined') {
+// ⏳ DOM Safety Trigger - सबसे महत्वपूर्ण फिक्स
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    loadStrategiesFromFirebase();
+  }, 500);
+});
+
+// Fallback Trigger (अगर DOM पहले से लोड हो चुका हो)
+if (document.readyState === "complete" || document.readyState === "interactive") {
   loadStrategiesFromFirebase();
 }
