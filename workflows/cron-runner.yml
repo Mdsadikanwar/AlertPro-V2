@@ -1,0 +1,31 @@
+name: 24x7 ApexTraders Bot Runner
+
+on:
+  schedule:
+    # यह हर 5 मिनट में इस वर्कफ्लो को ऑटोमैटिक रन करेगा
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # इससे आप गिटहब पर जाकर खुद भी "Run" बटन दबाकर टेस्ट कर सकते हैं
+
+jobs:
+  run-strategy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3
+      with:
+        node-node: '18'
+
+    - name: Install dependencies
+      run: |
+        # यदि आपके पास package.json है तो डिपेंडेंसी इनस्टॉल करेगा, नहीं तो सीधे आगे बढ़ेगा
+        if [ -f package.json ]; then npm install; else npm install node-fetch; fi
+
+    - name: Trigger Bot Strategy Check
+      run: |
+        # यहाँ हम एक छोटी स्क्रिप्ट चलाएंगे जो सीधे आपके फायरबेस और मार्केट डेटा को चेक करेगी
+        node assets/js/cron-trigger.js
