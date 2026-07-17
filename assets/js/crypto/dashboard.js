@@ -1,315 +1,376 @@
-// Global State
-var cryptoStrategies = [];
-var liveSignals = []; 
-var editingStrategyId = null; 
+// Top 10 Coins List (Base symbols and names)
+const cryptoCoins = [
+  { name: "Bitcoin", code: "BTC", icon: "🪙", cgId: "bitcoin" },
+  { name: "Ethereum", code: "ETH", icon: "🔷", cgId: "ethereum" },
+  { name: "Solana", code: "SOL", icon: "☀️", cgId: "solana" },
+  { name: "Binance Coin", code: "BNB", icon: "🟡", cgId: "binancecoin" },
+  { name: "Ripple", code: "XRP", icon: "✖️", cgId: "ripple" },
+  { name: "Cardano", code: "ADA", icon: "🔵", cgId: "cardano" },
+  { name: "Dogecoin", code: "DOGE", icon: "🐕", cgId: "dogecoin" },
+  { name: "Shiba Inu", code: "SHIB", icon: "🐕‍🦺", cgId: "shiba-inu" },
+  { name: "Avalanche", code: "AVAX", icon: "🔺", cgId: "avalanche-2" },
+  { name: "Polkadot", code: "DOT", icon: "🔴", cgId: "polkadot" }
+];
 
-// 🧪 [PAPER TRADING SETTINGS] - बाइनेंस टेस्टनेट क्रेडेंशियल्स यहाँ डालें (यदि आपके पास हैं)
-const BINANCE_TESTNET_API_KEY = "YOUR_TESTNET_API_KEY";
-const BINANCE_TESTNET_SECRET_KEY = "YOUR_TESTNET_SECRET_KEY";
+// Current States
+let selectedCoinCode = "BTC";
+let selectedCurrency = "USDT"; 
+let selectedTimeframeHours = "24"; // Default 24 hours (Options: 1, 4, 12, 24)
+let cooldownTime = 60; // Set default cooldown to 60 seconds to avoid CoinGecko block
+let priceIntervalId = null; 
 
-// 🔐 आपकी टेलीग्राम डिटेल्स (ऑटो-कॉन्फिगर कर दी गई हैं)
-const TELEGRAM_BOT_TOKEN = "8943911868:AAFO8lOBAfdjdR0muq5bFCWeW-jx1Gz6BQk"; 
-const TELEGRAM_CHAT_ID = "1797453650";     
-
-// 💵 वर्चुअल पेपर बैलेंस (लोकल सिमुलेशन के लिए शुरूआती बैलेंस)
-var paperBalance = {
-  USDT: 10000.00,
-  BTC: 0.00000000
-};
-
-// 1. फायरबेस से डेटा लाइव लोड करना
-function loadStrategiesFromFirebase() {
-  if (typeof firebase === 'undefined') return;
-  
-  firebase.database().ref('trading_strategies').on('value', (snapshot) => {
-    const data = snapshot.val();
-    cryptoStrategies = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
-    renderCryptoStrategies();
-  });
-
-  firebase.database().ref('live_signals').limitToLast(5).on('value', (snapshot) => {
-    const data = snapshot.val();
-    liveSignals = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse() : [];
-    renderCryptoStrategies();
-  });
-}
-
-// 2. मुख्य रेंडर फंक्शन (पेपर ट्रेडिंग वॉलेट बॉक्स के साथ)
-function renderCryptoStrategies() {
+// Crypto Dashboard render function
+function renderCryptoDashboard() {
   const root = document.getElementById('app');
-  if (!root) return;
-  
   root.innerHTML = `
-    ${typeof getMarketNavbar === 'function' ? getMarketNavbar('CRYPTO', '#38bdf8') : ''}
-    <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff; max-width: 800px; margin: 0 auto;">
+    ${getMarketNavbar('CRYPTO', '#38bdf8')}
+    <div class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
       
-      <!-- Header + Paper Balance Box -->
-      <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <!-- Filter Controls Row -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 20px;">
         <div>
-          <h2 style="color: #38bdf8; margin: 0; font-size: 24px;">ApexTraders V2 Engine</h2>
-          <p style="color: #94a3b8; margin: 5px 0 0 0;">Configure modules & track running automation scripts</p>
+          <h2 style="color: #38bdf8; margin: 0;">Crypto Live Dashboard</h2>
         </div>
         
-        <!-- 💰 PAPER TRADING WALLET BOX -->
-        <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid #eab308; padding: 10px 15px; border-radius: 8px; text-align: right;">
-          <div style="font-size: 11px; color: #eab308; font-weight: bold; text-transform: uppercase; margin-bottom: 3px;">📝 Paper Trading Balance</div>
-          <div style="font-size: 14px; color: #fff; font-family: monospace;"><b>${paperBalance.USDT.toFixed(2)}</b> USDT</div>
-          <div style="font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 2px;"><b>${paperBalance.BTC.toFixed(6)}</b> BTC</div>
-        </div>
-      </div>
-
-      <!-- 📥 STRATEGY CONFIGURATION FORM -->
-      <div style="background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 30px;">
-        <h3 id="formTitle" style="margin-top: 0; margin-bottom: 15px; color: #38bdf8; font-size: 18px;">
-          ${editingStrategyId ? '✏️ Edit Strategy' : '➕ Configure New Strategy'}
-        </h3>
-        
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-          <div>
-            <label style="display: block; font-size: 14px; color: #94a3b8; margin-bottom: 5px;">Select Strategy Module:</label>
-            <select id="stratType" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
-              <option value="Indicator Strategy">📈 Indicator Cross Strategy (EMA, RSI, MACD)</option>
-              <option value="Candle Pattern Strategy">🕯️ Candle Pattern Strategy (Hammer, Engulfing)</option>
-              <option value="Code Script Paste">💻 Custom JavaScript/Script Paste</option>
-              <option value="AI Text-to-Strategy">🤖 AI Text-to-Strategy (Natural Language)</option>
-              <option value="Pre-set Template">⚡ Pre-set Optimized Template</option>
+        <!-- DROPDOWNS CONTAINER -->
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+          
+          <!-- COIN SELECTOR -->
+          <div style="display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 8px 12px; border-radius: 8px; border: 1px solid #38bdf8;">
+            <span style="color: #94a3b8; font-size: 13px;">Coin:</span>
+            <select id="coinSelector" onchange="updateCryptoFilters()" style="background: #0f172a; color: #fff; border: 1px solid #4b5563; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; outline: none;">
+              ${cryptoCoins.map(coin => `
+                <option value="${coin.code}" ${coin.code === selectedCoinCode ? 'selected' : ''}>
+                  ${coin.icon} ${coin.name} (${coin.code})
+                </option>
+              `).join('')}
             </select>
           </div>
 
-          <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 140px;">
-              <label style="display: block; font-size: 14px; color: #94a3b8; margin-bottom: 5px;">Asset Pair:</label>
-              <input type="text" id="stratPair" value="BTCUSDT" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; text-transform: uppercase;">
-            </div>
-            <div style="flex: 1; min-width: 140px;">
-              <label style="display: block; font-size: 14px; color: #94a3b8; margin-bottom: 5px;">Timeframe:</label>
-              <select id="stratTimeframe" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
-                <option value="1m">1 Minute</option>
-                <option value="5m" selected>5 Minutes</option>
-                <option value="15m">15 Minutes</option>
-                <option value="1h">1 Hour</option>
-              </select>
-            </div>
-            <div style="flex: 1; min-width: 140px;">
-              <label style="display: block; font-size: 14px; color: #94a3b8; margin-bottom: 5px;">Risk:Reward Ratio:</label>
-              <input type="text" id="stratRR" value="1:2" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
-            </div>
+          <!-- CURRENCY SELECTOR -->
+          <div style="display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 8px 12px; border-radius: 8px; border: 1px solid #38bdf8;">
+            <span style="color: #94a3b8; font-size: 13px;">Pair:</span>
+            <select id="currencySelector" onchange="updateCryptoFilters()" style="background: #0f172a; color: #fff; border: 1px solid #4b5563; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; outline: none;">
+              <option value="USDT" ${selectedCurrency === 'USDT' ? 'selected' : ''}>🇺🇸 USDT</option>
+              <option value="INR" ${selectedCurrency === 'INR' ? 'selected' : ''}>🇮🇳 INR</option>
+            </select>
           </div>
 
-          <div style="display: flex; gap: 10px; margin-top: 5px;">
-            <button onclick="saveStrategyData()" style="flex: 2; background: #38bdf8; color: #0f172a; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">
-              ${editingStrategyId ? 'Update Config' : 'Save & Deploy Strategy'}
-            </button>
-            ${editingStrategyId ? `<button onclick="cancelEditMode()" style="flex: 1; background: #475569; color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer;">Cancel</button>` : ''}
-          </div>
         </div>
       </div>
 
-      <!-- 📋 LIVE ACTIVE DEPLOYMENTS LIST -->
-      <div style="margin-bottom: 15px;">
-        <h3 style="color: #fff; font-size: 18px; margin: 0;">Live Script Deployments</h3>
-      </div>
+      <!-- MAIN ALL-IN-ONE CARD -->
+      <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 16px; padding: 30px; text-align: center; max-width: 550px; margin: 0 auto 30px auto; box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.5);">
+        
+        <!-- Live Price Heading -->
+        <span id="priceLabel" style="color: #94a3b8; font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;">
+          ${selectedCoinCode} / ${selectedCurrency} LIVE PRICE
+        </span>
+        
+        <!-- Big Price Display -->
+        <h1 id="livePriceValue" style="color: #22c55e; font-size: 52px; margin: 15px 0 5px 0; font-family: monospace;">
+          Loading...
+        </h1>
 
-      <div id="strategiesList" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 40px;">
-        ${cryptoStrategies.length === 0 ? `
-          <div style="text-align: center; padding: 30px; color: #94a3b8; border: 1px dashed #334155; border-radius: 12px;">No scripts deployed yet.</div>
-        ` : cryptoStrategies.map(strat => `
-          <div style="background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid ${strat.status === 'Active' ? 'rgba(34, 197, 94, 0.4)' : '#334155'}; display: flex; flex-direction: column; gap: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                  <h4 style="margin: 0; color: #fff; font-size: 16px;">${strat.name}</h4>
-                  <span style="font-size: 11px; background: #0f172a; color: #38bdf8; padding: 2px 8px; border-radius: 4px;">${strat.pair}</span>
-                </div>
-                <div style="display: flex; gap: 15px; font-size: 13px; color: #94a3b8;">
-                  <span><b>TF:</b> ${strat.timeframe}</span>
-                  <span><b>R:R:</b> ${strat.riskReward}</span>
-                  <span style="color: ${strat.autoTrading === 'ON' ? '#22c55e' : '#94a3b8'}"><b>Auto-Trade:</b> ${strat.autoTrading || 'OFF'}</span>
-                </div>
-              </div>
-              <div>
-                <span style="color: ${strat.status === 'Active' ? '#22c55e' : '#ef4444'}; font-size: 13px; font-weight: bold;">
-                  ${strat.status === 'Active' ? '🟢 RUNNING' : '🔴 PAUSED'}
-                </span>
-              </div>
-            </div>
-            <div style="border-top: 1px solid #334155; width: 100%;"></div>
-            <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-              <div style="display: flex; gap: 8px;">
-                <button onclick="triggerTestSignal('${strat.id}')" style="background: #eab308; color: #0f172a; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">⚡ Test Signal</button>
-                <button onclick="toggleAutoTrading('${strat.id}')" style="background: ${strat.autoTrading === 'ON' ? '#15803d' : '#475569'}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">Auto Trade: ${strat.autoTrading === 'ON' ? 'ON' : 'OFF'}</button>
-              </div>
-              <div style="display: flex; gap: 6px;">
-                <button onclick="toggleCryptoStrategy('${strat.id}')" style="background: ${strat.status === 'Active' ? '#475569' : '#22c55e'}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">${strat.status === 'Active' ? 'Pause' : 'Start'}</button>
-                <button onclick="startEditMode('${strat.id}')" style="background: #3b82f6; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">✏️ Edit</button>
-                <button onclick="deleteCryptoStrategy('${strat.id}')" style="background: transparent; color: #64748b; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">🗑️</button>
-              </div>
+        <!-- % Change Indicator -->
+        <div style="margin-bottom: 25px;">
+          <span id="priceChangeLabel" style="font-size: 16px; font-weight: bold; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05);">
+            --%
+          </span>
+        </div>
+
+        <!-- Timeframe & Cooldown Controls inside the Card -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px 20px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 20px; gap: 10px; flex-wrap: wrap;">
+          
+          <!-- TIMEFRAME DROPDOWN -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">Timeframe:</span>
+            <select id="timeframeSelector" onchange="updateTimeframe(this.value)" style="background: #1e293b; color: #fff; border: 1px solid #4b5563; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; outline: none;">
+              <option value="1" ${selectedTimeframeHours === '1' ? 'selected' : ''}>1 Hour</option>
+              <option value="4" ${selectedTimeframeHours === '4' ? 'selected' : ''}>4 Hours</option>
+              <option value="12" ${selectedTimeframeHours === '12' ? 'selected' : ''}>12 Hours</option>
+              <option value="24" ${selectedTimeframeHours === '24' ? 'selected' : ''}>24 Hours</option>
+            </select>
+          </div>
+
+          <!-- COOLDOWN REFRESH TIME -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">Refresh:</span>
+            <div style="display: flex; align-items: center; background: #1e293b; padding: 4px 8px; border-radius: 6px; border: 1px solid #4b5563;">
+              <input type="number" id="cooldownInput" value="${cooldownTime}" min="10" max="300" onchange="updateCooldown(this.value)" style="background: none; border: none; color: #fff; width: 35px; font-weight: bold; font-size: 14px; outline: none; text-align: center;">
+              <span style="color: #94a3b8; font-size: 12px; margin-left: 2px;">s</span>
             </div>
           </div>
-        `).join('')}
-      </div>
 
-      <!-- 🚥 STRATEGY TESTER & LIVE SIGNAL RECEIVER -->
-      <div style="margin-bottom: 15px; border-top: 2px dashed #334155; padding-top: 25px;">
-        <h3 style="color: #eab308; font-size: 18px; margin: 0;">⚡ Strategy Tester Terminal</h3>
-        <p style="color: #64748b; font-size: 13px; margin: 3px 0 0 0;">सिग्नल आते ही यहाँ पेपर ट्रेडिंग ऑर्डर का लाइव रिजल्ट दिखेगा:</p>
-      </div>
+        </div>
 
-      <div style="background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 15px; min-height: 150px;">
-        ${liveSignals.length === 0 ? `
-          <div style="text-align: center; padding: 40px 10px; color: #4b5563; font-size: 14px;">
-            🚥 No signals captured yet. Click "⚡ Test Signal" button above.
+        <!-- High / Low Metrics Row -->
+        <div style="display: flex; justify-content: space-around; background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155;">
+          <div>
+            <span id="highLabel" style="color: #64748b; font-size: 11px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">▲ ${selectedTimeframeHours}H HIGH</span>
+            <span id="highPriceValue" style="color: #22c55e; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
           </div>
-        ` : liveSignals.map(sig => `
-          <div style="background: #1e293b; padding: 12px; border-radius: 8px; border-left: 4px solid ${sig.signalType.includes('BUY') ? '#22c55e' : '#ef4444'}; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="border-left: 1px solid #334155;"></div>
+          <div>
+            <span id="lowLabel" style="color: #64748b; font-size: 11px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">▼ ${selectedTimeframeHours}H LOW</span>
+            <span id="lowPriceValue" style="color: #ef4444; font-weight: bold; font-family: monospace; font-size: 16px;">Loading...</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- NEW CARD: MARKET SENTIMENT & FEAR/GREED INDEX -->
+      <div style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; max-width: 550px; margin: 0 auto; box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);">
+        <h3 style="color: #38bdf8; margin: 0 0 20px 0; font-size: 18px; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+          📊 Market Sentiment & Index
+        </h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <!-- Fear & Greed Index Meter -->
+          <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <span style="background: ${sig.signalType.includes('BUY') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${sig.signalType.includes('BUY') ? '#22c55e' : '#ef4444'}; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">
-                ${sig.signalType}
-              </span>
-              <strong style="margin-left: 10px; color: #fff;">${sig.pair}</strong>
-              <span style="color: #94a3b8; font-size: 12px; margin-left: 10px;">${sig.paperOrderText || '(Signal Registered)'}</span>
+              <span style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 4px;">GLOBAL CRYPTO INDEX</span>
+              <strong style="color: #fff; font-size: 15px;">Fear & Greed Index</strong>
             </div>
-            <div style="text-align: right; font-size: 13px;">
-              <span style="color: #eab308; font-weight: bold;">$${sig.price}</span>
-              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">${new Date(sig.timestamp).toLocaleTimeString()}</div>
+            <div style="text-align: right;">
+              <span id="fgIndexValue" style="font-size: 24px; font-weight: bold; font-family: monospace; color: #eab308; display: block;">--</span>
+              <span id="fgIndexLabel" style="font-size: 11px; text-transform: uppercase; font-weight: bold; color: #94a3b8; letter-spacing: 1px;">LOADING...</span>
             </div>
           </div>
-        `).join('')}
+
+          <!-- Technical Sentiment Meter -->
+          <div style="background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 4px;">TECHNICAL BIAS (${selectedTimeframeHours}H)</span>
+              <strong style="color: #fff; font-size: 15px;">Trend Sentiment</strong>
+            </div>
+            <div style="text-align: right;">
+              <span id="sentimentLabel" style="font-size: 20px; font-weight: bold; display: block; color: #94a3b8;">--</span>
+              <span id="sentimentDesc" style="font-size: 11px; color: #94a3b8; display: block; margin-top: 3px; max-width: 180px;">Calculating price action...</span>
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </div>
   `;
+
+  // Start fetching live price and sentiments
+  startLivePriceStream();
 }
 
-// 3. सेव या अपडेट
-function saveStrategyData() {
-  const typeEl = document.getElementById('stratType');
-  const pairEl = document.getElementById('stratPair');
-  const timeframeEl = document.getElementById('stratTimeframe');
-  const rrEl = document.getElementById('stratRR');
-  if (!typeEl || !pairEl || !timeframeEl || !rrEl) return;
+// Function to calculate and render sentiments based on price changes
+function calculateSentiment(priceChangePct) {
+  const sentLabelEl = document.getElementById('sentimentLabel');
+  const sentDescEl = document.getElementById('sentimentDesc');
+  if (!sentLabelEl || !sentDescEl) return;
 
-  const pair = pairEl.value.trim().toUpperCase();
-  if (!pair) { alert("Please enter pair!"); return; }
-
-  if (editingStrategyId) {
-    firebase.database().ref(`trading_strategies/${editingStrategyId}`).update({
-      name: typeEl.value, pair: pair, timeframe: timeframeEl.value, riskReward: rrEl.value.trim()
-    }).then(() => cancelEditMode());
+  if (priceChangePct > 1.5) {
+    sentLabelEl.innerText = "BULLISH 🟢";
+    sentLabelEl.style.color = "#22c55e";
+    sentDescEl.innerText = "Strong buying pressure, trend is positive.";
+  } else if (priceChangePct < -1.5) {
+    sentLabelEl.innerText = "BEARISH 🔴";
+    sentLabelEl.style.color = "#ef4444";
+    sentDescEl.innerText = "Strong selling pressure, trend is negative.";
   } else {
-    firebase.database().ref('trading_strategies').push({
-      name: typeEl.value, pair: pair, timeframe: timeframeEl.value, riskReward: rrEl.value.trim() || "1:2", status: "Inactive", autoTrading: "OFF"
-    }).then(() => { pairEl.value = "BTCUSDT"; });
+    sentLabelEl.innerText = "SIDEWAYS 🟡";
+    sentLabelEl.style.color = "#eab308";
+    sentDescEl.innerText = "Consolidating price range, low volatility.";
   }
 }
 
-// 4. एडिट मोड्स
-function startEditMode(id) {
-  const strat = cryptoStrategies.find(s => s.id === id);
-  if (!strat) return;
-  editingStrategyId = id;
-  renderCryptoStrategies(); 
-  setTimeout(() => {
-    if(document.getElementById('stratType')) document.getElementById('stratType').value = strat.name;
-    if(document.getElementById('stratPair')) document.getElementById('stratPair').value = strat.pair;
-    if(document.getElementById('stratTimeframe')) document.getElementById('stratTimeframe').value = strat.timeframe;
-    if(document.getElementById('stratRR')) document.getElementById('stratRR').value = strat.riskReward;
-  }, 50);
-}
-function cancelEditMode() { editingStrategyId = null; renderCryptoStrategies(); }
+// Function to fetch Global Fear and Greed Index from alternative.me API
+function fetchFearAndGreedIndex() {
+  fetch('https://api.alternative.me/fng/')
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.data && data.data.length > 0) {
+        const fng = data.data[0];
+        const score = parseInt(fng.value);
+        const classification = fng.value_classification;
 
-// 5. कंट्रोल्स
-function toggleCryptoStrategy(id) {
-  const strat = cryptoStrategies.find(s => s.id === id);
-  if (!strat) return;
-  firebase.database().ref(`trading_strategies/${id}`).update({ status: strat.status === 'Active' ? 'Inactive' : 'Active' });
-}
+        const valEl = document.getElementById('fgIndexValue');
+        const lblEl = document.getElementById('fgIndexLabel');
 
-// ऑटो ट्रेडिंग ऑन/ऑफ हैंडलर
-function toggleAutoTrading(id) {
-  const strat = cryptoStrategies.find(s => s.id === id);
-  if (!strat) return;
-  const newAuto = (strat.autoTrading || 'OFF') === 'ON' ? 'OFF' : 'ON';
-  firebase.database().ref(`trading_strategies/${id}`).update({ autoTrading: newAuto });
-}
+        if (valEl && lblEl) {
+          valEl.innerText = score;
+          lblEl.innerText = classification;
 
-// ⚡ [पेपर ट्रेडिंग इंजन + सिग्नल लॉन्चर]
-function triggerTestSignal(id) {
-  const strat = cryptoStrategies.find(s => s.id === id);
-  if (!strat) return;
-
-  const isBuy = Math.random() > 0.5;
-  const signalType = isBuy ? "🚀 BUY_CROSSOVER" : "💥 SELL_CROSSOVER";
-  const currentPrice = parseFloat((Math.random() * 1500 + 62000).toFixed(2));
-  const timeString = new Date().toLocaleTimeString();
-  
-  let orderStatusText = "";
-
-  // 📝 LOCAL PAPER TRADING SIMULATION
-  if (strat.autoTrading === "ON") {
-    if (isBuy && paperBalance.USDT >= 1000) {
-      const btcBought = 1000 / currentPrice;
-      paperBalance.USDT -= 1000;
-      paperBalance.BTC += btcBought;
-      orderStatusText = `🛒 [PAPER BUY] Filled $1000.00 (${btcBought.toFixed(5)} BTC)`;
-    } else if (!isBuy && paperBalance.BTC > 0) {
-      const usdtReceived = paperBalance.BTC * currentPrice;
-      orderStatusText = `💰 [PAPER SELL] Filled all BTC for $${usdtReceived.toFixed(2)}`;
-      paperBalance.USDT += usdtReceived;
-      paperBalance.BTC = 0;
-    } else {
-      orderStatusText = "⚠️ [PAPER TRADING] Insufficient balance to execute.";
-    }
-  } else {
-    orderStatusText = "ℹ️ (Signal Only - Auto Trade OFF)";
-  }
-
-  const testSignal = {
-    strategyId: id,
-    strategyName: strat.name,
-    pair: strat.pair,
-    timeframe: strat.timeframe,
-    signalType: isBuy ? "BUY_CROSSOVER" : "SELL_CROSSOVER",
-    price: currentPrice,
-    timestamp: new Date().toISOString(),
-    isTest: true,
-    paperOrderText: orderStatusText
-  };
-
-  // A. फायरबेस में पुश
-  firebase.database().ref('live_signals').push(testSignal);
-
-  // B. टेलीग्राम अलर्ट (आपके एक्टिव बोट पर पेपर ट्रेडिंग की समरी जाएगी)
-  if (TELEGRAM_BOT_TOKEN !== "YOUR_BOT_TOKEN_HERE" && TELEGRAM_CHAT_ID !== "YOUR_CHAT_ID_HERE") {
-    const messageText = `
-⚠️ <b>[PAPER TRADE EVENT]</b> ⚠️
-────────────────
-<b>Module:</b> ${strat.name}
-<b>Signal:</b> ${signalType}
-<b>Asset Pair:</b> ${strat.pair}
-<b>Price:</b> $${currentPrice}
-<b>Execution Status:</b> ${orderStatusText}
-────────────────
-<b>Current Wallet Summary:</b>
-💵 USDT Balance: $${paperBalance.USDT.toFixed(2)}
-🪙 BTC Balance: ${paperBalance.BTC.toFixed(6)} BTC
-────────────────
-<i>ApexTraders V2 Engine Testing...</i>
-    `.trim();
-
-    fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: messageText, parse_mode: 'HTML' })
+          // Dynamically color index score
+          if (score >= 75) {
+            valEl.style.color = "#22c55e"; // Extreme Greed (Green)
+          } else if (score >= 55) {
+            valEl.style.color = "#86efac"; // Greed (Light Green)
+          } else if (score >= 45) {
+            valEl.style.color = "#eab308"; // Neutral (Yellow)
+          } else if (score >= 25) {
+            valEl.style.color = "#f97316"; // Fear (Orange)
+          } else {
+            valEl.style.color = "#ef4444"; // Extreme Fear (Red)
+          }
+        }
+      }
     })
-    .catch(err => console.error("Telegram Fetch Failed:", err));
+    .catch(err => {
+      console.error("F&G Index Fetch Error:", err);
+    });
+}
+
+// Function to fetch price data, High/Low and % Change dynamically based on timeframe
+function fetchLivePrice() {
+  const activeCoin = cryptoCoins.find(coin => coin.code === selectedCoinCode);
+  if (!activeCoin) return;
+
+  const cgId = activeCoin.cgId;
+  const targetCurrency = selectedCurrency.toLowerCase();
+  const apiCurrency = targetCurrency === 'usdt' ? 'usd' : 'inr';
+
+  // Fetch F&G Index once along with the price stream
+  fetchFearAndGreedIndex();
+
+  // CoinGecko Market Chart API
+  fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=${apiCurrency}&days=1`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP Error Status: ${response.status} (Likely Rate Limited)`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data && data.prices) {
+        const pricesList = data.prices; 
+        
+        // Filter prices based on selected timeframe hours
+        const now = Date.now();
+        const cutoffTime = now - (parseInt(selectedTimeframeHours) * 60 * 60 * 1000);
+        const filteredPrices = pricesList.filter(item => item[0] >= cutoffTime).map(item => item[1]);
+
+        if (filteredPrices.length === 0) return;
+
+        // Current price
+        const currentPrice = pricesList[pricesList.length - 1][1];
+        
+        // Calculate High & Low
+        const highPrice = Math.max(...filteredPrices);
+        const lowPrice = Math.min(...filteredPrices);
+
+        // Calculate % Change
+        const initialPrice = filteredPrices[0];
+        const priceChangePct = ((currentPrice - initialPrice) / initialPrice) * 100;
+
+        const currencySymbol = selectedCurrency === "INR" ? "₹ " : "$ ";
+        
+        // Formatter Helper
+        const formatNum = (num) => {
+          if (!num) return "N/A";
+          return num < 1 
+            ? num.toFixed(6) 
+            : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        // DOM update
+        const priceElement = document.getElementById('livePriceValue');
+        const highElement = document.getElementById('highPriceValue');
+        const lowElement = document.getElementById('lowPriceValue');
+        const changeElement = document.getElementById('priceChangeLabel');
+
+        if (priceElement) priceElement.innerText = currencySymbol + formatNum(currentPrice);
+        if (highElement) highElement.innerText = currencySymbol + formatNum(highPrice);
+        if (lowElement) lowElement.innerText = currencySymbol + formatNum(lowPrice);
+
+        if (changeElement) {
+          const sign = priceChangePct >= 0 ? "+" : "";
+          changeElement.innerText = `${sign}${priceChangePct.toFixed(2)}% (${selectedTimeframeHours}h)`;
+          changeElement.style.color = priceChangePct >= 0 ? "#22c55e" : "#ef4444";
+        }
+
+        // Calculate Sentiment
+        calculateSentiment(priceChangePct);
+      }
+    })
+    .catch(error => {
+      console.error("Price fetch error:", error);
+      const priceElement = document.getElementById('livePriceValue');
+      if (priceElement) {
+        priceElement.innerText = "API Rate Limit";
+        priceElement.style.fontSize = "38px";
+      }
+    });
+}
+
+// Start auto fetching price stream
+function startLivePriceStream() {
+  if (priceIntervalId) {
+    clearInterval(priceIntervalId);
+  }
+
+  fetchLivePrice();
+  priceIntervalId = setInterval(fetchLivePrice, cooldownTime * 1000);
+}
+
+// Handler for dropdown changes
+function updateCryptoFilters() {
+  selectedCoinCode = document.getElementById('coinSelector').value;
+  selectedCurrency = document.getElementById('currencySelector').value;
+  
+  resetLoadingUI();
+  startLivePriceStream();
+}
+
+// Handler for Timeframe Dropdown
+function updateTimeframe(val) {
+  selectedTimeframeHours = val;
+  
+  const highLbl = document.getElementById('highLabel');
+  const lowLbl = document.getElementById('lowLabel');
+  if (highLbl) highLbl.innerText = `▲ ${selectedTimeframeHours}H HIGH`;
+  if (lowLbl) lowLbl.innerText = `▼ ${selectedTimeframeHours}H LOW`;
+
+  resetLoadingUI();
+  startLivePriceStream();
+}
+
+// Handler for Cooldown modification
+function updateCooldown(val) {
+  let numVal = parseInt(val);
+  if (isNaN(numVal) || numVal < 10) numVal = 10;
+  if (numVal > 300) numVal = 300;
+  
+  cooldownTime = numVal;
+  startLivePriceStream();
+}
+
+// Quick UI Reset helper
+function resetLoadingUI() {
+  const labelElement = document.getElementById('priceLabel');
+  if (labelElement) {
+    labelElement.innerText = `${selectedCoinCode} / ${selectedCurrency} LIVE PRICE`;
+  }
+  const priceElement = document.getElementById('livePriceValue');
+  const highElement = document.getElementById('highPriceValue');
+  const lowElement = document.getElementById('lowPriceValue');
+  const changeElement = document.getElementById('priceChangeLabel');
+  const sentLabelEl = document.getElementById('sentimentLabel');
+  const sentDescEl = document.getElementById('sentimentDesc');
+
+  if (priceElement) {
+    priceElement.innerText = "Loading...";
+    priceElement.style.fontSize = "52px";
+  }
+  if (highElement) highElement.innerText = "Loading...";
+  if (lowElement) lowElement.innerText = "Loading...";
+  if (changeElement) {
+    changeElement.innerText = "--%";
+    changeElement.style.color = "#94a3b8";
+  }
+  if (sentLabelEl) {
+    sentLabelEl.innerText = "--";
+    sentLabelEl.style.color = "#94a3b8";
+  }
+  if (sentDescEl) {
+    sentDescEl.innerText = "Calculating price action...";
   }
 }
-
-function deleteCryptoStrategy(id) {
-  if (confirm("Delete?")) firebase.database().ref(`trading_strategies/${id}`).remove();
-}
-
-// DOM Setup
-document.addEventListener("DOMContentLoaded", () => { setTimeout(() => { loadStrategiesFromFirebase(); }, 500); });
-if (document.readyState === "complete" || document.readyState === "interactive") { loadStrategiesFromFirebase(); }
