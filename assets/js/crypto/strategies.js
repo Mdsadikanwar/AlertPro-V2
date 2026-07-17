@@ -4,10 +4,7 @@ var editingStrategyId = null;
 
 // 1. फायरबेस से स्ट्रेटजी लाइव लोड करना
 function loadStrategiesFromFirebase() {
-  if (typeof firebase === 'undefined') {
-    console.log("❌ Firebase undefined है, लोड नहीं हो सका।");
-    return;
-  }
+  if (typeof firebase === 'undefined') return;
   
   const dbRef = firebase.database().ref('trading_strategies');
   dbRef.on('value', (snapshot) => {
@@ -21,7 +18,7 @@ function loadStrategiesFromFirebase() {
   });
 }
 
-// 2. मुख्य रेंडर फंक्शन (बग-फ्री वर्जन)
+// 2. मुख्य रेंडर फंक्शन (Auto Trading & Tester Buttons के साथ)
 function renderCryptoStrategies() {
   const root = document.getElementById('app');
   if (!root) return;
@@ -107,41 +104,70 @@ function renderCryptoStrategies() {
             <p style="margin: 0; font-size: 14px;">No scripts deployed yet. Configure the panel above to start.</p>
           </div>
         ` : cryptoStrategies.map(strat => `
-          <div style="background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid ${strat.status === 'Active' ? 'rgba(34, 197, 94, 0.4)' : '#334155'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                <h4 style="margin: 0; color: #fff; font-size: 16px;">${strat.name}</h4>
-                <span style="font-size: 11px; background: #0f172a; color: #38bdf8; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155;">
-                  ${strat.pair}
+          <div style="background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid ${strat.status === 'Active' ? 'rgba(34, 197, 94, 0.4)' : '#334155'}; display: flex; flex-direction: column; gap: 12px;">
+            
+            <!-- Top Section: Info & Status -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; width: 100%;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                  <h4 style="margin: 0; color: #fff; font-size: 16px;">${strat.name}</h4>
+                  <span style="font-size: 11px; background: #0f172a; color: #38bdf8; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155;">
+                    ${strat.pair}
+                  </span>
+                </div>
+                <div style="display: flex; gap: 15px; font-size: 13px; color: #94a3b8; flex-wrap: wrap;">
+                  <span><b>TF:</b> ${strat.timeframe}</span>
+                  <span><b>R:R:</b> ${strat.riskReward}</span>
+                  <span style="color: ${strat.autoTrading === 'ON' ? '#22c55e' : '#94a3b8'}">
+                    <b>Auto-Trade:</b> ${strat.autoTrading || 'OFF'}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Status Trigger Display -->
+              <div>
+                <span style="color: ${strat.status === 'Active' ? '#22c55e' : '#ef4444'}; font-size: 13px; font-weight: bold;">
+                  ${strat.status === 'Active' ? '🟢 RUNNING' : '🔴 PAUSED'}
                 </span>
               </div>
-              <div style="display: flex; gap: 15px; font-size: 13px; color: #94a3b8; flex-wrap: wrap;">
-                <span><b>TF:</b> ${strat.timeframe}</span>
-                <span><b>R:R:</b> ${strat.riskReward}</span>
-              </div>
             </div>
-            
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <!-- LIVE STATUS TRIGGER -->
-              <span style="color: ${strat.status === 'Active' ? '#22c55e' : '#ef4444'}; font-size: 13px; font-weight: bold; padding-right: 5px;">
-                ${strat.status === 'Active' ? '🟢 RUNNING' : '🔴 PAUSED'}
-              </span>
+
+            <!-- Horizontal Divider -->
+            <div style="border-top: 1px solid #334155; width: 100%; margin: 2px 0;"></div>
+
+            <!-- Bottom Section: Control Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
               
-              <!-- START/PAUSE BUTTON -->
-              <button onclick="toggleCryptoStrategy('${strat.id}')" style="background: ${strat.status === 'Active' ? '#475569' : '#22c55e'}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; min-width: 65px;">
-                ${strat.status === 'Active' ? 'Pause' : 'Start'}
-              </button>
+              <!-- Left: Tester & Auto Trade Toggles -->
+              <div style="display: flex; gap: 8px;">
+                <!-- ⚡ STRATEGY TESTER BUTTON -->
+                <button onclick="triggerTestSignal('${strat.id}')" style="background: #eab308; color: #0f172a; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                  ⚡ Test Signal
+                </button>
 
-              <!-- EDIT BUTTON -->
-              <button onclick="startEditMode('${strat.id}')" style="background: #3b82f6; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                ✏️ Edit
-              </button>
+                <!-- AUTO TRADING TOGGLE -->
+                <button onclick="toggleAutoTrading('${strat.id}')" style="background: ${strat.autoTrading === 'ON' ? '#15803d' : '#475569'}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                  Auto Trade: ${strat.autoTrading === 'ON' ? 'ON' : 'OFF'}
+                </button>
+              </div>
 
-              <!-- DELETE BUTTON -->
-              <button onclick="deleteCryptoStrategy('${strat.id}')" style="background: transparent; color: #64748b; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                🗑️
-              </button>
+              <!-- Right: Core Script Actions -->
+              <div style="display: flex; gap: 6px;">
+                <button onclick="toggleCryptoStrategy('${strat.id}')" style="background: ${strat.status === 'Active' ? '#475569' : '#22c55e'}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; min-width: 60px;">
+                  ${strat.status === 'Active' ? 'Pause' : 'Start'}
+                </button>
+
+                <button onclick="startEditMode('${strat.id}')" style="background: #3b82f6; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                  ✏️ Edit
+                </button>
+
+                <button onclick="deleteCryptoStrategy('${strat.id}')" style="background: transparent; color: #64748b; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                  🗑️
+                </button>
+              </div>
+
             </div>
+
           </div>
         `).join('')}
       </div>
@@ -170,7 +196,6 @@ function saveStrategyData() {
   }
 
   if (editingStrategyId) {
-    // UPDATE LOGIC
     firebase.database().ref(`trading_strategies/${editingStrategyId}`).update({
       name: type,
       pair: pair,
@@ -179,26 +204,25 @@ function saveStrategyData() {
     }).then(() => {
       if (typeof addSystemLog === 'function') addSystemLog("SUCCESS", `Updated config for ${pair}`);
       cancelEditMode();
-    }).catch(err => alert("Error updating: " + err.message));
+    });
   } else {
-    // CREATE LOGIC
     const payload = {
       name: type,
       pair: pair,
       timeframe: timeframe,
       riskReward: riskReward || "1:2",
-      status: "Inactive"
+      status: "Inactive",
+      autoTrading: "OFF" // शुरुआत में ऑफ रहेगा
     };
 
     firebase.database().ref('trading_strategies').push(payload).then(() => {
       if (typeof addSystemLog === 'function') addSystemLog("SUCCESS", `New ${type} deployed for ${pair}`);
-      // रीसेट सिर्फ पेयर को करेंगे ताकि लूप ब्रेक न हो
       document.getElementById('stratPair').value = "BTCUSDT";
-    }).catch(err => alert("Error saving: " + err.message));
+    });
   }
 }
 
-// 4. एडिट मोड में फॉर्म को डेटा से भरना
+// 4. एडिट मोड
 function startEditMode(id) {
   const strat = cryptoStrategies.find(s => s.id === id);
   if (!strat) return;
@@ -206,7 +230,6 @@ function startEditMode(id) {
   editingStrategyId = id;
   renderCryptoStrategies(); 
 
-  // फॉर्म एलिमेंट्स मिलने के बाद वैल्यू सेट करना
   setTimeout(() => {
     if(document.getElementById('stratType')) document.getElementById('stratType').value = strat.name;
     if(document.getElementById('stratPair')) document.getElementById('stratPair').value = strat.pair;
@@ -218,7 +241,6 @@ function startEditMode(id) {
   }, 50);
 }
 
-// एडिट मोड बंद करना
 function cancelEditMode() {
   editingStrategyId = null;
   renderCryptoStrategies();
@@ -230,33 +252,59 @@ function toggleCryptoStrategy(id) {
   if (!strat) return;
 
   const newStatus = strat.status === 'Active' ? 'Inactive' : 'Active';
-  
+  firebase.database().ref(`trading_strategies/${id}`).update({ status: newStatus });
+}
+
+// 🔥 [नया फीचर]: ऑटो ट्रेडिंग ऑन/ऑफ स्विच
+function toggleAutoTrading(id) {
+  const strat = cryptoStrategies.find(s => s.id === id);
+  if (!strat) return;
+
+  const currentAuto = strat.autoTrading || 'OFF';
+  const newAuto = currentAuto === 'ON' ? 'OFF' : 'ON';
+
   firebase.database().ref(`trading_strategies/${id}`).update({
-    status: newStatus
+    autoTrading: newAuto
   }).then(() => {
-    if (typeof addSystemLog === 'function') {
-      addSystemLog(newStatus === 'Active' ? 'SUCCESS' : 'SYSTEM', `Strategy ${strat.name} is now ${newStatus.toUpperCase()}`);
-    }
+    alert(`Auto Trading turned ${newAuto} for ${strat.pair}!`);
   });
+}
+
+// ⚡ [नया फीचर]: 'स्ट्रैटेजी टेस्टर' फेक सिग्नल ट्रिगर करने के लिए
+function triggerTestSignal(id) {
+  const strat = cryptoStrategies.find(s => s.id === id);
+  if (!strat) return;
+
+  // नकली क्रॉसओवर सिग्नल जनरेट करना
+  const testSignal = {
+    strategyId: id,
+    strategyName: strat.name,
+    pair: strat.pair,
+    timeframe: strat.timeframe,
+    signalType: Math.random() > 0.5 ? "BUY_CROSSOVER" : "SELL_CROSSOVER",
+    price: (Math.random() * 100 + 60000).toFixed(2), // रैंडम डमी प्राइस
+    timestamp: new Date().toISOString(),
+    isTest: true
+  };
+
+  // इसे फायरबेस के एक अलग नोड 'live_signals' में पुश करेंगे ताकि बोट इसे रीड कर सके
+  firebase.database().ref('live_signals').push(testSignal).then(() => {
+    alert(`⚡ Test Crossover Signal Sent for ${strat.pair}!\nType: ${testSignal.signalType}\nPrice: $${testSignal.price}\n\nअब चेक करो टेलीग्राम अलर्ट और बोट लॉग्स!`);
+  }).catch(err => alert("Tester Error: " + err.message));
 }
 
 // 6. डिलीट फंक्शन
 function deleteCryptoStrategy(id) {
   if (confirm("Are you sure you want to delete this deployment?")) {
-    firebase.database().ref(`trading_strategies/${id}`).remove().then(() => {
-      if (typeof addSystemLog === 'function') addSystemLog("SYSTEM", "Strategy deleted from Firebase.");
-    });
+    firebase.database().ref(`trading_strategies/${id}`).remove();
   }
 }
 
-// ⏳ DOM Safety Trigger - सबसे महत्वपूर्ण फिक्स
+// DOM Safety Triggers
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    loadStrategiesFromFirebase();
-  }, 500);
+  setTimeout(() => { loadStrategiesFromFirebase(); }, 500);
 });
 
-// Fallback Trigger (अगर DOM पहले से लोड हो चुका हो)
 if (document.readyState === "complete" || document.readyState === "interactive") {
   loadStrategiesFromFirebase();
 }
