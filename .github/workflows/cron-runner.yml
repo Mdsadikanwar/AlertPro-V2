@@ -18,14 +18,12 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v3
       with:
-        node-version: '18'
+        node-version: '18'  # यहाँ हमने वर्जन सही कर दिया है
 
     - name: Install dependencies
       run: |
-        # यदि आपके पास package.json है तो डिपेंडेंसी इनस्टॉल करेगा, नहीं तो सीधे आगे बढ़ेगा
-        if [ -f package.json ]; then npm install; else npm install node-fetch; fi
+        if [ -f package.json ]; then npm install; fi
 
     - name: Trigger Bot Strategy Check
       run: |
-        # यहाँ हम एक छोटी स्क्रिप्ट चलाएंगे जो सीधे आपके फायरबेस और मार्केट डेटा को चेक करेगी
         node assets/js/cron-trigger.js
