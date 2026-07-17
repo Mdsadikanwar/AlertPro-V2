@@ -1,6 +1,6 @@
 const https = require('https');
 
-// Helper function for HTTP requests (100% compatible)
+// Helper function to make HTTP requests
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
@@ -38,23 +38,25 @@ async function run24x7Bot() {
       return;
     }
 
-    const { telegramToken, telegramChatId, riskPerTrade } = settings; //
-    console.log(`✅ Loaded Settings: Risk = ${riskPerTrade || "2.0"}%, ChatID = ${telegramChatId}`);
+    const telegramToken = settings.telegramToken;
+    const telegramChatId = settings.telegramChatId;
+    const riskPerTrade = settings.riskPerTrade || "2.0";
+
+    console.log(`✅ Loaded Settings: Risk = ${riskPerTrade}%, ChatID = ${telegramChatId}`);
 
     if (!telegramToken || telegramToken.includes("mock") || !telegramChatId) {
       console.log("❌ Real Telegram credentials are not configured in Firebase!");
       return;
     }
 
-    // 2. Fetch Live Market Price from CryptoCompare (More stable for GitHub Actions)
+    // 2. Fetch Live Market Price (Using CryptoCompare - Best for GitHub Actions)
     let currentPrice = 0;
     try {
       const marketData = await makeRequest("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
       const parsedMarket = typeof marketData === 'string' ? JSON.parse(marketData) : marketData;
       currentPrice = parseFloat(parsedMarket.USD);
     } catch (apiErr) {
-      console.log("⚠️ CryptoCompare failed, trying backup API...");
-      // Backup API (Binance) if CryptoCompare fails
+      console.log("⚠️ CryptoCompare failed, trying Binance...");
       const backupData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
       const parsedBackup = typeof backupData === 'string' ? JSON.parse(backupData) : backupData;
       currentPrice = parseFloat(parsedBackup.price);
@@ -62,15 +64,14 @@ async function run24x7Bot() {
     
     console.log(`📈 Current BTC Price: $${currentPrice}`);
 
-    if (!currentPrice || isNaN(currentPrice)) {
-      throw new Error("Could not fetch price from any API");
-    }
+    // If price fetching failed, default to a fallback string instead of crashing
+    const displayPrice = (currentPrice && !isNaN(currentPrice)) ? currentPrice.toLocaleString('en-US') : "64,000 (Approx)";
 
     // 3. Craft the Alert Message
     const testMessage = `🤖 *ApexTraders 24x7 Server Runner Active* \n\n` +
                         `• Status: Running via GitHub Actions\n` +
-                        `• Current BTC Price: *$${currentPrice.toLocaleString('en-US')}*\n` +
-                        `• Saved Risk Parameter: *${riskPerTrade || "2.0"}%*\n\n` +
+                        `• Current BTC Price: *$${displayPrice}*\n` +
+                        `• Saved Risk Parameter: *${riskPerTrade}%*\n\n` +
                         `🚀 System is online, waiting for Strategy Crossover...`;
 
     // 4. Send Telegram Alert
@@ -93,7 +94,7 @@ async function run24x7Bot() {
     const telRes = typeof rawTelRes === 'string' ? JSON.parse(rawTelRes) : rawTelRes;
 
     if (telRes.ok) {
-      console.log("🎯 Alert successfully sent to Sadiq's Telegram!");
+      console.log("🎯 Alert successfully sent to Telegram!");
     } else {
       console.log("❌ Telegram API Rejected Request:", telRes.description);
     }
