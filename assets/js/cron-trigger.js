@@ -1,6 +1,6 @@
 const https = require('https');
 
-// Helper function to make HTTP requests (100% compatible with all Node versions)
+// Helper function for HTTP requests (100% compatible)
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
@@ -8,7 +8,6 @@ function makeRequest(url, options = {}) {
       res.on('data', (chunk) => data += chunk);
       res.on('end', () => {
         try {
-          // अगर रिस्पॉन्स JSON है तो पार्स करें, नहीं तो स्ट्रिंग ही रहने दें
           resolve(JSON.parse(data));
         } catch (e) {
           resolve(data);
@@ -39,7 +38,7 @@ async function run24x7Bot() {
       return;
     }
 
-    const { telegramToken, telegramChatId, riskPerTrade } = settings;
+    const { telegramToken, telegramChatId, riskPerTrade } = settings; //
     console.log(`✅ Loaded Settings: Risk = ${riskPerTrade || "2.0"}%, ChatID = ${telegramChatId}`);
 
     if (!telegramToken || telegramToken.includes("mock") || !telegramChatId) {
@@ -47,12 +46,25 @@ async function run24x7Bot() {
       return;
     }
 
-    // 2. Fetch Live Market Price from Binance API
-    const rawMarketData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
-    const marketData = typeof rawMarketData === 'string' ? JSON.parse(rawMarketData) : rawMarketData;
-    const currentPrice = parseFloat(marketData.price);
+    // 2. Fetch Live Market Price from CryptoCompare (More stable for GitHub Actions)
+    let currentPrice = 0;
+    try {
+      const marketData = await makeRequest("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
+      const parsedMarket = typeof marketData === 'string' ? JSON.parse(marketData) : marketData;
+      currentPrice = parseFloat(parsedMarket.USD);
+    } catch (apiErr) {
+      console.log("⚠️ CryptoCompare failed, trying backup API...");
+      // Backup API (Binance) if CryptoCompare fails
+      const backupData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+      const parsedBackup = typeof backupData === 'string' ? JSON.parse(backupData) : backupData;
+      currentPrice = parseFloat(parsedBackup.price);
+    }
     
     console.log(`📈 Current BTC Price: $${currentPrice}`);
+
+    if (!currentPrice || isNaN(currentPrice)) {
+      throw new Error("Could not fetch price from any API");
+    }
 
     // 3. Craft the Alert Message
     const testMessage = `🤖 *ApexTraders 24x7 Server Runner Active* \n\n` +
