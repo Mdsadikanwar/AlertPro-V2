@@ -1,106 +1,127 @@
 const https = require('https');
+const crypto = require('crypto'); // एपीआई सिग्नेचर के लिए
 
-// Helper function to make HTTP requests
+// Helper function for HTTP requests
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
       res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          resolve(data);
-        }
+        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }
       });
     });
     req.on('error', (err) => reject(err));
-    if (options.body) {
-      req.write(options.body);
-    }
+    if (options.body) { req.write(options.body); }
     req.end();
   });
 }
 
-// Sadiq's Firebase Config to fetch settings
-const FIREBASE_DB_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/app_settings.json";
+// Binance Testnet पर ऑर्डर प्लेस करने का फंक्शन (Paper Trading)
+async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
+  if (!apiKey || apiKey.includes("mock") || !apiSecret) {
+    console.log(`🎰 [MOCK TRADE] Simulating ${side} order for ${qty} ${symbol} on Testnet...`);
+    return { mock: true, orderId: "MOCK_" + Date.now(), status: "FILLED" };
+  }
 
+  const baseUrl = "https://testnet.binance.vision"; // बिनेंस पेपर ट्रेडिंग यूआरएल
+  const path = "/api/v3/order";
+  const timestamp = Date.now();
+  
+  let queryString = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${qty}&timestamp=${timestamp}`;
+  const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+  queryString += `&signature=${signature}`;
+
+  const url = `${baseUrl}${path}?${queryString}`;
+  
+  return await makeRequest(url, {
+    method: 'POST',
+    headers: { 'X-MBX-APIKEY': apiKey }
+  });
+}
+
+// मुख्य फ़ंक्शन जो गिटहब पर हर 5 मिनट में चलेगा
 async function run24x7Bot() {
-  console.log("🚀 Starting 24x7 GitHub Runner Check...");
+  console.log("🚀 Starting 24x7 Strategy & Paper Trading Runner...");
+  const FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/.json";
 
   try {
-    // 1. Fetch settings from Firebase
-    const rawSettings = await makeRequest(FIREBASE_DB_URL);
-    const settings = typeof rawSettings === 'string' ? JSON.parse(rawSettings) : rawSettings;
-
-    if (!settings) {
-      console.log("❌ No settings found in Firebase.");
+    // 1. फायरबेस से पूरा डेटा (सेटिंग्स + स्ट्रेटजी) एक साथ खींचना
+    const dbData = await makeRequest(FIREBASE_URL);
+    if (!dbData || !dbData.app_settings) {
+      console.log("❌ Settings not found in Firebase.");
       return;
     }
 
-    const telegramToken = settings.telegramToken;
-    const telegramChatId = settings.telegramChatId;
-    const riskPerTrade = settings.riskPerTrade || "2.0";
+    const { telegramToken, telegramChatId, riskPerTrade, binanceApiKey, binanceApiSecret } = dbData.app_settings;
+    const strategies = dbData.trading_strategies || {};
 
-    console.log(`✅ Loaded Settings: Risk = ${riskPerTrade}%, ChatID = ${telegramChatId}`);
-
-    if (!telegramToken || telegramToken.includes("mock") || !telegramChatId) {
-      console.log("❌ Real Telegram credentials are not configured in Firebase!");
+    if (!telegramToken || !telegramChatId) {
+      console.log("❌ Telegram credentials missing!");
       return;
     }
 
-    // 2. Fetch Live Market Price (Using CryptoCompare - Best for GitHub Actions)
-    let currentPrice = 0;
-    try {
-      const marketData = await makeRequest("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
-      const parsedMarket = typeof marketData === 'string' ? JSON.parse(marketData) : marketData;
-      currentPrice = parseFloat(parsedMarket.USD);
-    } catch (apiErr) {
-      console.log("⚠️ CryptoCompare failed, trying Binance...");
-      const backupData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
-      const parsedBackup = typeof backupData === 'string' ? JSON.parse(backupData) : backupData;
-      currentPrice = parseFloat(parsedBackup.price);
+    // 2. सिर्फ एक्टिव स्ट्रेटजी को ढूंढना
+    const activeStrategies = Object.keys(strategies)
+      .map(key => strategies[key])
+      .filter(strat => strat.status === "Active");
+
+    if (activeStrategies.length === 0) {
+      console.log("💤 No active strategies found on Cloud. Standing by...");
+      return;
     }
-    
-    console.log(`📈 Current BTC Price: $${currentPrice}`);
 
-    // If price fetching failed, default to a fallback string instead of crashing
-    const displayPrice = (currentPrice && !isNaN(currentPrice)) ? currentPrice.toLocaleString('en-US') : "64,000 (Approx)";
+    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर और प्राइस चेक करना
+    for (const strat of activeStrategies) {
+      console.log(`🔍 Checking Active Strategy: ${strat.name} for ${strat.pair}`);
 
-    // 3. Craft the Alert Message
-    const testMessage = `🤖 *ApexTraders 24x7 Server Runner Active* \n\n` +
-                        `• Status: Running via GitHub Actions\n` +
-                        `• Current BTC Price: *$${displayPrice}*\n` +
-                        `• Saved Risk Parameter: *${riskPerTrade}%*\n\n` +
-                        `🚀 System is online, waiting for Strategy Crossover...`;
+      // लाइव प्राइस लाना
+      const marketData = await makeRequest(`https://min-api.cryptocompare.com/data/price?fsym=${strat.pair.replace('USDT','')}&tsyms=USD`);
+      const currentPrice = parseFloat(marketData.USD);
 
-    // 4. Send Telegram Alert
-    const telegramUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-    const payload = JSON.stringify({
-      chat_id: telegramChatId,
-      text: testMessage,
-      parse_mode: "Markdown"
-    });
+      if (!currentPrice || isNaN(currentPrice)) {
+        console.log(`⚠️ Price fetch failed for ${strat.pair}, skipping...`);
+        continue;
+      }
 
-    const rawTelRes = await makeRequest(telegramUrl, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      },
-      body: payload
-    });
+      /* 
+         📉 [क्रॉसओवर लॉजिक] 
+         यहाँ हम आपके 'strategy.js' का असली इंडिकेटर मैथ डालेंगे।
+         अभी टेस्टिंग के लिए हम एक 50/50 चांस (Simulated Crossover) बना रहे हैं,
+         ताकि आपको तुरंत पता चल सके कि बाय/सेल एक्शन ट्रिगर हो रहा है या नहीं।
+      */
+      const mockSignal = Math.random() > 0.5 ? "BUY" : "SELL"; 
+      console.log(`🎯 Signal Detected for ${strat.pair}: ${mockSignal} @ $${currentPrice}`);
 
-    const telRes = typeof rawTelRes === 'string' ? JSON.parse(rawTelRes) : rawTelRes;
+      // 4. रिस्क के हिसाब से क्वांटिटी कैलकुलेट करना (उदाहरण के लिए 0.005 BTC)
+      const tradeQty = 0.005; 
 
-    if (telRes.ok) {
-      console.log("🎯 Alert successfully sent to Telegram!");
-    } else {
-      console.log("❌ Telegram API Rejected Request:", telRes.description);
+      // 5. सीधे पेपर ट्रेडिंग एक्सचेंज पर ऑर्डर मारना
+      const orderResult = await placeTestnetOrder(strat.pair, mockSignal, tradeQty, binanceApiKey, binanceApiSecret);
+      
+      // 6. टेलीग्राम पर प्रो-लेवल अलर्ट भेजना
+      const emoji = mockSignal === "BUY" ? "🟢" : "🔴";
+      const alertMessage = `${emoji} *STRATEGY CROSSOVER DETECTED*\n\n` +
+                          `• *Strategy:* ${strat.name}\n` +
+                          `• *Asset Pair:* ${strat.pair}\n` +
+                          `• *Action:* ${mockSignal} (Paper Trade)\n` +
+                          `• *Execution Price:* $${currentPrice.toLocaleString('en-US')}\n` +
+                          `• *Quantity:* ${tradeQty}\n` +
+                          `• *Order Status:* ${orderResult.status || "EXECUTED"}\n\n` +
+                          `🤖 _ApexTraders Bot running 24x7 via GitHub Actions_`;
+
+      const telegramUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
+      await makeRequest(telegramUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: telegramChatId, text: alertMessage, parse_mode: "Markdown" })
+      });
+
+      console.log(`🎯 Alert and Trade executed for ${strat.pair}!`);
     }
 
   } catch (error) {
-    console.error("❌ Error in background execution:", error.message);
+    console.error("❌ Error in Engine execution:", error.message);
   }
 }
 
