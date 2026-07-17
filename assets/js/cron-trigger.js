@@ -1,4 +1,26 @@
-const fetch = require('node-fetch');
+const https = require('https');
+
+// Helper function to make HTTP requests without any external library (100% compatible)
+function makeRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          resolve(data);
+        }
+      });
+    });
+    req.on('error', (err) => reject(err));
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
 
 // Sadiq's Firebase Config to fetch settings
 const FIREBASE_DB_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/app_settings.json";
@@ -7,51 +29,56 @@ async function run24x7Bot() {
   console.log("🚀 Starting 24x7 GitHub Runner Check...");
 
   try {
-    // 1. Firebase से आपकी लाइव सेटिंग्स डाउनलोड करें
-    const response = await fetch(FIREBASE_DB_URL);
-    const settings = await response.json();
+    // 1. Fetch settings from Firebase
+    const settings = await makeRequest(FIREBASE_DB_URL);
 
     if (!settings) {
-      console.log("❌ No settings found in Firebase. Please save settings in your web app first!");
+      console.log("❌ No settings found in Firebase.");
       return;
     }
 
     const { telegramToken, telegramChatId, riskPerTrade } = settings;
-    console.log(`✅ Loaded Settings: Risk = ${riskPerTrade}%, ChatID = ${telegramChatId}`);
+    console.log(`✅ Loaded Settings: Risk = ${riskPerTrade || "2.0"}%, ChatID = ${telegramChatId}`);
 
-    // 2. लाइव मार्केट प्राइस फेच करें (उदा. BTCUSDT Binance API से)
-    const marketRes = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
-    const marketData = await marketRes.json();
+    if (!telegramToken || telegramToken.includes("mock") || !telegramChatId) {
+      console.log("❌ Real Telegram credentials are not configured in Firebase!");
+      return;
+    }
+
+    // 2. Fetch Live Market Price from Binance API
+    const marketData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
     const currentPrice = parseFloat(marketData.price);
     
     console.log(`📈 Current BTC Price: $${currentPrice}`);
 
-    // 3. यहाँ हम कल सिंपल स्ट्रेटजी (जैसे क्रॉसओवर) का लॉजिक फिट करेंगे।
-    // अभी टेस्टिंग के लिए हम सीधे एक लाइव रन अलर्ट आपके टेलीग्राम पर भेज रहे हैं:
-    
+    // 3. Craft the Alert Message
     const testMessage = `🤖 *ApexTraders 24x7 Server Runner Active* \n\n` +
                         `• Status: Running via GitHub Actions\n` +
                         `• Current BTC Price: *$${currentPrice}*\n` +
-                        `• Saved Risk Parameter: *${riskPerTrade}%*\n\n` +
+                        `• Saved Risk Parameter: *${riskPerTrade || "2.0"}%*\n\n` +
                         `🚀 System is online, waiting for Strategy Crossover...`;
 
-    // 4. टेलीग्राम पर अलर्ट भेजें
+    // 4. Send Telegram Alert
     const telegramUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-    const telRes = await fetch(telegramUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: telegramChatId,
-        text: testMessage,
-        parse_mode: "Markdown"
-      })
+    const payload = JSON.stringify({
+      chat_id: telegramChatId,
+      text: testMessage,
+      parse_mode: "Markdown"
     });
 
-    const telData = await telRes.json();
-    if (telData.ok) {
+    const telRes = await makeRequest(telegramUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      },
+      body: payload
+    });
+
+    if (telRes.ok) {
       console.log("🎯 Alert successfully sent to Sadiq's Telegram!");
     } else {
-      console.log("❌ Telegram Alert Failed:", telData.description);
+      console.log("❌ Telegram API Rejected Request:", telRes.description);
     }
 
   } catch (error) {
