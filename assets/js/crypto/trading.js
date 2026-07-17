@@ -8,6 +8,10 @@ if (typeof activePositions === 'undefined') {
   var activePositions = []; 
 }
 
+// 🔐 आपकी टेलीग्राम सेटिंग्स (ऑटो-कॉन्फिगर कर दी गई हैं)
+const TELEGRAM_BOT_TOKEN = "8943911868:AAFO8lOBAfdjdR0muq5bFCWeW-jx1Gz6BQk"; 
+const TELEGRAM_CHAT_ID = "1797453650"; 
+
 // Auto Trading States
 let currentTradingMode = "MANUAL"; // MANUAL or AUTO
 let isAutoTradingActive = false;
@@ -34,6 +38,33 @@ let selectedTradingCoin = "btc";
 let selectedSide = "BUY";
 let livePrices = { btc: 65000, eth: 3500, sol: 150 }; 
 let tradingIntervalId = null;
+
+// फंक्शन जो टेलीग्राम पर अलर्ट भेजेगा
+function sendTelegramTradeAlert(actionText, coinCode, qty, price) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+  const messageText = `
+🤖 <b>[APEX BOT TRADE EXECUTED]</b> 🤖
+────────────────
+<b>Action:</b> ${actionText === 'BUY' ? '🚀 AUTO BUY' : '💥 AUTO SELL'}
+<b>Asset Pair:</b> ${coinCode.toUpperCase()}/USDT
+<b>Quantity:</b> ${qty.toFixed(4)} ${coinCode.toUpperCase()}
+<b>Execution Price:</b> $${price.toLocaleString()}
+────────────────
+<b>💰 Updated Wallet Summary:</b>
+💵 Available USDT: $${cryptoBalance.usdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+🪙 ${coinCode.toUpperCase()} Bag: ${cryptoBalance[coinCode].toFixed(4)} ${coinCode.toUpperCase()}
+────────────────
+<i>ApexTraders V2 Automated Execution...</i>
+  `.trim();
+
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: messageText, parse_mode: 'HTML' })
+  })
+  .catch(err => console.error("Telegram Alert Failed:", err));
+}
 
 // Main Tab Render
 function renderCryptoTrading() {
@@ -210,13 +241,12 @@ function renderCryptoTrading() {
     </div>
   `;
 
-  // [LOG] Trading View Loaded
-  addSystemLog("SYSTEM", `Trading panel loaded in ${currentTradingMode} mode.`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Trading panel loaded in ${currentTradingMode} mode.`);
+  }
 
-  // Start pricing stream without rendering TV chart
   startTradingPricesStream();
   
-  // Scroll logs to bottom if open
   const logTerm = document.getElementById('autoLogsTerminal');
   if (logTerm) logTerm.scrollTop = logTerm.scrollHeight;
 }
@@ -224,8 +254,9 @@ function renderCryptoTrading() {
 // Switch between Manual and Auto layout
 function switchTradingMode(mode) {
   currentTradingMode = mode;
-  // [LOG] Mode Switch
-  addSystemLog("SYSTEM", `Trading interface switched to ${mode} mode.`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Trading interface switched to ${mode} mode.`);
+  }
   renderCryptoTrading();
 }
 
@@ -241,21 +272,21 @@ function startAutoTradingBot() {
 
   if (cryptoBalance.usdt < autoTradeUSDT) {
     alert("❌ Error: Insufficient USDT balance to start automated bot!");
-    // [LOG] Bot Start Error
-    addSystemLog("ERROR", `Failed to start auto-bot: Insufficient USDT ($${cryptoBalance.usdt} available, $${autoTradeUSDT} required).`);
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("ERROR", `Failed to start auto-bot: Insufficient USDT ($${cryptoBalance.usdt} available, $${autoTradeUSDT} required).`);
+    }
     return;
   }
 
   isAutoTradingActive = true;
-  addBotLog(`🟢 Bot Started with Strategy: ${selectedStrategy.toUpperCase()}`);
+  autoTradingLogs = [`[${new Date().toLocaleTimeString()}] 🟢 Bot Started with Strategy: ${selectedStrategy.toUpperCase()}`];
   addBotLog(`⚙️ Allocated per trade: $${autoTradeUSDT} USDT | Scan rate: ${autoIntervalSeconds}s`);
 
-  // [LOG] Master Bot Started
-  addSystemLog("SYSTEM", `AUTOMATED BOT ACTIVATED: Strategy [${selectedStrategy.toUpperCase()}], Size [${autoTradeUSDT} USDT], Loop [${autoIntervalSeconds}s]`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `AUTOMATED BOT ACTIVATED: Strategy [${selectedStrategy.toUpperCase()}], Size [${autoTradeUSDT} USDT], Loop [${autoIntervalSeconds}s]`);
+  }
 
-  // Trigger continuous auto execution
   runAutoTradingBotEngine();
-  
   renderCryptoTrading();
 }
 
@@ -268,8 +299,9 @@ function stopAutoTradingBot() {
   }
   addBotLog(`🔴 Bot Stopped. Automatic scanner deactivated.`);
   
-  // [LOG] Master Bot Stopped
-  addSystemLog("SYSTEM", "AUTOMATED BOT DEACTIVATED manually by user.");
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", "AUTOMATED BOT DEACTIVATED manually by user.");
+  }
   renderCryptoTrading();
 }
 
@@ -277,26 +309,21 @@ function stopAutoTradingBot() {
 function runAutoTradingBotEngine() {
   if (!isAutoTradingActive) return;
 
-  // Select a random coin to simulate market analysis
   const randomCoinObj = tradingCoins[Math.floor(Math.random() * tradingCoins.length)];
   const coin = randomCoinObj.code;
   const currentPrice = livePrices[coin] || 10;
   
   addBotLog(`🔍 Checking ${coin.toUpperCase()} market indicators...`);
 
-  // Simulate strategy calculations
   setTimeout(() => {
     if (!isAutoTradingActive) return;
 
-    // Simulated indicators
-    const rsiValue = Math.floor(Math.random() * 60) + 20; // 20 - 80 range
+    const rsiValue = Math.floor(Math.random() * 60) + 20; 
     const isOverbought = rsiValue > 70;
     const isOversold = rsiValue < 30;
     
-    // EMA Cross simulation
     const crossoverAction = Math.random() > 0.5 ? 'BUY_CROSS' : 'SELL_CROSS';
-
-    let tradeAction = null; // 'BUY', 'SELL', or null
+    let tradeAction = null; 
 
     if (selectedStrategy === "rsi") {
       addBotLog(`📊 [RSI Strategy] Current RSI for ${coin.toUpperCase()} is ${rsiValue}`);
@@ -319,7 +346,6 @@ function runAutoTradingBotEngine() {
       addBotLog(`⏳ [Hold] No strong triggers. Continuing to monitor...`);
     }
 
-    // Schedule next run
     autoTradingTimer = setTimeout(runAutoTradingBotEngine, autoIntervalSeconds * 1000);
   }, 1500);
 }
@@ -342,17 +368,22 @@ function executeAutoBotTrade(coin, side, price) {
       });
       addBotLog(`✅ [AUTO BUY SUCCESS] Bought ${qty.toFixed(4)} ${coin.toUpperCase()} at $${price.toLocaleString()}`);
       
-      // [LOG] Master Auto Buy Success
-      addSystemLog("SUCCESS", `[AUTO BOT] Executed BUY order: ${qty.toFixed(4)} ${coin.toUpperCase()} @ $${price.toLocaleString()}`);
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("SUCCESS", `[AUTO BOT] Executed BUY order: ${qty.toFixed(4)} ${coin.toUpperCase()} @ $${price.toLocaleString()}`);
+      }
+
+      // 📡 टेलीग्राम पर लाइव खरीदें का मैसेज भेजें
+      sendTelegramTradeAlert('BUY', coin, qty, price);
+
     } else {
       addBotLog(`❌ [ERR] Insufficient funds for AUTO BUY.`);
-      // [LOG] Master Auto Buy Insufficient Funds
-      addSystemLog("ERROR", `[AUTO BOT] Execution failed: Insufficient USDT balance to BUY ${coin.toUpperCase()}.`);
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("ERROR", `[AUTO BOT] Execution failed: Insufficient USDT balance to BUY ${coin.toUpperCase()}.`);
+      }
     }
-  } else { // SELL
+  } else { 
     const currentHolding = cryptoBalance[coin] || 0;
     if (currentHolding > 0) {
-      // Auto sell 50% of the bag
       const sellQty = currentHolding * 0.5;
       const creditVal = sellQty * price;
       cryptoBalance[coin] -= sellQty;
@@ -368,14 +399,18 @@ function executeAutoBotTrade(coin, side, price) {
       });
       addBotLog(`🔥 [AUTO SELL SUCCESS] Sold ${sellQty.toFixed(4)} ${coin.toUpperCase()} at $${price.toLocaleString()}`);
       
-      // [LOG] Master Auto Sell Success
-      addSystemLog("SUCCESS", `[AUTO BOT] Executed SELL order: ${sellQty.toFixed(4)} ${coin.toUpperCase()} @ $${price.toLocaleString()}`);
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("SUCCESS", `[AUTO BOT] Executed SELL order: ${sellQty.toFixed(4)} ${coin.toUpperCase()} @ $${price.toLocaleString()}`);
+      }
+
+      // 📡 टेलीग्राम पर लाइव बेचें का मैसेज भेजें
+      sendTelegramTradeAlert('SELL', coin, sellQty, price);
+
     } else {
       addBotLog(`⚠️ [Skip] Auto trigger generated SELL signal for ${coin.toUpperCase()} but we have 0 holdings.`);
     }
   }
   
-  // Refresh UI dynamically without breaking state
   const table = document.getElementById('positionsTableBody');
   if (table) updatePositionsTable();
   renderCryptoTrading();
@@ -385,7 +420,7 @@ function executeAutoBotTrade(coin, side, price) {
 function addBotLog(msg) {
   const time = new Date().toLocaleTimeString();
   autoTradingLogs.push(`[${time}] ${msg}`);
-  if (autoTradingLogs.length > 30) autoTradingLogs.shift(); // limit logs
+  if (autoTradingLogs.length > 30) autoTradingLogs.shift(); 
   
   const logTerm = document.getElementById('autoLogsTerminal');
   if (logTerm) {
@@ -456,8 +491,9 @@ function setOrderSide(side) {
       sellBtn.style.opacity = '1';
     }
   }
-  // [LOG] Side Change
-  addSystemLog("SYSTEM", `Manual order side set to ${side}`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Manual order side set to ${side}`);
+  }
   calculateTotalEstimate();
 }
 
@@ -470,8 +506,9 @@ function changeTradingCoin(val) {
   const amountInput = document.getElementById('tradeAmount');
   if (amountInput) amountInput.value = "";
   
-  // [LOG] Asset Change
-  addSystemLog("SYSTEM", `Manual trade asset target changed to ${val.toUpperCase()}/USDT`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Manual trade asset target changed to ${val.toUpperCase()}/USDT`);
+  }
   calculateTotalEstimate();
 }
 
@@ -489,8 +526,9 @@ function fillMaxAmount() {
     amountInput.value = currentHoldings.toFixed(5);
   }
   
-  // [LOG] Max Autofill Triggered
-  addSystemLog("SYSTEM", `Triggered Max Balance fill for ${selectedSide} ${selectedTradingCoin.toUpperCase()}`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SYSTEM", `Triggered Max Balance fill for ${selectedSide} ${selectedTradingCoin.toUpperCase()}`);
+  }
   calculateTotalEstimate();
 }
 
@@ -531,8 +569,9 @@ function executeCryptoOrder() {
   if (selectedSide === 'BUY') {
     if (cryptoBalance.usdt < totalCost) {
       alert(`⚠️ Insufficient USDT!`);
-      // [LOG] Manual Order Error
-      addSystemLog("ERROR", `Manual Order Failed: Insufficient USDT to execution BUY ${amount} ${coin.toUpperCase()}`);
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("ERROR", `Manual Order Failed: Insufficient USDT to execution BUY ${amount} ${coin.toUpperCase()}`);
+      }
       return;
     }
     cryptoBalance.usdt -= totalCost;
@@ -540,8 +579,9 @@ function executeCryptoOrder() {
   } else {
     if ((cryptoBalance[coin] || 0) < amount) {
       alert(`⚠️ Insufficient Balance!`);
-      // [LOG] Manual Order Error
-      addSystemLog("ERROR", `Manual Order Failed: Insufficient holdings to execute SELL ${amount} ${coin.toUpperCase()}`);
+      if (typeof addSystemLog === 'function') {
+        addSystemLog("ERROR", `Manual Order Failed: Insufficient holdings to execute SELL ${amount} ${coin.toUpperCase()}`);
+      }
       return;
     }
     cryptoBalance[coin] = (cryptoBalance[coin] || 0) - amount;
@@ -557,8 +597,9 @@ function executeCryptoOrder() {
     timestamp: new Date().toLocaleTimeString()
   });
 
-  // [LOG] Master Manual Order Success
-  addSystemLog("SUCCESS", `Manual Order Executed: ${selectedSide} ${amount} ${coin.toUpperCase()} @ $${currentPrice.toLocaleString()}`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SUCCESS", `Manual Order Executed: ${selectedSide} ${amount} ${coin.toUpperCase()} @ $${currentPrice.toLocaleString()}`);
+  }
 
   alert(`🚀 Order Executed!\n${selectedSide} ${amount} ${coin.toUpperCase()}`);
   amountInput.value = "";
@@ -631,8 +672,9 @@ function closePosition(id) {
     finalPnlPct = ((pos.entryPrice - currentLivePrice) / pos.entryPrice) * 100;
   }
 
-  // [LOG] Position Closed
-  addSystemLog("SUCCESS", `Closed Position ID [${id}] for ${pos.coin.toUpperCase()}. Realized PnL: ${finalPnlPct >= 0 ? '+' : ''}${finalPnlPct.toFixed(2)}%`);
+  if (typeof addSystemLog === 'function') {
+    addSystemLog("SUCCESS", `Closed Position ID [${id}] for ${pos.coin.toUpperCase()}. Realized PnL: ${finalPnlPct >= 0 ? '+' : ''}${finalPnlPct.toFixed(2)}%`);
+  }
 
   activePositions.splice(index, 1);
   renderCryptoTrading();
@@ -644,8 +686,9 @@ function resetBalance() {
     cryptoBalance = { usdt: 10000, btc: 0.15, eth: 1.2, sol: 5.0, bnb: 0, xrp: 0, ada: 0, doge: 0, dot: 0, matic: 0, avax: 0 };
     activePositions = [];
     
-    // [LOG] Reset Triggered
-    addSystemLog("SYSTEM", "Account parameters completely RESET by user. Balances set to default ($10,000 USDT) and all open positions closed.");
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("SYSTEM", "Account parameters completely RESET by user. Balances set to default ($10,000 USDT) and all open positions closed.");
+    }
 
     if (isAutoTradingActive) {
       stopAutoTradingBot();
