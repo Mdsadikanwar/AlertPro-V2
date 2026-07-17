@@ -1,6 +1,6 @@
 const https = require('https');
 
-// Helper function to make HTTP requests without any external library (100% compatible)
+// Helper function to make HTTP requests (100% compatible with all Node versions)
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
@@ -8,6 +8,7 @@ function makeRequest(url, options = {}) {
       res.on('data', (chunk) => data += chunk);
       res.on('end', () => {
         try {
+          // अगर रिस्पॉन्स JSON है तो पार्स करें, नहीं तो स्ट्रिंग ही रहने दें
           resolve(JSON.parse(data));
         } catch (e) {
           resolve(data);
@@ -30,7 +31,8 @@ async function run24x7Bot() {
 
   try {
     // 1. Fetch settings from Firebase
-    const settings = await makeRequest(FIREBASE_DB_URL);
+    const rawSettings = await makeRequest(FIREBASE_DB_URL);
+    const settings = typeof rawSettings === 'string' ? JSON.parse(rawSettings) : rawSettings;
 
     if (!settings) {
       console.log("❌ No settings found in Firebase.");
@@ -46,7 +48,8 @@ async function run24x7Bot() {
     }
 
     // 2. Fetch Live Market Price from Binance API
-    const marketData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+    const rawMarketData = await makeRequest("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+    const marketData = typeof rawMarketData === 'string' ? JSON.parse(rawMarketData) : rawMarketData;
     const currentPrice = parseFloat(marketData.price);
     
     console.log(`📈 Current BTC Price: $${currentPrice}`);
@@ -54,7 +57,7 @@ async function run24x7Bot() {
     // 3. Craft the Alert Message
     const testMessage = `🤖 *ApexTraders 24x7 Server Runner Active* \n\n` +
                         `• Status: Running via GitHub Actions\n` +
-                        `• Current BTC Price: *$${currentPrice}*\n` +
+                        `• Current BTC Price: *$${currentPrice.toLocaleString('en-US')}*\n` +
                         `• Saved Risk Parameter: *${riskPerTrade || "2.0"}%*\n\n` +
                         `🚀 System is online, waiting for Strategy Crossover...`;
 
@@ -66,7 +69,7 @@ async function run24x7Bot() {
       parse_mode: "Markdown"
     });
 
-    const telRes = await makeRequest(telegramUrl, {
+    const rawTelRes = await makeRequest(telegramUrl, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -74,6 +77,8 @@ async function run24x7Bot() {
       },
       body: payload
     });
+
+    const telRes = typeof rawTelRes === 'string' ? JSON.parse(rawTelRes) : rawTelRes;
 
     if (telRes.ok) {
       console.log("🎯 Alert successfully sent to Sadiq's Telegram!");
