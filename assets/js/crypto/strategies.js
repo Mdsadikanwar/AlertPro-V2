@@ -1,10 +1,28 @@
-// Global Strategies State
-var cryptoStrategies = [
-  { id: 1, name: "Opening Range Breakout (ORB)", status: "Active", timeframe: "15m", riskReward: "1:2", pair: "BTCUSDT" },
-  { id: 2, name: "EMA Cross (9 / 21)", status: "Inactive", timeframe: "5m", riskReward: "1:1.5", pair: "ETHUSDT" }
-];
+// Global Strategies State - अब यह डिफ़ॉल्ट रूप से खाली रहेगा, क्योंकि डेटा फायरबेस से लाइव आएगा
+var cryptoStrategies = [];
 
-// Crypto Strategies tab render function
+// 1. फायरबेस से स्ट्रेटजी लाइव लोड करने का फंक्शन
+function loadStrategiesFromFirebase() {
+  if (typeof firebase === 'undefined') {
+    console.log("⚠️ Firebase initialize नहीं हुआ है।");
+    return;
+  }
+  
+  const dbRef = firebase.database().ref('trading_strategies');
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      // फायरबेस के ऑब्जेक्ट डेटा को एरे (Array) में बदलना ताकि आपका पुराना .map() काम कर सके
+      cryptoStrategies = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    } else {
+      cryptoStrategies = [];
+    }
+    // डेटा आते ही स्क्रीन पर रेंडर करना
+    renderCryptoStrategies();
+  });
+}
+
+// Crypto Strategies tab render function (आपका ओरिजिनल डिज़ाइन - 100% सेम)
 function renderCryptoStrategies() {
   const root = document.getElementById('app');
   root.innerHTML = `
@@ -21,7 +39,7 @@ function renderCryptoStrategies() {
 
       <!-- Strategy List Grid -->
       <div id="strategiesList" style="display: flex; flex-direction: column; gap: 15px;">
-        ${cryptoStrategies.map(strat => `
+        ${cryptoStrategies.length === 0 ? '<p style="color: #94a3b8;">No strategies found. Click "+ Create Strategy" to add one.</p>' : cryptoStrategies.map(strat => `
           <div style="background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <div>
               <h3 style="margin: 0 0 8px 0; color: #fff;">${strat.name}</h3>
@@ -35,7 +53,8 @@ function renderCryptoStrategies() {
               <span style="background: ${strat.status === 'Active' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${strat.status === 'Active' ? '#22c55e' : '#ef4444'}; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;">
                 ${strat.status}
               </span>
-              <button onclick="toggleCryptoStrategy(${strat.id})" style="background: #374151; color: #fff; border: 1px solid #4b5563; padding: 8px 14px; border-radius: 6px; cursor: pointer;">
+              <!-- यहाँ आईडी स्ट्रिंग हो सकती है इसलिए सिंगल कोट में पास किया है -->
+              <button onclick="toggleCryptoStrategy('${strat.id}')" style="background: #374151; color: #fff; border: 1px solid #4b5563; padding: 8px 14px; border-radius: 6px; cursor: pointer;">
                 ${strat.status === 'Active' ? 'Pause' : 'Start'}
               </button>
             </div>
@@ -52,50 +71,51 @@ function renderCryptoStrategies() {
   }
 }
 
-// Toggle active status
+// 2. Toggle active status (अब यह सीधे फायरबेस क्लाउड में स्टेटस अपडेट करेगा)
 function toggleCryptoStrategy(id) {
-  let updatedStratName = "";
-  let currentStatus = "";
+  const strat = cryptoStrategies.find(s => s.id === id);
+  if (!strat) return;
 
-  cryptoStrategies = cryptoStrategies.map(strat => {
-    if (strat.id === id) {
-      strat.status = strat.status === 'Active' ? 'Inactive' : 'Active';
-      updatedStratName = strat.name;
-      currentStatus = strat.status;
+  const newStatus = strat.status === 'Active' ? 'Inactive' : 'Active';
+  
+  firebase.database().ref(`trading_strategies/${id}`).update({
+    status: newStatus
+  }).then(() => {
+    // [LOG] Strategy Status Toggle
+    if (typeof addSystemLog === 'function') {
+      const logType = newStatus === 'Active' ? 'SUCCESS' : 'SYSTEM';
+      addSystemLog(logType, `Strategy [${strat.name}] status changed to: ${newStatus.toUpperCase()}`);
     }
-    return strat;
-  });
-
-  // [LOG] Strategy Status Toggle
-  if (typeof addSystemLog === 'function' && updatedStratName) {
-    const logType = currentStatus === 'Active' ? 'SUCCESS' : 'SYSTEM';
-    addSystemLog(logType, `Strategy [${updatedStratName}] status changed to: ${currentStatus.toUpperCase()}`);
-  }
-
-  renderCryptoStrategies();
+  }).catch(err => console.error("Firebase Update Error:", err));
 }
 
-// Simulated Add Strategy
+// 3. नई स्ट्रेटजी बनाकर सीधे फायरबेस में पुश (Save) करना
 function addNewCryptoStrategy() {
-  const name = prompt("Enter Strategy Name:", "New Strategy");
+  const name = prompt("Enter Strategy Name:", "EMA Cross (9 / 21)");
   if (!name) return;
   const pair = prompt("Enter Pair (e.g. BTCUSDT):", "BTCUSDT").toUpperCase();
+  const timeframe = prompt("Enter Timeframe (e.g. 5m, 15m, 1h):", "5m");
   
-  const newStrat = {
-    id: cryptoStrategies.length + 1,
+  // फायरबेस में एक नया ऑटोमैटिक यूनिक आईडी जेनरेट करना
+  const newStratRef = firebase.database().ref('trading_strategies').push();
+  
+  const newStratData = {
     name: name,
     status: "Inactive",
-    timeframe: "15m",
-    riskReward: "1:2",
+    timeframe: timeframe || "5m",
+    riskReward: "1:1.5",
     pair: pair
   };
   
-  cryptoStrategies.push(newStrat);
+  newStratRef.set(newStratData).then(() => {
+    // [LOG] New Strategy Created
+    if (typeof addSystemLog === 'function') {
+      addSystemLog("SUCCESS", `New strategy successfully created: "${name}" for pair ${pair} on Firebase.`);
+    }
+  }).catch(err => console.error("Firebase Set Error:", err));
+}
 
-  // [LOG] New Strategy Created
-  if (typeof addSystemLog === 'function') {
-    addSystemLog("SUCCESS", `New strategy successfully created: "${name}" for pair ${pair} (Initial Status: INACTIVE).`);
-  }
-
-  renderCryptoStrategies();
+// जैसे ही यह स्क्रिप्ट लोड हो, फायरबेस से डेटा सुनना (Listen) शुरू कर दे
+if (typeof firebase !== 'undefined') {
+  loadStrategiesFromFirebase();
 }
