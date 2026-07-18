@@ -1,12 +1,12 @@
-// Global Logs State (अगर पहले से है, तो इसे केवल रेफरेंस के लिए रखें)
+// Global Logs State
 var systemLogs = [
   { timestamp: "2026-07-16 18:30", type: "SYSTEM", message: "System initialized successfully." },
   { timestamp: "2026-07-16 18:32", type: "SUCCESS", message: "Connected to Exchange API." }
 ];
 
 /**
- * 1. Master Log Injector (छोटा और सीधा नोटिफिकेशन रखने के लिए हेल्पर)
- * यह फंक्शन लंबे मैसेजेस को छोटा (truncate) कर देगा ताकि लॉग स्क्रीन साफ़ रहे।
+ * 1. Master Log Injector
+ * यह फंक्शन मैसेजेस को मैनेज करता है और स्क्रीन को बिना हैंग किए तुरंत अपडेट करता है।
  */
 function addSystemLog(type, message) {
   const now = new Date();
@@ -19,49 +19,62 @@ function addSystemLog(type, message) {
   
   const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-  // अगर मैसेज बहुत लंबा है, तो उसे सिर्फ 80 कैरेक्टर्स तक सीमित करके '...' लगा देंगे
   let shortMessage = message;
   if (message.length > 80) {
     shortMessage = message.substring(0, 77) + "...";
   }
 
-  // नए लॉग को सबसे ऊपर रखने के लिए unshift का उपयोग करेंगे
   systemLogs.unshift({
     timestamp: timestamp,
     type: type.toUpperCase(), // SYSTEM, SUCCESS, ERROR, WARNING
     message: shortMessage
   });
 
-  // सिर्फ आखिरी 100 लॉग्स को ही मेमोरी में रखेंगे ताकि ब्राउज़र स्लो न हो
   if (systemLogs.length > 100) {
     systemLogs.pop();
   }
 
-  // अगर अभी यूजर Logs टैब पर ही है, तो तुरंत स्क्रीन को अपडेट कर देंगे
-  const activeTab = document.querySelector('[data-active-tab]'); // आपकी नेविगेशन स्टेट के आधार पर
-  if (activeTab && activeTab.getAttribute('data-active-tab') === 'LOGS') {
-    renderCryptoLogs();
+  // अगर यूजर LOGS टैब पर है, तो तुरंत लिस्ट को रिफ्रेश करो
+  const marker = document.getElementById('logs-tab-marker');
+  if (marker && marker.getAttribute('data-active-tab') === 'LOGS') {
+    const listContainer = document.getElementById('logsListContainer');
+    if (listContainer) {
+      listContainer.innerHTML = systemLogs.map(log => {
+        const badge = log.type === 'SUCCESS' ? { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' } :
+                      log.type === 'ERROR' ? { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171' } :
+                      log.type === 'WARNING' ? { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15' } :
+                      { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' };
+        return `
+          <div style="display: grid; grid-template-columns: 160px 100px 1fr; gap: 15px; padding: 12px 15px; border-bottom: 1px solid #1e293b; align-items: center; font-size: 13.5px; font-family: monospace;">
+            <div style="color: #64748b; white-space: nowrap;">[${log.timestamp}]</div>
+            <div>
+              <span style="background: ${badge.bg}; color: ${badge.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; text-align: center; min-width: 70px;">
+                ${log.type}
+              </span>
+            </div>
+            <div style="color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${log.message}">
+              ${log.message}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 }
 
 /**
  * 2. Crypto Logs Tab Render Function
- * एकदम क्लीन, मॉडर्न और स्पेस-सेविंग नोटिफिकेशन डिज़ाइन
  */
 function renderCryptoLogs() {
   const root = document.getElementById('app');
+  if (!root) return;
   
-  // स्टेटस के हिसाब से रंगों का सेट
   const getBadgeStyle = (type) => {
     switch (type) {
-      case 'SUCCESS':
-        return { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' };
-      case 'ERROR':
-        return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171' };
-      case 'WARNING':
-        return { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15' };
-      default: // SYSTEM
-        return { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' };
+      case 'SUCCESS': return { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' };
+      case 'ERROR': return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171' };
+      case 'WARNING': return { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15' };
+      default: return { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' };
     }
   };
 
@@ -69,19 +82,12 @@ function renderCryptoLogs() {
     const badge = getBadgeStyle(log.type);
     return `
       <div style="display: grid; grid-template-columns: 160px 100px 1fr; gap: 15px; padding: 12px 15px; border-bottom: 1px solid #1e293b; align-items: center; font-size: 13.5px; font-family: monospace;">
-        <!-- 1. Time & Date -->
-        <div style="color: #64748b; white-space: nowrap;">
-          [${log.timestamp}]
-        </div>
-        
-        <!-- 2. Status Badge -->
+        <div style="color: #64748b; white-space: nowrap;">[${log.timestamp}]</div>
         <div>
           <span style="background: ${badge.bg}; color: ${badge.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; text-align: center; min-width: 70px;">
             ${log.type}
           </span>
         </div>
-        
-        <!-- 3. Short Clean Notification -->
         <div style="color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${log.message}">
           ${log.message}
         </div>
@@ -91,9 +97,7 @@ function renderCryptoLogs() {
 
   root.innerHTML = `
     ${getMarketNavbar('CRYPTO', '#38bdf8')}
-    <!-- डेटा ट्रैक करने के लिए कि हम अभी LOGS टैब में हैं -->
     <div id="logs-tab-marker" data-active-tab="LOGS" class="container" style="padding: 20px; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #fff;">
-      
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <div>
           <h2 style="color: #38bdf8; margin: 0;">System Notifications</h2>
@@ -104,17 +108,12 @@ function renderCryptoLogs() {
         </button>
       </div>
 
-      <!-- Compact Terminal Display -->
       <div style="background: #0b0f19; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-        
-        <!-- Table Header -->
         <div style="display: grid; grid-template-columns: 160px 100px 1fr; gap: 15px; padding: 12px 15px; background: #111827; border-bottom: 2px solid #1e293b; color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
           <div>Timestamp</div>
           <div>Status</div>
           <div>Notification</div>
         </div>
-
-        <!-- Dynamic Logs List -->
         <div id="logsListContainer" style="max-height: 600px; overflow-y: auto;">
           ${systemLogs.length === 0 ? `
             <div style="padding: 40px; text-align: center; color: #64748b;">
@@ -123,14 +122,22 @@ function renderCryptoLogs() {
             </div>
           ` : logRows}
         </div>
-
       </div>
-
+      
+      <!-- 📦 लाइव ट्रेड्स के लिए एक अलग कंटेनर नीचे बना दिया है ताकि स्क्रीन ना बिगड़े -->
+      <div style="margin-top: 30px; background: #0b0f19; border: 1px solid #1e293b; border-radius: 10px; padding: 20px;">
+        <h3 style="color: #22c55e; margin-top: 0;">Live Executed Orders</h3>
+        <div id="real-api-logs-container">
+          <p style="color:#94a3b8;">Loading live trades...</p>
+        </div>
+      </div>
     </div>
   `;
+
+  // टैब रेंडर होते ही तुरंत एक बार लाइव ट्रेड्स लोड कर लो (कोई लूप नहीं)
+  fetchLiveOrderHistory();
 }
 
-// Clear all logs helper
 function clearSystemLogs() {
   if (confirm("Are you sure you want to clear all notification history?")) {
     systemLogs = [];
@@ -138,15 +145,14 @@ function clearSystemLogs() {
     renderCryptoLogs();
   }
 }
-// 📊 वेबसाइट पर लाइव ट्रेड हिस्ट्री और पीएनएल रेंडर करने का फंक्शन
-async function displayLiveOrderHistory() {
-  const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
-  const logContainer = document.getElementById('real-api-logs-container'); // आपकी वेबसाइट का लॉग्स बॉक्स आईडी
-  
+
+// 📊 हैंग-फ्री लाइव ट्रेड फैचर फंक्शन
+async function fetchLiveOrderHistory() {
+  const logContainer = document.getElementById('real-api-logs-container');
   if (!logContainer) return;
 
   try {
-    const res = await fetch(`${FIREBASE_BASE_URL}/live_trades.json`);
+    const res = await fetch("https://alertpro-bot-default-rtdb.firebaseio.com/live_trades.json");
     const trades = await res.json();
     
     if (!trades) {
@@ -155,12 +161,11 @@ async function displayLiveOrderHistory() {
     }
 
     let html = `<table style="width:100%; color:#fff; border-collapse:collapse;">
-                  <tr style="border-bottom:1px solid #334155; text-align:left; color:#38bdf8;">
+                  <tr style="border-bottom:1px solid #334155; text-align:left; color:#38bdf8; height:30px;">
                     <th>Time</th><th>Type</th><th>Pair</th><th>Price</th><th>Status</th>
                   </tr>`;
 
-    // ट्रेड्स को उल्टे क्रम में दिखाना (ताकि नया ट्रेड सबसे ऊपर दिखे)
-    Object.keys(trades).reverse().forEach(key => {
+    Object.keys(trades).reverse().slice(0, 10).forEach(key => { // सिर्फ आखरी 10 ट्रेड्स दिखाएंगे लोड कम रखने के लिए
       const t = trades[key];
       const color = t.action === "BUY" ? "#22c55e" : "#ef4444";
       const time = new Date(t.timestamp).toLocaleTimeString();
@@ -176,11 +181,79 @@ async function displayLiveOrderHistory() {
 
     html += `</table>`;
     logContainer.innerHTML = html;
-
   } catch (e) {
     console.error("Error loading logs:", e.message);
   }
 }
 
-// हर 5 सेकंड में स्क्रीन पर ऑर्डर टेबल को ऑटो-रिफ्रेश करेगा
-setInterval(displayLiveOrderHistory, 5000);
+// 🔄 वेबसाइट को हैंग होने से बचाने के लिए केवल 30 सेकंड में एक बार डेटा फ्रेश करेगा
+setInterval(() => {
+  const marker = document.getElementById('logs-tab-marker');
+  if (marker && marker.getAttribute('data-active-tab') === 'LOGS') {
+    fetchLiveOrderHistory();
+  }
+}, 30000);
+
+// Global Core State Config
+var currentMarket = 'home'; 
+var activeTab = 'dashboard';
+
+function navigateToMarket(market) {
+  currentMarket = market;
+  localStorage.setItem('last_active_market', market);
+  if (market === 'home') {
+    localStorage.removeItem('last_active_market');
+    localStorage.removeItem('last_active_tab');
+    renderLandingPage();
+  } else {
+    if (market === 'crypto') activeTab = 'dashboard';
+    localStorage.setItem('last_active_tab', activeTab);
+    loadMarketInterface();
+  }
+}
+
+function switchTab(tabId) {
+  activeTab = tabId;
+  localStorage.setItem('last_active_tab', tabId);
+  executeTabRender();
+}
+
+function executeTabRender() {
+  const marketPrefix = currentMarket.toLowerCase();
+  if (marketPrefix === 'crypto') {
+    if (activeTab === 'dashboard') typeof renderCryptoDashboard === 'function' && renderCryptoDashboard();
+    if (activeTab === 'trading') typeof renderCryptoTrading === 'function' && renderCryptoTrading();
+    if (activeTab === 'strategies') typeof renderCryptoStrategies === 'function' && renderCryptoStrategies();
+    if (activeTab === 'backtest') typeof renderCryptoBacktest === 'function' && renderCryptoBacktest();
+    if (activeTab === 'settings') typeof renderCryptoSettings === 'function' && renderCryptoSettings();
+    if (activeTab === 'logs') renderCryptoLogs();
+  }
+}
+
+function getMarketNavbar(marketName, colorCode) {
+  const tabs = ['dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'];
+  return `
+    <div style="background: #1e293b; padding: 15px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-family: sans-serif;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span onclick="navigateToMarket('home')" style="cursor: pointer; font-size: 20px; color: #94a3b8;" title="Go Home">🏠</span>
+        <h2 style="color: ${colorCode}; margin: 0; font-size: 20px;">ApexTraders [${marketName}]</h2>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        ${tabs.map(tab => {
+          const isActive = tab === activeTab;
+          return `
+            <button class="nav-tab" 
+                    onclick="switchTab('${tab}')" 
+                    style="background: none; border: none; padding: 8px 12px; color: ${isActive ? '#fff' : '#94a3b8'}; border-bottom: ${isActive ? `3px solid ${colorCode}` : 'none'}; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: capitalize; opacity: ${isActive ? '1' : '0.7'};">
+              ${tab}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function loadMarketInterface() {
+  executeTabRender();
+}
