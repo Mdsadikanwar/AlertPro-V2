@@ -138,3 +138,49 @@ function clearSystemLogs() {
     renderCryptoLogs();
   }
 }
+// 📊 वेबसाइट पर लाइव ट्रेड हिस्ट्री और पीएनएल रेंडर करने का फंक्शन
+async function displayLiveOrderHistory() {
+  const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
+  const logContainer = document.getElementById('real-api-logs-container'); // आपकी वेबसाइट का लॉग्स बॉक्स आईडी
+  
+  if (!logContainer) return;
+
+  try {
+    const res = await fetch(`${FIREBASE_BASE_URL}/live_trades.json`);
+    const trades = await res.json();
+    
+    if (!trades) {
+      logContainer.innerHTML = "<p style='color:#94a3b8;'>No trades executed yet. Engine is waiting...</p>";
+      return;
+    }
+
+    let html = `<table style="width:100%; color:#fff; border-collapse:collapse;">
+                  <tr style="border-bottom:1px solid #334155; text-align:left; color:#38bdf8;">
+                    <th>Time</th><th>Type</th><th>Pair</th><th>Price</th><th>Status</th>
+                  </tr>`;
+
+    // ट्रेड्स को उल्टे क्रम में दिखाना (ताकि नया ट्रेड सबसे ऊपर दिखे)
+    Object.keys(trades).reverse().forEach(key => {
+      const t = trades[key];
+      const color = t.action === "BUY" ? "#22c55e" : "#ef4444";
+      const time = new Date(t.timestamp).toLocaleTimeString();
+      
+      html += `<tr style="border-bottom:1px solid #1e293b; height:35px;">
+                <td style="color:#94a3b8;">${time}</td>
+                <td style="color:${color}; font-weight:bold;">${t.action}</td>
+                <td>${t.pair}</td>
+                <td>$${t.price}</td>
+                <td style="color:#eab308;">${t.status}</td>
+               </tr>`;
+    });
+
+    html += `</table>`;
+    logContainer.innerHTML = html;
+
+  } catch (e) {
+    console.error("Error loading logs:", e.message);
+  }
+}
+
+// हर 5 सेकंड में स्क्रीन पर ऑर्डर टेबल को ऑटो-रिफ्रेश करेगा
+setInterval(displayLiveOrderHistory, 5000);
