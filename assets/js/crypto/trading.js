@@ -1,6 +1,6 @@
 // 🔐 बाइनेंस टेस्टनेट एपीआई क्रेडेंशियल्स (यहाँ अपनी असली टेस्टनेट कीज़ डालें)
-const BINANCE_TESTNET_API_KEY = "YOUR_BINANCE_TESTNET_API_KEY";
-const BINANCE_TESTNET_SECRET_KEY = "YOUR_BINANCE_TESTNET_SECRET_KEY";
+const BINANCE_TESTNET_API_KEY = "RCRepECibH55AWM1NveNAelr8SYqFEMZpTiqwerLf9A1PBn6YVYyEh1biT7EW06Y";
+const BINANCE_TESTNET_SECRET_KEY = "gK1LlAKuYItxdbiRIp8wS9cvXBwedMqRFjfgKe7xWlAwnAtinal1O8ShQTEfg1ja";
 const BINANCE_BASE_URL = "https://testnet.binance.vision"; // Testnet Endpoint
 
 // Global States
