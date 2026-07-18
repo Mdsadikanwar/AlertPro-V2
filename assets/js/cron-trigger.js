@@ -1,7 +1,7 @@
 const https = require('https');
-const crypto = require('crypto'); // एपीआई सिग्नेचर के लिए
+const crypto = require('crypto');
 
-// Helper function for HTTP requests
+// HTTP रिक्वेस्ट के लिए हेल्पर फंक्शन
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
@@ -17,25 +17,13 @@ function makeRequest(url, options = {}) {
   });
 }
 
-// 💰 बाइनेंस टेस्टनेट से बैलेंस लाकर फायरबेस में अपडेट करने का फंक्शन
+// बाइनेंस टेस्टनेट बैलेंस सिंक फंक्शन
 async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
-  // 🔍 फिक्स: अगर फायरबेस सेटिंग्स में कीज नहीं हैं, तो गिटहब सीक्रेट्स (process.env) से उठाएगा
   const BINANCE_KEY = apiKey || process.env.BINANCE_TESTNET_API_KEY;
   const BINANCE_SECRET = apiSecret || process.env.BINANCE_TESTNET_SECRET_KEY;
 
   if (!BINANCE_KEY || BINANCE_KEY.includes("mock") || !BINANCE_SECRET) {
-    console.log("🎰 [MOCK BALANCE] Keys missing/mock. Simulating $10,000 USDT in Firebase...");
-    const mockPayload = {
-      usdt: "10000.00",
-      btc: "0.500000",
-      lastUpdated: new Date().toISOString()
-    };
-    await makeRequest(`${firebaseBaseUrl}/account_balance.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mockPayload)
-    });
-    return;
+    return; // मॉक मोड में बैलेंस चेंज नहीं कर रहे
   }
 
   const baseUrl = "https://testnet.binance.vision";
@@ -46,48 +34,35 @@ async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
   const url = `${baseUrl}${path}?${queryString}&signature=${signature}`;
 
   try {
-    const accountData = await makeRequest(url, {
-      method: 'GET',
-      headers: { 'X-MBX-APIKEY': BINANCE_KEY }
-    });
-
+    const accountData = await makeRequest(url, { method: 'GET', headers: { 'X-MBX-APIKEY': BINANCE_KEY } });
     if (accountData && accountData.balances) {
       const usdtAsset = accountData.balances.find(b => b.asset === "USDT");
       const btcAsset = accountData.balances.find(b => b.asset === "BTC");
-      
       const usdtFree = usdtAsset ? parseFloat(usdtAsset.free).toFixed(2) : "0.00";
       const btcFree = btcAsset ? parseFloat(btcAsset.free).toFixed(6) : "0.000000";
 
-      // डेटाबेस में सीधे 'account_balance' नोड पर लिखना
       await makeRequest(`${firebaseBaseUrl}/account_balance.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usdt: usdtFree,
-          btc: btcFree,
-          lastUpdated: new Date().toISOString()
-        })
+        body: JSON.stringify({ usdt: usdtFree, btc: btcFree, lastUpdated: new Date().toISOString() })
       });
-      console.log(`✅ [Balance Sync Success] USDT: $${usdtFree} | BTC: ${btcFree} synced to Firebase.`);
-    } else {
-      console.log("⚠️ [Balance Sync] Could not fetch balances from Binance response.");
     }
   } catch (err) {
-    console.error("❌ [Balance Sync Error]:", err.message);
+    console.error("❌ Balance Sync Error:", err.message);
   }
 }
 
-// Binance Testnet पर ऑर्डर प्लेस करने का फंक्शन (Paper Trading)
+// बाइनेंस टेस्टनेट पर असली आर्डर प्लेस करना
 async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
   const BINANCE_KEY = apiKey || process.env.BINANCE_TESTNET_API_KEY;
   const BINANCE_SECRET = apiSecret || process.env.BINANCE_TESTNET_SECRET_KEY;
 
   if (!BINANCE_KEY || BINANCE_KEY.includes("mock") || !BINANCE_SECRET) {
-    console.log(`🎰 [MOCK TRADE] Simulating ${side} order for ${qty} ${symbol} on Testnet...`);
-    return { mock: true, orderId: "MOCK_" + Date.now(), status: "FILLED" };
+    console.log(`🎰 [MOCK] Simulating ${side} order...`);
+    return { orderId: "MOCK_" + Date.now(), status: "FILLED" };
   }
 
-  const baseUrl = "https://testnet.binance.vision"; // बिनेंस पेपर ट्रेडिंग यूआरएल
+  const baseUrl = "https://testnet.binance.vision";
   const path = "/api/v3/order";
   const timestamp = Date.now();
   
@@ -95,101 +70,86 @@ async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
   const signature = crypto.createHmac('sha256', BINANCE_SECRET).update(queryString).digest('hex');
   queryString += `&signature=${signature}`;
 
-  const url = `${baseUrl}${path}?${queryString}`;
-  
-  return await makeRequest(url, {
+  return await makeRequest(`${baseUrl}${path}?${queryString}`, {
     method: 'POST',
     headers: { 'X-MBX-APIKEY': BINANCE_KEY }
   });
 }
 
-// मुख्य फ़ंक्शन जो गिटहब पर हर 5 मिनट में चलेगा
+// मुख्य फ़ंक्शन
 async function run24x7Bot() {
-  console.log("🚀 Starting 24x7 Strategy & Paper Trading Runner...");
+  console.log("🚀 Starting 24x7 Strategy Runner...");
   const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
-  const FIREBASE_URL = `${FIREBASE_BASE_URL}/.json`;
 
   try {
-    // 1. फायरबेस से पूरा डेटा (सेटिंग्स + स्ट्रेटजी) एक साथ खींचना
-    const dbData = await makeRequest(FIREBASE_URL);
+    const dbData = await makeRequest(`${FIREBASE_BASE_URL}/.json`);
     if (!dbData || !dbData.app_settings) {
-      console.log("❌ Settings not found in Firebase.");
+      console.log("❌ Settings not found.");
       return;
     }
 
-    const { telegramToken, telegramChatId, riskPerTrade, binanceApiKey, binanceApiSecret } = dbData.app_settings;
+    const { telegramToken, telegramChatId, binanceApiKey, binanceApiSecret } = dbData.app_settings;
     const strategies = dbData.trading_strategies || {};
 
-    // 🔄 [SYNC START] स्ट्रेटजी चेक करने से पहले बाइनेंस बैलेंस को फायरबेस में सिंक करना
+    // बैलेंस सिंक करें
     await syncBalanceToFirebase(binanceApiKey, binanceApiSecret, FIREBASE_BASE_URL);
 
-    if (!telegramToken || !telegramChatId) {
-      console.log("❌ Telegram credentials missing!");
-      return;
-    }
-
-    // 2. सिर्फ एक्टिव स्ट्रेटजी को ढूंढना
-    const activeStrategies = Object.keys(strategies)
-      .map(key => strategies[key])
-      .filter(strat => strat.status === "Active");
-
+    // सिर्फ एक्टिव स्ट्रेटेजी चेक करें
+    const activeStrategies = Object.keys(strategies).map(k => strategies[k]).filter(s => s.status === "Active");
     if (activeStrategies.length === 0) {
-      console.log("💤 No active strategies found on Cloud. Standing by...");
+      console.log("💤 No active strategies.");
       return;
     }
 
-    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर चेक करना
     for (const strat of activeStrategies) {
-      console.log(`🔍 Checking Active Strategy: ${strat.name} for ${strat.pair}`);
-
       // लाइव प्राइस लाना
       const marketData = await makeRequest(`https://min-api.cryptocompare.com/data/price?fsym=${strat.pair.replace('USDT','')}&tsyms=USD`);
       const currentPrice = parseFloat(marketData.USD);
+      if (!currentPrice || isNaN(currentPrice)) continue;
 
-      if (!currentPrice || isNaN(currentPrice)) {
-        `⚠️ Price fetch failed for ${strat.pair}, skipping...`
-        continue;
-      }
-
-      /* 
-         📉 [क्रॉसओवर लॉजिक] 
-         testing के लिए 50/50 चांस
-      */
+      // 🎰 टेस्टिंग के लिए सिग्नल जेनरेट
       const mockSignal = Math.random() > 0.5 ? "BUY" : "SELL"; 
-      console.log(`🎯 Signal Detected for ${strat.pair}: ${mockSignal} @ $${currentPrice}`);
-
-      // 4. रिस्क के हिसाब से क्वांटिटी कैलकुलेट करना (उदाहरण के लिए 0.005 BTC)
       const tradeQty = 0.005; 
 
-      // 5. सीधे पेपर ट्रेडिंग एक्सचेंज पर ऑर्डर मारना
+      // 1. बाइनेंस एक्सचेंज पर आर्डर मारना
       const orderResult = await placeTestnetOrder(strat.pair, mockSignal, tradeQty, binanceApiKey, binanceApiSecret);
       
-      // ऑर्डर के तुरंत बाद बैलेंस दोबारा अपडेट करें ताकि वेबसाइट पर लेटेस्ट दिखे
-      await syncBalanceToFirebase(binanceApiKey, binanceApiSecret, FIREBASE_BASE_URL);
+      // 2. 📝 [NEW] ट्रेड को फायरबेस डेटाबेस में सेव करना ताकि वेबसाइट पर दिखे
+      const tradeRecord = {
+        strategyName: strat.name,
+        pair: strat.pair,
+        action: mockSignal,
+        price: currentPrice,
+        quantity: tradeQty,
+        orderId: orderResult.orderId || "UNKNOWN",
+        status: orderResult.status || "EXECUTED",
+        timestamp: new Date().toISOString()
+      };
 
-      // 6. टेलीग्राम पर प्रो-लेवल अलर्ट भेजना
-      const emoji = mockSignal === "BUY" ? "🟢" : "🔴";
-      const alertMessage = `${emoji} *STRATEGY CROSSOVER DETECTED*\n\n` +
-                          `• *Strategy:* ${strat.name}\n` +
-                          `• *Asset Pair:* ${strat.pair}\n` +
-                          `• *Action:* ${mockSignal} (Paper Trade)\n` +
-                          `• *Execution Price:* $${currentPrice.toLocaleString('en-US')}\n` +
-                          `• *Quantity:* ${tradeQty}\n` +
-                          `• *Order Status:* ${orderResult.status || "EXECUTED"}\n\n` +
-                          `🤖 _ApexTraders Bot running 24x7 via GitHub Actions_`;
-
-      const telegramUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-      await makeRequest(telegramUrl, {
+      // फायरबेस के 'live_trades' नोड में ट्रेड को पुश करना
+      await makeRequest(`${FIREBASE_BASE_URL}/live_trades.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: telegramChatId, text: alertMessage, parse_mode: "Markdown" })
+        body: JSON.stringify(tradeRecord)
       });
+      console.log("📝 Trade recorded in Firebase!");
 
-      console.log(`🎯 Alert and Trade executed for ${strat.pair}!`);
+      // बैलेंस दोबारा सिंक करें
+      await syncBalanceToFirebase(binanceApiKey, binanceApiSecret, FIREBASE_BASE_URL);
+
+      // 3. टेलीग्राम अलर्ट
+      if (telegramToken && telegramChatId) {
+        const emoji = mockSignal === "BUY" ? "🟢" : "🔴";
+        const alertMessage = `${emoji} *TRADE EXECUTED*\n\n• *Strategy:* ${strat.name}\n• *Pair:* ${strat.pair}\n• *Action:* ${mockSignal}\n• *Price:* $${currentPrice}\n• *Status:* ${tradeRecord.status}`;
+        await makeRequest(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: telegramChatId, text: alertMessage, parse_mode: "Markdown" })
+        });
+      }
     }
-
   } catch (error) {
-    console.error("❌ Error in Engine execution:", error.message);
+    console.error("❌ Error:", error.message);
   }
 }
 
