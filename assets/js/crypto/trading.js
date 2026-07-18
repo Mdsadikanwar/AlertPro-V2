@@ -1,55 +1,29 @@
-// 🔐 बाइनेंस टेस्टनेट एपीआई क्रेडेंशियल्स (यहाँ अपनी असली टेस्टनेट कीज़ डालें)
-const BINANCE_TESTNET_API_KEY = "RCRepECibH55AWM1NveNAelr8SYqFEMZpTiqwerLf9A1PBn6YVYyEh1biT7EW06Y";
-const BINANCE_TESTNET_SECRET_KEY = "gK1LlAKuYItxdbiRIp8wS9cvXBwedMqRFjfgKe7xWlAwnAtinal1O8ShQTEfg1ja";
-
-// CORS एरर से बचने के लिए मुफ़्त प्रॉक्सी का इस्तेमाल
-const PROXY_URL = "https://corsproxy.io/?";
-const BINANCE_BASE_URL = "https://testnet.binance.vision"; 
-
 // Global States
 let isAutoBotRunning = false;
 let autoBotLogs = ["🤖 ApexTraders Automated Engine initialized."];
 let accountBalances = { USDT: "0.00", BTC: "0.00" };
 
-// 1. बाइनेंस टेस्टनेट से असली बैलेंस लाना (प्रॉक्सी और CryptoJS के साथ)
-async function fetchBinanceBalances() {
-  if (BINANCE_TESTNET_API_KEY === "YOUR_BINANCE_TESTNET_API_KEY") {
-    autoBotLogs.unshift("⚠️ [API] बाइनेंस टेस्टनेट API कीज़ ऊपर कोड में सेट करें!");
-    updateBotLogsUI();
-    return;
-  }
+// 1. बाइनेंस की जगह सीधे फायरबेस से बैलेंस रीड करना (NO CORS RISK)
+function fetchBinanceBalances() {
+  if (typeof firebase === 'undefined') return;
 
-  const timestamp = Date.now();
-  const queryString = `timestamp=${timestamp}`;
-  
-  // ब्राउज़र-फ्रेंडली CryptoJS सिग्नेचर जनरेशन
-  const signature = CryptoJS.HmacSHA256(queryString, BINANCE_TESTNET_SECRET_KEY).toString(CryptoJS.enc.Hex);
+  autoBotLogs.unshift("⏳ Reading live balance from Firebase Sync...");
+  updateBotLogsUI();
 
-  // प्रॉक्सी के साथ फाइनल URL बनाना
-  const finalUrl = `${PROXY_URL}${encodeURIComponent(`${BINANCE_BASE_URL}/api/v3/account?${queryString}&signature=${signature}`)}`;
-
-  try {
-    const response = await fetch(finalUrl, {
-      method: "GET",
-      headers: { "X-MBX-APIKEY": BINANCE_TESTNET_API_KEY }
-    });
-    const data = await response.json();
-    
-    if (data.balances) {
-      const usdtAsset = data.balances.find(b => b.asset === "USDT");
-      const btcAsset = data.balances.find(b => b.asset === "BTC");
-      accountBalances.USDT = usdtAsset ? parseFloat(usdtAsset.free).toFixed(2) : "0.00";
-      accountBalances.BTC = btcAsset ? parseFloat(btcAsset.free).toFixed(6) : "0.00";
+  firebase.database().ref('account_balance').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      accountBalances.USDT = data.usdt || "0.00";
+      accountBalances.BTC = data.btc || "0.000000";
+      
+      const time = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString() : "Just now";
+      autoBotLogs.unshift(`✅ Balance updated from Firebase (Synced at ${time})`);
       renderCryptoTrading();
     } else {
-      autoBotLogs.unshift(`❌ [API ERR] बैलेंस नहीं मिला: ${data.msg || 'Unknown Error'}`);
+      autoBotLogs.unshift("⚠️ No balance data found in Firebase. Run GitHub bot once.");
       updateBotLogsUI();
     }
-  } catch (err) {
-    console.error("Balance fetch failed:", err);
-    autoBotLogs.unshift("❌ [CORS ERROR] प्रॉक्सी सर्वर में दिक्कत आ रही है।");
-    updateBotLogsUI();
-  }
+  });
 }
 
 // 2. मुख्य रेंडर फंक्शन
@@ -64,7 +38,7 @@ function renderCryptoTrading() {
       <!-- Live Testnet Balance Wallet -->
       <div style="background: #1e293b; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="color: #94a3b8; font-size: 12px; font-weight: bold;">BINANCE TESTNET BALANCE</span>
+          <span style="color: #94a3b8; font-size: 12px; font-weight: bold;">BINANCE TESTNET BALANCE (FIREBASE SYNC)</span>
           <button onclick="fetchBinanceBalances()" style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">🔄 Refresh</button>
         </div>
         <div style="display: flex; justify-content: space-between;">
@@ -110,7 +84,7 @@ function renderCryptoTrading() {
 function toggleAutoBotEngine() {
   isAutoBotRunning = !isAutoBotRunning;
   if (isAutoBotRunning) {
-    autoBotLogs.unshift(`[${new Date().toLocaleTimeString()}] 🟢 Auto Bot Activated. Listening to Firebase live_signals node...`);
+    autoBotLogs.unshift(`[${new Date().toLocaleTimeString()}] 🟢 Auto Bot Activated. Listening to Firebase live_signals...`);
     listenToFirebaseSignals();
   } else {
     autoBotLogs.unshift(`[${new Date().toLocaleTimeString()}] 🔴 Auto Bot Deactivated.`);
@@ -127,57 +101,18 @@ function listenToFirebaseSignals() {
 
     const signal = snapshot.val();
     const signalTime = new Date(signal.timestamp).getTime();
-    if (Date.now() - signalTime > 15000) return; // 15 सेकंड से पुराना सिग्नल इग्नोर करें
+    if (Date.now() - signalTime > 15000) return; 
 
     autoBotLogs.unshift(`[${new Date().toLocaleTimeString()}] 📡 Signal Received: ${signal.signalType} for ${signal.pair}`);
     updateBotLogsUI();
 
-    const side = signal.signalType.includes("BUY") ? "BUY" : "SELL";
-    executeBinanceTestnetOrder(signal.pair, side, "0.002"); 
+    // फ्रंटएंड पर सिर्फ लॉग दिखेगा, एक्चुअल ट्रेड आपका बैकएंड बोट एग्जीक्यूट करेगा
+    autoBotLogs.unshift(`⚡ Order instruction processed for ${signal.pair}`);
+    updateBotLogsUI();
   });
 }
 
-// 5. बाइनेंस टेस्टनेट पर असली आर्डर मारना (प्रॉक्सी और CryptoJS के साथ)
-async function executeBinanceTestnetOrder(pair, side, quantity) {
-  if (BINANCE_TESTNET_API_KEY === "YOUR_BINANCE_TESTNET_API_KEY") {
-    autoBotLogs.unshift("❌ [ERROR] Order Skipped. API Keys are empty.");
-    updateBotLogsUI();
-    return;
-  }
-
-  const timestamp = Date.now();
-  const queryString = `symbol=${pair}&side=${side}&type=MARKET&quantity=${quantity}&timestamp=${timestamp}`;
-  
-  // CryptoJS सिग्नेचर जनरेशन
-  const signature = CryptoJS.HmacSHA256(queryString, BINANCE_TESTNET_SECRET_KEY).toString(CryptoJS.enc.Hex);
-
-  const targetUrl = `${BINANCE_BASE_URL}/api/v3/order?${queryString}&signature=${signature}`;
-  const finalUrl = `${PROXY_URL}${encodeURIComponent(targetUrl)}`;
-
-  autoBotLogs.unshift(`⏳ Sending Market ${side} order to Binance Testnet for ${quantity} ${pair}...`);
-  updateBotLogsUI();
-
-  try {
-    const response = await fetch(finalUrl, {
-      method: "POST",
-      headers: { "X-MBX-APIKEY": BINANCE_TESTNET_API_KEY }
-    });
-    const result = await response.json();
-
-    if (result.orderId) {
-      autoBotLogs.unshift(`✅ [ORDER SUCCESS] ID: ${result.orderId} | Status: ${result.status}`);
-      fetchBinanceBalances(); 
-    } else {
-      autoBotLogs.unshift(`❌ [API ERR] ${result.msg || 'Execution Failed'}`);
-    }
-  } catch (error) {
-    autoBotLogs.unshift(`❌ [FETCH FAILED] प्रॉक्सी या नेटवर्क इश्यू।`);
-    console.error(error);
-  }
-  updateBotLogsUI();
-}
-
-// यूटिलिटी: सिर्फ लॉग्‍स विंडो रिफ्रेश करने के लिए
+// यूटिलिटी: लॉग्‍स विंडो रिफ्रेश करने के लिए
 function updateBotLogsUI() {
   const logTerm = document.getElementById('autoBotLogsTerminal');
   if (logTerm) {
