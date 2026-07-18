@@ -17,6 +17,62 @@ function makeRequest(url, options = {}) {
   });
 }
 
+// 💰 [NEW] बाइनेंस टेस्टनेट से बैलेंस लाकर फायरबेस में अपडेट करने का फंक्शन
+async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
+  if (!apiKey || apiKey.includes("mock") || !apiSecret) {
+    console.log("🎰 [MOCK BALANCE] Keys missing/mock. Simulating $10,000 USDT in Firebase...");
+    const mockPayload = {
+      usdt: "10000.00",
+      btc: "0.500000",
+      lastUpdated: new Date().toISOString()
+    };
+    await makeRequest(`${firebaseBaseUrl}/account_balance.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mockPayload)
+    });
+    return;
+  }
+
+  const baseUrl = "https://testnet.binance.vision";
+  const path = "/api/v3/account";
+  const timestamp = Date.now();
+  const queryString = `timestamp=${timestamp}`;
+  const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+  const url = `${baseUrl}${path}?${queryString}&signature=${signature}`;
+
+  try {
+    const accountData = await makeRequest(url, {
+      method: 'GET',
+      headers: { 'X-MBX-APIKEY': apiKey }
+    });
+
+    if (accountData && accountData.balances) {
+      const usdtAsset = accountData.balances.find(b => b.asset === "USDT");
+      const btcAsset = accountData.balances.find(b => b.asset === "BTC");
+      
+      const usdtFree = usdtAsset ? parseFloat(usdtAsset.free).toFixed(2) : "0.00";
+      const btcFree = btcAsset ? parseFloat(btcAsset.free).toFixed(6) : "0.000000";
+
+      // डेटाबेस में सीधे 'account_balance' नोड पर लिखना
+      await makeRequest(`${firebaseBaseUrl}/account_balance.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usdt: usdtFree,
+          btc: btcFree,
+          lastUpdated: new Date().toISOString()
+        })
+      });
+      console.log(`✅ [Balance Sync Success] USDT: $${usdtFree} | BTC: ${btcFree} synced to Firebase.`);
+    } else {
+      console.log("⚠️ [Balance Sync] Could not fetch balances from Binance response.");
+    }
+  } catch (err) {
+    console.error("❌ [Balance Sync Error]:", err.message);
+  }
+}
+
 // Binance Testnet पर ऑर्डर प्लेस करने का फंक्शन (Paper Trading)
 async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
   if (!apiKey || apiKey.includes("mock") || !apiSecret) {
@@ -43,7 +99,8 @@ async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
 // मुख्य फ़ंक्शन जो गिटहब पर हर 5 मिनट में चलेगा
 async function run24x7Bot() {
   console.log("🚀 Starting 24x7 Strategy & Paper Trading Runner...");
-  const FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/.json";
+  const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
+  const FIREBASE_URL = `${FIREBASE_BASE_URL}/.json`;
 
   try {
     // 1. फायरबेस से पूरा डेटा (सेटिंग्स + स्ट्रेटजी) एक साथ खींचना
@@ -55,6 +112,9 @@ async function run24x7Bot() {
 
     const { telegramToken, telegramChatId, riskPerTrade, binanceApiKey, binanceApiSecret } = dbData.app_settings;
     const strategies = dbData.trading_strategies || {};
+
+    // 🔄 [SYNC START] स्ट्रेटजी चेक करने से पहले बाइनेंस बैलेंस को फायरबेस में सिंक करना
+    await syncBalanceToFirebase(binanceApiKey, binanceApiSecret, FIREBASE_BASE_URL);
 
     if (!telegramToken || !telegramChatId) {
       console.log("❌ Telegram credentials missing!");
@@ -71,7 +131,7 @@ async function run24x7Bot() {
       return;
     }
 
-    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर और प्राइस चेक करना
+    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर और突破 चेक करना
     for (const strat of activeStrategies) {
       console.log(`🔍 Checking Active Strategy: ${strat.name} for ${strat.pair}`);
 
@@ -86,9 +146,7 @@ async function run24x7Bot() {
 
       /* 
          📉 [क्रॉसओवर लॉजिक] 
-         यहाँ हम आपके 'strategy.js' का असली इंडिकेटर मैथ डालेंगे।
-         अभी टेस्टिंग के लिए हम एक 50/50 चांस (Simulated Crossover) बना रहे हैं,
-         ताकि आपको तुरंत पता चल सके कि बाय/सेल एक्शन ट्रिगर हो रहा है या नहीं।
+         testing के लिए 50/50 चांस
       */
       const mockSignal = Math.random() > 0.5 ? "BUY" : "SELL"; 
       console.log(`🎯 Signal Detected for ${strat.pair}: ${mockSignal} @ $${currentPrice}`);
@@ -99,6 +157,9 @@ async function run24x7Bot() {
       // 5. सीधे पेपर ट्रेडिंग एक्सचेंज पर ऑर्डर मारना
       const orderResult = await placeTestnetOrder(strat.pair, mockSignal, tradeQty, binanceApiKey, binanceApiSecret);
       
+      // ऑर्डर के तुरंत बाद बैलेंस दोबारा अपडेट करें ताकि वेबसाइट पर लेटेस्ट दिखे
+      await syncBalanceToFirebase(binanceApiKey, binanceApiSecret, FIREBASE_BASE_URL);
+
       // 6. टेलीग्राम पर प्रो-लेवल अलर्ट भेजना
       const emoji = mockSignal === "BUY" ? "🟢" : "🔴";
       const alertMessage = `${emoji} *STRATEGY CROSSOVER DETECTED*\n\n` +
