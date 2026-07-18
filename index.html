@@ -1,52 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ApexTraders V2</title>
-  <link rel="stylesheet" href="assets/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexTraders - Only Crypto Bot</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div id="app">Loading ApexTraders V2...</div>
+<body style="margin: 0; background: #0f172a; color: #fff; font-family: sans-serif;">
 
-  <!-- TRADINGVIEW CHART CORE -->
-  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <!-- पूरा ऐप इसी कंटेनर के अंदर रेंडर होगा -->
+    <div id="app"></div>
 
-  <!-- CRYPTOJS ENGINE (For Binance API Signatures) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Firebase Core SDK (Realtime Database Connection) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- FIREBASE ENGINE (Must load before your app scripts) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- एप्लीकेशन कोर राउटर स्क्रिप्ट -->
+    <script src="assets/js/main.js"></script>
 
-  <!-- CORE & GLOBAL ENGINE -->
-  <script src="assets/js/core.js"></script>
-
-  <!-- CRYPTO MODULE TABS -->
-  <script src="assets/js/crypto/dashboard.js"></script>
-  <script src="assets/js/crypto/trading.js"></script>
-  <script src="assets/js/crypto/strategies.js"></script>
-  <script src="assets/js/crypto/backtest.js"></script>
-  <script src="assets/js/crypto/settings.js"></script>
-  <script src="assets/js/crypto/logs.js"></script>
-
-  <!-- STOCKS MODULE TABS -->
-  <script src="assets/js/stocks/dashboard.js"></script>
-  <script src="assets/js/stocks/trading.js"></script>
-  <script src="assets/js/stocks/strategies.js"></script>
-  <script src="assets/js/stocks/backtest.js"></script>
-  <script src="assets/js/stocks/settings.js"></script>
-  <script src="assets/js/stocks/logs.js"></script>
-
-  <!-- COMMODITIES MODULE TABS -->
-  <script src="assets/js/commodities/dashboard.js"></script>
-  <script src="assets/js/commodities/trading.js"></script>
-  <script src="assets/js/commodities/strategies.js"></script>
-  <script src="assets/js/commodities/backtest.js"></script>
-  <script src="assets/js/commodities/settings.js"></script>
-  <script src="assets/js/commodities/logs.js"></script>
-
-  <!-- APP BOOTSTRAPPER (Always Last) -->
-  <script src="assets/js/app.js"></script>
+    <!-- क्रिप्टो टैब मॉड्यूल्स -->
+    <script src="assets/js/crypto/dashboard.js"></script>
+    <script src="assets/js/crypto/trading.js"></script>
+    <script src="assets/js/crypto/strategies.js"></script>
+    <script src="assets/js/crypto/backtest.js"></script>
+    <script src="assets/js/crypto/settings.js"></script>
+    <script src="assets/js/crypto/logs.js"></script>
 </body>
 </html>
