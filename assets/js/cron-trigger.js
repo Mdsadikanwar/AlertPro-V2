@@ -17,9 +17,13 @@ function makeRequest(url, options = {}) {
   });
 }
 
-// 💰 [NEW] बाइनेंस टेस्टनेट से बैलेंस लाकर फायरबेस में अपडेट करने का फंक्शन
+// 💰 बाइनेंस टेस्टनेट से बैलेंस लाकर फायरबेस में अपडेट करने का फंक्शन
 async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
-  if (!apiKey || apiKey.includes("mock") || !apiSecret) {
+  // 🔍 फिक्स: अगर फायरबेस सेटिंग्स में कीज नहीं हैं, तो गिटहब सीक्रेट्स (process.env) से उठाएगा
+  const BINANCE_KEY = apiKey || process.env.BINANCE_TESTNET_API_KEY;
+  const BINANCE_SECRET = apiSecret || process.env.BINANCE_TESTNET_SECRET_KEY;
+
+  if (!BINANCE_KEY || BINANCE_KEY.includes("mock") || !BINANCE_SECRET) {
     console.log("🎰 [MOCK BALANCE] Keys missing/mock. Simulating $10,000 USDT in Firebase...");
     const mockPayload = {
       usdt: "10000.00",
@@ -38,13 +42,13 @@ async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
   const path = "/api/v3/account";
   const timestamp = Date.now();
   const queryString = `timestamp=${timestamp}`;
-  const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+  const signature = crypto.createHmac('sha256', BINANCE_SECRET).update(queryString).digest('hex');
   const url = `${baseUrl}${path}?${queryString}&signature=${signature}`;
 
   try {
     const accountData = await makeRequest(url, {
       method: 'GET',
-      headers: { 'X-MBX-APIKEY': apiKey }
+      headers: { 'X-MBX-APIKEY': BINANCE_KEY }
     });
 
     if (accountData && accountData.balances) {
@@ -75,7 +79,10 @@ async function syncBalanceToFirebase(apiKey, apiSecret, firebaseBaseUrl) {
 
 // Binance Testnet पर ऑर्डर प्लेस करने का फंक्शन (Paper Trading)
 async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
-  if (!apiKey || apiKey.includes("mock") || !apiSecret) {
+  const BINANCE_KEY = apiKey || process.env.BINANCE_TESTNET_API_KEY;
+  const BINANCE_SECRET = apiSecret || process.env.BINANCE_TESTNET_SECRET_KEY;
+
+  if (!BINANCE_KEY || BINANCE_KEY.includes("mock") || !BINANCE_SECRET) {
     console.log(`🎰 [MOCK TRADE] Simulating ${side} order for ${qty} ${symbol} on Testnet...`);
     return { mock: true, orderId: "MOCK_" + Date.now(), status: "FILLED" };
   }
@@ -85,14 +92,14 @@ async function placeTestnetOrder(symbol, side, qty, apiKey, apiSecret) {
   const timestamp = Date.now();
   
   let queryString = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${qty}&timestamp=${timestamp}`;
-  const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+  const signature = crypto.createHmac('sha256', BINANCE_SECRET).update(queryString).digest('hex');
   queryString += `&signature=${signature}`;
 
   const url = `${baseUrl}${path}?${queryString}`;
   
   return await makeRequest(url, {
     method: 'POST',
-    headers: { 'X-MBX-APIKEY': apiKey }
+    headers: { 'X-MBX-APIKEY': BINANCE_KEY }
   });
 }
 
@@ -131,7 +138,7 @@ async function run24x7Bot() {
       return;
     }
 
-    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर और突破 चेक करना
+    // 3. हर एक्टिव स्ट्रेटजी के लिए क्रॉसओवर चेक करना
     for (const strat of activeStrategies) {
       console.log(`🔍 Checking Active Strategy: ${strat.name} for ${strat.pair}`);
 
@@ -140,7 +147,7 @@ async function run24x7Bot() {
       const currentPrice = parseFloat(marketData.USD);
 
       if (!currentPrice || isNaN(currentPrice)) {
-        console.log(`⚠️ Price fetch failed for ${strat.pair}, skipping...`);
+        `⚠️ Price fetch failed for ${strat.pair}, skipping...`
         continue;
       }
 
