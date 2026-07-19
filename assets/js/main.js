@@ -3,7 +3,6 @@ const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
 window.onload = function() {
     executeTabRender();
-    // 🤖 पायथन खत्म! अब यही से हर 10 सेकंड में ऑटो-ट्रेडिंग इंजन चलेगा
     startJsCryptoEngine();
 };
 
@@ -22,19 +21,28 @@ function executeTabRender() {
     if (activeTab === 'logs') typeof renderCryptoLogs === 'function' && renderCryptoLogs();
 }
 
+// 📱 मोबाइल-फ्रेंडली नेविगेशन बार (Scrollable Tabs)
 function getMarketNavbar() {
     const tabs = ['dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'];
     return `
-      <div style="background: #1e293b; padding: 15px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-        <div><h2 style="color: #38bdf8; margin: 0; font-size: 20px;">⚡ ApexTraders [JS ENGINE]</h2></div>
-        <div style="display: flex; gap: 5px;">
-          ${tabs.map(tab => `<button onclick="switchTab('${tab}')" style="background: none; border: none; padding: 8px 16px; color: ${tab === activeTab ? '#38bdf8' : '#94a3b8'}; border-bottom: ${tab === activeTab ? '3px solid #38bdf8' : 'none'}; cursor: pointer; font-weight: bold; text-transform: uppercase;">${tab}</button>`).join('')}
+      <div style="background: #1e293b; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <!-- Top Bar -->
+        <div style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #1e293b;">
+          <h2 style="color: #38bdf8; margin: 0; font-size: 18px; letter-spacing: 0.5px;">⚡ ApexTraders Mobile</h2>
+        </div>
+        <!-- Scrollable Tabs for Mobile Screen -->
+        <div style="display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; padding: 5px 10px; -webkit-overflow-scrolling: touch;">
+          ${tabs.map(tab => `
+            <button onclick="switchTab('${tab}')" style="background: #111827; border: 1px solid ${tab === activeTab ? '#38bdf8' : '#334155'}; padding: 8px 16px; color: ${tab === activeTab ? '#38bdf8' : '#94a3b8'}; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 12px; text-transform: uppercase; flex: 0 0 auto; margin-bottom: 5px;">
+              ${tab}
+            </button>
+          `).join('')}
         </div>
       </div>
     `;
 }
 
-// 🚀 प्योर जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन
+// 🚀 इन-बिल्ट जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन
 async function startJsCryptoEngine() {
     setInterval(async () => {
         try {
@@ -51,7 +59,7 @@ async function startJsCryptoEngine() {
                 if (strat.status !== 'Active') continue;
 
                 const symbol = pair.replace('USDT', '');
-                const priceRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${symbol}&tsyms=USD`);
+                const priceRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym={symbol}&tsyms=USD`);
                 const priceData = await priceRes.json();
                 const currentPrice = float(priceData.USD);
 
@@ -71,7 +79,6 @@ async function startJsCryptoEngine() {
                 if (priceChangePercent >= sellThreshold && lastAction === 'BUY') signal = 'SELL';
 
                 if (signal) {
-                    // फायरबेस में ट्रेड डालो
                     await fetch(`${FIREBASE_BASE_URL}/live_trades.json`, {
                         method: 'POST',
                         body: JSON.stringify({
@@ -85,13 +92,11 @@ async function startJsCryptoEngine() {
                         })
                     });
 
-                    // लास्ट प्राइस सिंक करो
                     await fetch(`${FIREBASE_BASE_URL}/last_executed_prices/${pair}.json`, {
                         method: 'PUT',
                         body: JSON.stringify({ price: currentPrice, action: signal, timestamp: new Date().toISOString() })
                     });
 
-                    // टेलीग्राम अलर्ट
                     if (settings.telegramToken && settings.telegramChatId) {
                         const msg = `${signal === 'BUY' ? '🟢' : '🔴'} *JS TRADE EXECUTED*\n\n• *Pair:* ${pair}\n• *Action:* ${signal}\n• *Price:* $${currentPrice}`;
                         await fetch(`https://api.telegram.org/bot${settings.telegramToken}/sendMessage`, {
@@ -103,6 +108,6 @@ async function startJsCryptoEngine() {
                 }
             }
         } catch (e) { console.log("Engine error:", e); }
-    }, 10000); // हर 10 सेकंड में ऑटो-चेक
+    }, 10000);
 }
 function float(v) { return parseFloat(v) || 0; }
