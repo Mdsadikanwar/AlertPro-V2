@@ -5,12 +5,10 @@ function renderCryptoBacktest() {
     root.innerHTML = `
         ${getMarketNavbar()}
         <div style="padding: 30px; max-width: 1200px; margin: 0 auto; font-family: sans-serif;">
-            <h2 style="color: #38bdf8; margin-bottom: 20px;">⏳ Backtest Engine Simulator</h2>
-            <div style="background: #111827; padding: 30px; border-radius: 12px; border: 1px solid #1e293b; text-align: center;">
-                <p style="color: #94a3b8;">Simulate strategy configurations across 30 days of historical spot market candle data.</p>
-                <button onclick="alert('Starting core simulation... check console logs.')" style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px;">
-                    ⚡ Run Backtest Simulation
-                </button>
+            <h2 style="color: #38bdf8; margin-bottom: 20px;">🧪 Historical Backtester</h2>
+            <div style="background: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; color: #94a3b8;">
+                <p>Backtest your JS strategy parameters using historical crypto candles directly in-browser.</p>
+                <button onclick="alert('⚡ Fetching historical crypto data... Features loading!')" style="background: #1e293b; color: white; border: 1px solid #334155; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">Run Simulation</button>
             </div>
         </div>
     `;
