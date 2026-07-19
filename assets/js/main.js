@@ -1,8 +1,10 @@
+// 📱 ग्लोबल स्टेट और फायरबेस कॉन्फिग
 var activeTab = localStorage.getItem('apex_active_tab') || 'dashboard';
 const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
 window.onload = function() {
     executeTabRender();
+    // 🚀 इन-बिल्ट जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन चालू करें
     startJsCryptoEngine();
 };
 
@@ -21,19 +23,19 @@ function executeTabRender() {
     if (activeTab === 'logs') typeof renderCryptoLogs === 'function' && renderCryptoLogs();
 }
 
-// 📱 मोबाइल-फ्रेंडली नेविगेशन बार (Scrollable Tabs)
+// 📱 मोबाइल-फ्रेंडली फिक्स नेविगेशन बार (No Scrolling, Full Screen Grid)
 function getMarketNavbar() {
     const tabs = ['dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'];
     return `
-      <div style="background: #1e293b; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-        <!-- Top Bar -->
-        <div style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #1e293b;">
-          <h2 style="color: #38bdf8; margin: 0; font-size: 18px; letter-spacing: 0.5px;">⚡ ApexTraders Mobile</h2>
+      <div style="background: #1e293b; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: sans-serif;">
+        <!-- Top Title Bar -->
+        <div style="padding: 10px 15px; text-align: center; border-bottom: 1px solid #334155;">
+          <h2 style="color: #38bdf8; margin: 0; font-size: 16px; letter-spacing: 0.5px;">⚡ APEX TRADERS</h2>
         </div>
-        <!-- Scrollable Tabs for Mobile Screen -->
-        <div style="display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; padding: 5px 10px; -webkit-overflow-scrolling: touch;">
+        <!-- Fixed Grid: 3 Buttons in a Row (2 Rows Total) - No Slide! -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px;">
           ${tabs.map(tab => `
-            <button onclick="switchTab('${tab}')" style="background: #111827; border: 1px solid ${tab === activeTab ? '#38bdf8' : '#334155'}; padding: 8px 16px; color: ${tab === activeTab ? '#38bdf8' : '#94a3b8'}; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 12px; text-transform: uppercase; flex: 0 0 auto; margin-bottom: 5px;">
+            <button onclick="switchTab('${tab}')" style="background: ${tab === activeTab ? '#38bdf8' : '#111827'}; border: 1px solid ${tab === activeTab ? '#38bdf8' : '#334155'}; padding: 10px 2px; color: ${tab === activeTab ? '#0f172a' : '#94a3b8'}; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: center; transition: all 0.2s ease;">
               ${tab}
             </button>
           `).join('')}
@@ -42,7 +44,7 @@ function getMarketNavbar() {
     `;
 }
 
-// 🚀 इन-बिल्ट जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन
+// 🤖 प्योर जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन (हर 10 सेकंड में बैकग्राउंड रन)
 async function startJsCryptoEngine() {
     setInterval(async () => {
         try {
@@ -59,7 +61,7 @@ async function startJsCryptoEngine() {
                 if (strat.status !== 'Active') continue;
 
                 const symbol = pair.replace('USDT', '');
-                const priceRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym={symbol}&tsyms=USD`);
+                const priceRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${symbol}&tsyms=USD`);
                 const priceData = await priceRes.json();
                 const currentPrice = float(priceData.USD);
 
@@ -79,6 +81,7 @@ async function startJsCryptoEngine() {
                 if (priceChangePercent >= sellThreshold && lastAction === 'BUY') signal = 'SELL';
 
                 if (signal) {
+                    // फायरबेस में लाइव ट्रेड एंट्री
                     await fetch(`${FIREBASE_BASE_URL}/live_trades.json`, {
                         method: 'POST',
                         body: JSON.stringify({
@@ -92,11 +95,13 @@ async function startJsCryptoEngine() {
                         })
                     });
 
+                    // लास्ट प्राइस सिंक करें
                     await fetch(`${FIREBASE_BASE_URL}/last_executed_prices/${pair}.json`, {
                         method: 'PUT',
                         body: JSON.stringify({ price: currentPrice, action: signal, timestamp: new Date().toISOString() })
                     });
 
+                    // टेलीग्राम अलर्ट सिस्टम
                     if (settings.telegramToken && settings.telegramChatId) {
                         const msg = `${signal === 'BUY' ? '🟢' : '🔴'} *JS TRADE EXECUTED*\n\n• *Pair:* ${pair}\n• *Action:* ${signal}\n• *Price:* $${currentPrice}`;
                         await fetch(`https://api.telegram.org/bot${settings.telegramToken}/sendMessage`, {
@@ -108,6 +113,7 @@ async function startJsCryptoEngine() {
                 }
             }
         } catch (e) { console.log("Engine error:", e); }
-    }, 10000);
+    }, 10000); // हर 10 सेकंड में रन होगा
 }
+
 function float(v) { return parseFloat(v) || 0; }
