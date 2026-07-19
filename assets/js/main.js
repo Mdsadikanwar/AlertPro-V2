@@ -4,7 +4,7 @@ const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
 window.onload = function() {
     executeTabRender();
-    // 🚀 इन-बिल्ट जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन चालू करें
+    // 🚀 बोट ट्रेडिंग इंजन चालू करें (यह स्ट्रेटेजी से सिग्नल लेकर बोट ट्रेडिंग टैब में ट्रेड डालेगा)
     startJsCryptoEngine();
 };
 
@@ -16,35 +16,47 @@ function switchTab(tabId) {
 
 function executeTabRender() {
     if (activeTab === 'dashboard') typeof renderCryptoDashboard === 'function' && renderCryptoDashboard();
-    if (activeTab === 'trading') typeof renderCryptoTrading === 'function' && renderCryptoTrading();
+    if (activeTab === 'paper_trade') typeof renderPaperTrading === 'function' && renderPaperTrading();
+    if (activeTab === 'bot_trade') typeof renderBotTrading === 'function' && renderBotTrading();
     if (activeTab === 'strategies') typeof renderCryptoStrategies === 'function' && renderCryptoStrategies();
     if (activeTab === 'backtest') typeof renderCryptoBacktest === 'function' && renderCryptoBacktest();
     if (activeTab === 'settings') typeof renderCryptoSettings === 'function' && renderCryptoSettings();
     if (activeTab === 'logs') typeof renderCryptoLogs === 'function' && renderCryptoLogs();
 }
 
-// 📱 मोबाइल-फ्रेंडली फिक्स नेविगेशन बार (No Scrolling, Full Screen Grid)
+// 📱 मोबाइल-फ्रेंडली फिक्स नेविगेशन बार (7 बटन ग्रिड - No Slide!)
 function getMarketNavbar() {
-    const tabs = ['dashboard', 'trading', 'strategies', 'backtest', 'settings', 'logs'];
+    // ट्रेडिंग को हटाकर पेपर और बोट ट्रेडिंग अलग कर दिया
+    const tabs = ['dashboard', 'paper_trade', 'bot_trade', 'strategies', 'backtest', 'settings', 'logs'];
     return `
       <div style="background: #1e293b; border-bottom: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: sans-serif;">
         <!-- Top Title Bar -->
         <div style="padding: 10px 15px; text-align: center; border-bottom: 1px solid #334155;">
-          <h2 style="color: #38bdf8; margin: 0; font-size: 16px; letter-spacing: 0.5px;">⚡ APEX TRADERS</h2>
+          <h2 style="color: #38bdf8; margin: 0; font-size: 16px; letter-spacing: 0.5px;">⚡ APEX TRADERS CLOUD</h2>
         </div>
-        <!-- Fixed Grid: 3 Buttons in a Row (2 Rows Total) - No Slide! -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px;">
-          ${tabs.map(tab => `
-            <button onclick="switchTab('${tab}')" style="background: ${tab === activeTab ? '#38bdf8' : '#111827'}; border: 1px solid ${tab === activeTab ? '#38bdf8' : '#334155'}; padding: 10px 2px; color: ${tab === activeTab ? '#0f172a' : '#94a3b8'}; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: center; transition: all 0.2s ease;">
-              ${tab}
-            </button>
-          `).join('')}
+        <!-- Fixed Mobile Grid: बटन स्क्रीन पर फिक्स रहेंगे -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 6px;">
+          ${tabs.map((tab, idx) => {
+            // बोट ट्रेड और पेपर ट्रेड का नाम छोटा और मोबाइल फ्रेंडली दिखे इसलिए डिस्प्ले नेम बदला
+            let displayName = tab.replace('_', ' ');
+            if(tab === 'paper_trade') displayName = '📝 Paper';
+            if(tab === 'bot_trade') displayName = '🤖 Bot Trade';
+            
+            // आख़िरी बटन को पूरी चौड़ाई देने के लिए (ताकि 3-3-1 का परफेक्ट ग्रिड बने)
+            const styleFix = idx === 6 ? 'grid-column: span 3;' : '';
+            
+            return `
+              <button onclick="switchTab('${tab}')" style="${styleFix} background: ${tab === activeTab ? '#38bdf8' : '#111827'}; border: 1px solid ${tab === activeTab ? '#38bdf8' : '#334155'}; padding: 12px 2px; color: ${tab === activeTab ? '#0f172a' : '#94a3b8'}; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; text-align: center;">
+                ${displayName}
+              </button>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
 }
 
-// 🤖 प्योर जावास्क्रिप्ट ऑटो-ट्रेडिंग इंजन (हर 10 सेकंड में बैकग्राउंड रन)
+// 🤖 बोट ट्रेडिंग इंजन (जो स्ट्रेटेजी टैब से सिग्नल लेकर 'bot_trades' में सेव करेगा)
 async function startJsCryptoEngine() {
     setInterval(async () => {
         try {
@@ -81,29 +93,26 @@ async function startJsCryptoEngine() {
                 if (priceChangePercent >= sellThreshold && lastAction === 'BUY') signal = 'SELL';
 
                 if (signal) {
-                    // फायरबेस में लाइव ट्रेड एंट्री
-                    await fetch(`${FIREBASE_BASE_URL}/live_trades.json`, {
+                    // 🤖 बोट ट्रेडिंग डेटाबेस एंट्री
+                    await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                         method: 'POST',
                         body: JSON.stringify({
                             strategyName: strat.name,
                             pair: pair,
                             action: signal,
                             price: currentPrice,
-                            quantity: 0.005,
                             timestamp: new Date().toISOString(),
                             status: "FILLED"
                         })
                     });
 
-                    // लास्ट प्राइस सिंक करें
                     await fetch(`${FIREBASE_BASE_URL}/last_executed_prices/${pair}.json`, {
                         method: 'PUT',
                         body: JSON.stringify({ price: currentPrice, action: signal, timestamp: new Date().toISOString() })
                     });
 
-                    // टेलीग्राम अलर्ट सिस्टम
                     if (settings.telegramToken && settings.telegramChatId) {
-                        const msg = `${signal === 'BUY' ? '🟢' : '🔴'} *JS TRADE EXECUTED*\n\n• *Pair:* ${pair}\n• *Action:* ${signal}\n• *Price:* $${currentPrice}`;
+                        const msg = `🤖 *BOT TRADE EXECUTED*\n\n• *Pair:* ${pair}\n• *Action:* ${signal}\n• *Price:* $${currentPrice}`;
                         await fetch(`https://api.telegram.org/bot${settings.telegramToken}/sendMessage`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -112,8 +121,8 @@ async function startJsCryptoEngine() {
                     }
                 }
             }
-        } catch (e) { console.log("Engine error:", e); }
-    }, 10000); // हर 10 सेकंड में रन होगा
+        } catch (e) { console.log("Bot Engine error:", e); }
+    }, 10000);
 }
 
 function float(v) { return parseFloat(v) || 0; }
