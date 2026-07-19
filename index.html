@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexTraders - Only Crypto JS Bot</title>
+    <title>ApexTraders Mobile Hub</title>
 </head>
-<body style="margin: 0; background: #0f172a; color: #fff; font-family: sans-serif;">
+<body style="margin: 0; background: #0f172a; color: #fff; font-family: sans-serif; -webkit-tap-highlight-color: transparent;">
 
+    <!-- मोबाइल यूआई कंटेनर -->
     <div id="app"></div>
 
-    <!-- Firebase Links -->
+    <!-- Firebase SDK Core Links -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- मास्टर और क्रिप्टो स्क्रिप्ट्स -->
+    <!-- मास्टर कंट्रोलर स्क्रिप्ट -->
     <script src="assets/js/main.js"></script>
+
+    <!-- मोबाइल-फ्रेंडली टैब स्क्रिप्ट्स -->
     <script src="assets/js/crypto/dashboard.js"></script>
-    <script src="assets/js/crypto/trading.js"></script>
+    <script src="assets/js/crypto/paper_trading.js"></script>
+    <script src="assets/js/crypto/bot_trading.js"></script>
     <script src="assets/js/crypto/strategies.js"></script>
     <script src="assets/js/crypto/backtest.js"></script>
     <script src="assets/js/crypto/settings.js"></script>
