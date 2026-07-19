@@ -2,7 +2,6 @@ async function renderPaperTrading() {
     const root = document.getElementById('app');
     if (!root) return;
 
-    // मोबाइल यूआई लेआउट
     root.innerHTML = `
         ${getMarketNavbar()}
         <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc;">
@@ -13,7 +12,7 @@ async function renderPaperTrading() {
                 <span style="background: #22c55e; color: #0f172a; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold;">LIVE SIMULATION</span>
             </div>
 
-            <!-- 💰 एडवांस पीएनएल और लाइव मार्जिन डैशबोर्ड -->
+            <!-- Dashboard Card -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
                 <div>
                     <span style="color: #64748b; font-size: 10px; font-weight: bold; text-transform: uppercase; display:block;">Available Balance</span>
@@ -29,11 +28,10 @@ async function renderPaperTrading() {
                 </div>
             </div>
 
-            <!-- 🛒 प्रो ऑर्डर फॉर्म -->
+            <!-- Order Form -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
                 <h3 style="color: #94a3b8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 8px; letter-spacing: 0.5px;">🚀 Institutional Order Form</h3>
                 
-                <!-- 1. टॉप 10 कॉइंस ड्रॉपडाउन -->
                 <div style="margin-bottom: 12px;">
                     <label style="color: #64748b; display: block; margin-bottom: 5px; font-size: 10px; font-weight:bold;">ASSET (TOP 10 CRYPTO)</label>
                     <select id="paperPair" style="width: 100%; background: #1e293b; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; outline: none;">
@@ -50,11 +48,9 @@ async function renderPaperTrading() {
                     </select>
                 </div>
 
-                <!-- 2. अमाउंट और टाइप (USDT या कॉइन बेस) -->
                 <div style="margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <label style="color: #64748b; font-size: 10px; font-weight:bold;">ORDER SIZE</label>
-                        <!-- टाइप बदलने का टॉगल -->
                         <select id="amountType" onchange="toggleAmountLabel()" style="background: #1e293b; border: 1px solid #334155; color: #38bdf8; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; outline: none;">
                             <option value="USDT">By USDT ($)</option>
                             <option value="COIN">By Coin Qty</option>
@@ -64,7 +60,6 @@ async function renderPaperTrading() {
                     <span id="amountHint" style="color: #64748b; font-size: 10px; display: block; margin-top: 4px;">ट्रेड साइज $ में कटाई होगी।</span>
                 </div>
 
-                <!-- 3. रिस्क मैनेजमेंट (Risk to Reward Ratio / Optional SL-TP) -->
                 <div style="margin-bottom: 15px; border-top: 1px solid #1e293b; padding-top: 10px;">
                     <label style="color: #64748b; display: block; margin-bottom: 5px; font-size: 10px; font-weight:bold;">RISK MANAGEMENT (R:R RATIO)</label>
                     <select id="rrRatio" onchange="toggleCustomRiskFields()" style="width: 100%; background: #1e293b; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; outline: none; margin-bottom: 10px;">
@@ -75,7 +70,6 @@ async function renderPaperTrading() {
                         <option value="custom">Custom SL / TP (%)</option>
                     </select>
 
-                    <!-- कस्टम SL/TP इनपुट्स (तभी दिखेंगे जब कस्टम चुनोगे) -->
                     <div id="customRiskFields" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
                             <label style="color: #64748b; font-size: 10px;">STOP LOSS (%)</label>
@@ -88,14 +82,13 @@ async function renderPaperTrading() {
                     </div>
                 </div>
 
-                <!-- बाय/सेल बटन्स -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <button onclick="submitAdvancedPaperTrade('BUY')" style="background: #22c55e; color: #0f172a; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">🟢 BUY / LONG</button>
                     <button onclick="submitAdvancedPaperTrade('SELL')" style="background: #ef4444; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">🔴 SELL / SHORT</button>
                 </div>
             </div>
 
-            <!-- 📜 लाइव पोजीशन्स और हिस्ट्री -->
+            <!-- Positions & History Log -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 15px;">
                 <h3 style="color: #e2e8f0; margin-top: 0; margin-bottom: 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📜 Positions & History Log</h3>
                 <div id="paperOrdersList" style="display: flex; flex-direction: column; gap: 10px; max-height: 350px; overflow-y: auto;">
@@ -132,18 +125,31 @@ async function submitAdvancedPaperTrade(side) {
     const amountType = document.getElementById('amountType').value;
     const rr = document.getElementById('rrRatio').value;
 
-    if(amountInput <= 0) return alert("❌ वैलिड अमाउंट डालो भाई!");
+    if(amountInput <= 0) return alert("❌ वलीड अमाउंट डालो भाई!");
 
-    // लाइव टोकन रेट फेजिंग
     const symbol = pair.replace('USDT', '');
     let livePrice = 0;
-    try {
-        const pRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${symbol}&tsyms=USD`);
-        const pData = await pRes.json();
-        livePrice = parseFloat(pData.USD) || 0;
-    } catch(e) { return alert("❌ लाइव रेट फेच नहीं हो पाया!"); }
 
-    // कैलकुलेशन: अगर इनपुट कॉइन में है तो USDT निकालो, और अगर USDT में है तो कॉइन निकालो
+    // 🛠️ फिक्स: स्ट्रिंग लिटरल्स को ठीक किया और बिना API की के बिना रुकावट के लिए बाइनेंस पब्लिक API बैकअप जोड़ा
+    try {
+        const pRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${pair}`);
+        const pData = await pRes.json();
+        livePrice = parseFloat(pData.price) || 0;
+    } catch(e) {
+        // बैकअप API अगर बाइनेंस ब्लॉक हो
+        try {
+            const pRes = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${symbol}&tsyms=USD`);
+            const pData = await pRes.json();
+            livePrice = parseFloat(pData.USD) || 0;
+        } catch(err) {
+            livePrice = 0;
+        }
+    }
+
+    if (!livePrice || livePrice === 0) {
+        return alert("❌ लाइव रेट फेच नहीं हो पाया! कृपया इंटरनेट या API चेक करें।");
+    }
+
     let finalUsdtValue = 0;
     let finalCoinQty = 0;
 
@@ -155,7 +161,6 @@ async function submitAdvancedPaperTrade(side) {
         finalUsdtValue = amountInput * livePrice;
     }
 
-    // ऑटो रिस्क मैनेजमेंट टारगेट सेट करना
     let slPercent = 0, tpPercent = 0;
     if (rr === '1:1') { slPercent = 1; tpPercent = 1; }
     else if (rr === '1:2') { slPercent = 1; tpPercent = 2; }
@@ -165,7 +170,6 @@ async function submitAdvancedPaperTrade(side) {
         tpPercent = parseFloat(document.getElementById('customTP').value) || 0;
     }
 
-    // डेटाबेस ऑब्जेक्ट पैकेट
     const tradePacket = {
         pair: pair,
         action: side,
@@ -207,6 +211,8 @@ async function loadAdvancedPaperTrades() {
             listCont.innerHTML = `<p style="color: #64748b; font-size: 12px; text-align: center; margin: 15px 0;">No active positions or logs found.</p>`;
             document.getElementById('paperBalance').innerText = `$${initialBalance.toFixed(2)}`;
             document.getElementById('paperPnL').innerText = `+$0.00`;
+            document.getElementById('usedMargin').innerText = `$0.00`;
+            document.getElementById('activeTradesCount').innerText = "0";
             return;
         }
 
@@ -221,14 +227,12 @@ async function loadAdvancedPaperTrades() {
             usedMargin += margin;
             activeCount++;
 
-            // रैंडम सिमुलेटेड PnL या असली जैसा फील देने के लिए + / - रेंडर (ओरिजिनल जैसा दिखने के लिए)
-            // भविष्य में जब क्लोज बटन दबेगा तब रियल रियलाइज्ड PnL यहाँ जुड़ेगा
-            let mockPnl = (margin * 0.015).toFixed(2); // एक डमी लाइव PnL फील
+            let mockPnl = (margin * 0.015).toFixed(2); 
             if(!isBuy) mockPnl = (mockPnl * -1).toFixed(2);
             totalPnL += parseFloat(mockPnl);
 
             html += `
-                <div style="background: #1e293b; border-left: 4px solid ${isBuy ? '#22c55e' : '#ef4444'}; padding: 12px; border-radius: 8px; font-size: 12px;">
+                <div style="background: #1e293b; border-left: 4px solid ${isBuy ? '#22c55e' : '#ef4444'}; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 5px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <div>
                             <span style="background: ${isBuy ? '#22c55e' : '#ef4444'}; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">${t.action}</span>
@@ -251,7 +255,6 @@ async function loadAdvancedPaperTrades() {
 
         listCont.innerHTML = html;
         
-        // डैशबोर्ड कार्ड्स अपडेट
         document.getElementById('paperBalance').innerText = `$${(initialBalance - usedMargin + totalPnL).toFixed(2)}`;
         const pnlBox = document.getElementById('paperPnL');
         pnlBox.innerText = `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
