@@ -13,19 +13,19 @@ async function renderCryptoStrategies() {
                 </div>
             </div>
 
-            <!-- ➕ नई स्ट्रेटेजी बनाने का फॉर्म -->
+            <!-- ➕ नई स्ट्रेटेजी फॉर्म -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
                 <h3 style="color: #e2e8f0; margin-top: 0; margin-bottom: 15px; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">⚙️ Create Bot Logic</h3>
                 
-                <!-- 1️⃣ सबसे ऊपर स्ट्रेटेजी मोड / सोर्स सेलेक्ट करने का ड्रॉपडाउन -->
-                <div style="margin-bottom: 12px;">
-                    <label style="color: #38bdf8; display: block; margin-bottom: 5px; font-size: 11px; font-weight: bold;">🧠 STRATEGY MODE / SOURCE</label>
-                    <select id="stratMode" onchange="toggleStrategyModeFields()" style="width: 100%; background: #1e293b; border: 1px solid #38bdf8; color: white; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; outline: none;">
-                        <option value="PERCENTAGE">📊 Percentage Rise/Drop (Default - 0.2%)</option>
+                <!-- 🎯 1. सबसे पहला ड्रॉपडाउन (STRATEGY MODE) -->
+                <div style="margin-bottom: 15px; background: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #38bdf8;">
+                    <label style="color: #38bdf8; display: block; margin-bottom: 6px; font-size: 11px; font-weight: bold;">SELECT STRATEGY MODE / SOURCE Mode</label>
+                    <select id="stratMode" onchange="toggleStrategyModeFields()" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; outline: none; cursor: pointer;">
+                        <option value="PERCENTAGE">📊 Percentage Rise / Drop Mode (Default 0.2%)</option>
                         <option value="CANDLESTICK">🕯️ Candlestick Pattern / Price Action</option>
-                        <option value="AI_BASED">🤖 AI-Based Model / Machine Learning Signal</option>
-                        <option value="CUSTOM_TEXT">✍️ Custom Rule (Write in Plain English)</option>
-                        <option value="PINE_SCRIPT">📜 TradingView PineScript / AI Script Paste</option>
+                        <option value="AI_BASED">🤖 AI-Based Model / Machine Learning Logic</option>
+                        <option value="CUSTOM_TEXT">✍️ Custom Logic (Write in Plain English)</option>
+                        <option value="PINE_SCRIPT">📜 TradingView PineScript / Copied Script</option>
                     </select>
                 </div>
 
@@ -44,7 +44,7 @@ async function renderCryptoStrategies() {
                     </select>
                 </div>
 
-                <!-- स्टैंडर्ड कंडीशंस ग्रिड (Default Percentage Mode) -->
+                <!-- कंडीशंस ग्रिड (PERCENTAGE MODE) -->
                 <div id="gridPercFields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                     <div>
                         <label style="color: #ef4444; font-size: 10px; font-weight: bold;">BUY IF DROP (%)</label>
@@ -56,16 +56,16 @@ async function renderCryptoStrategies() {
                     </div>
                 </div>
 
-                <!-- डायनामिक कोड / कस्टम टेक्स्ट / AIScript टेक्स्ट-एरिया -->
+                <!-- टेक्स्ट-एरिया (AI / CANDLESTICK / SCRIPT MODES) -->
                 <div id="dynamicCodeArea" style="display: none; margin-bottom: 15px;">
                     <label id="dynamicCodeLabel" style="color: #38bdf8; font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px;">SCRIPT / LOGIC INPUT</label>
-                    <textarea id="stratCustomCode" rows="4" placeholder="Paste your script or write strategy rules here..." style="width: 95%; background: #1e293b; border: 1px solid #334155; color: #38bdf8; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; outline: none;"></textarea>
+                    <textarea id="stratCustomCode" rows="4" placeholder="Paste script or write rules here..." style="width: 95%; background: #1e293b; border: 1px solid #334155; color: #38bdf8; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; outline: none;"></textarea>
                 </div>
 
                 <button onclick="saveStrategy()" style="width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">💾 Save & Activate Strategy</button>
             </div>
 
-            <!-- 📜 एक्टिव स्ट्रेटेजीज की लिस्ट -->
+            <!-- 📜 एक्टिव स्ट्रेटेजीज लिस्ट -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 15px;">
                 <h3 style="color: #e2e8f0; margin-top: 0; margin-bottom: 12px; font-size: 13px; text-transform: uppercase;">⚡ Active Bot Rules</h3>
                 <div id="strategiesList" style="display: flex; flex-direction: column; gap: 10px;">
@@ -77,7 +77,6 @@ async function renderCryptoStrategies() {
     loadSavedStrategies();
 }
 
-// 🔀 ड्रॉपडाउन चेंज के आधार पर यूआई बदलने का फ़ंक्शन
 function toggleStrategyModeFields() {
     const mode = document.getElementById('stratMode').value;
     const percFields = document.getElementById('gridPercFields');
@@ -92,13 +91,13 @@ function toggleStrategyModeFields() {
         codeArea.style.display = 'block';
 
         if (mode === 'CANDLESTICK') {
-            codeLabel.innerText = "🕯️ CANDLESTICK PATTERN RULES (e.g., Bullish Engulfing, Hammer)";
+            codeLabel.innerText = "🕯️ CANDLESTICK PATTERNS (e.g., Bullish Engulfing, Hammer, Doji)";
         } else if (mode === 'AI_BASED') {
-            codeLabel.innerText = "🤖 AI MODEL PROMPT / SIGNAL LOGIC";
+            codeLabel.innerText = "🤖 AI MODEL LOGIC / PROMPT";
         } else if (mode === 'CUSTOM_TEXT') {
-            codeLabel.innerText = "✍️ PLAIN ENGLISH RULES (e.g., Buy when RSI < 30 and MACD Crosses)";
+            codeLabel.innerText = "✍️ WRITE RULES IN PLAIN ENGLISH";
         } else if (mode === 'PINE_SCRIPT') {
-            codeLabel.innerText = "📜 TRADINGVIEW PINESCRIPT / COPIED CODE";
+            codeLabel.innerText = "📜 TRADINGVIEW PINESCRIPT / AI SCRIPT CODE";
         }
     }
 }
