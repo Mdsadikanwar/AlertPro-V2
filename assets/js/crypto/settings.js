@@ -2,20 +2,66 @@ async function renderCryptoSettings() {
     const root = document.getElementById('app');
     if (!root) return;
 
-    // 📱 प्रीमियम और डार्क-थीम मोबाइल रिस्पॉन्सिव सेटिंग्स पैनल
     root.innerHTML = `
         ${typeof getMarketNavbar === 'function' ? getMarketNavbar() : ''}
-        <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc; padding-bottom: 80px;">
+        <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc; padding-bottom: 90px;">
             
-            <!-- हेडर और मास्टर स्टेटस -->
+            <!-- ⚙️ HEADER -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div>
-                    <h2 style="color: #38bdf8; margin: 0; font-size: 20px; font-weight: bold;">⚙️ System Settings</h2>
-                    <span style="color: #64748b; font-size: 11px;">Central Control Panel & API Infrastructure</span>
+                    <h2 style="color: #38bdf8; margin: 0; font-size: 20px; font-weight: bold;">⚡ Terminal Control Center</h2>
+                    <span style="color: #64748b; font-size: 11px;">Apex Core Infrastructure & Diagnostics</span>
+                </div>
+                <button onclick="runSystemDiagnostics()" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                    🔄 Full Sync
+                </button>
+            </div>
+
+            <!-- 🌐 1. GATEWAY HEALTH MONITOR (विद Cron-Job.org Tracker) -->
+            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
+                <h3 style="color: #94a3b8; margin-top: 0; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">🌐 Integration Gateways & Live Health</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    
+                    <!-- Cron Job Engine -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
+                        <div>
+                            <span style="font-size: 13px; color: #e2e8f0; font-weight: bold; display: block;">⏱️ Cron-Job.org Automation</span>
+                            <span id="cronLastPing" style="font-size: 9px; color: #64748b;">Checking last execution...</span>
+                        </div>
+                        <span id="statusCron" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">STANDBY</span>
+                    </div>
+
+                    <!-- Firebase Realtime DB -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
+                        <div>
+                            <span style="font-size: 13px; color: #e2e8f0; font-weight: bold; display: block;">🔥 Firebase Realtime DB</span>
+                            <span id="firebasePingTime" style="font-size: 9px; color: #64748b;">Latency: --ms</span>
+                        </div>
+                        <span id="statusFirebase" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">CONNECTED</span>
+                    </div>
+
+                    <!-- Telegram Bot -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
+                        <span style="font-size: 13px; color: #e2e8f0; font-weight: bold;">📢 Telegram Alert Engine</span>
+                        <span id="statusTelegram" style="background: rgba(234, 179, 8, 0.2); color: #eab308; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">CHECKING...</span>
+                    </div>
+
+                    <!-- Binance API -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
+                        <span style="font-size: 13px; color: #e2e8f0; font-weight: bold;">⚡ Binance Market Stream</span>
+                        <span id="statusBinance" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">ONLINE</span>
+                    </div>
+                </div>
+
+                <!-- Diagnostics Action Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+                    <button onclick="testCronPing()" style="background: #020617; color: #38bdf8; border: 1px solid #1e293b; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">⚡ Trigger Cron Scan</button>
+                    <button onclick="diagnoseFirebaseDB()" style="background: #020617; color: #22c55e; border: 1px solid #1e293b; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">🔍 Diagnose Firebase Rules</button>
                 </div>
             </div>
 
-            <!-- 🔍 0. LIVE AUTO STRATEGY SCANNER STATUS -->
+            <!-- 📡 2. LIVE AUTO STRATEGY SCANNER -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;">
                     <h3 style="color: #38bdf8; margin: 0; font-size: 12px; text-transform: uppercase;">📡 Active Strategy Scanner Engine</h3>
@@ -26,32 +72,7 @@ async function renderCryptoSettings() {
                 </div>
             </div>
 
-            <!-- 🟢 1. LIVE SYSTEM HEALTH & CORE CONNECTORS -->
-            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
-                <h3 style="color: #94a3b8; margin-top: 0; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">🌐 Integration Gateway Status</h3>
-                
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <!-- Firebase Connection -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
-                        <span style="font-size: 13px; color: #e2e8f0;">🔥 Firebase Realtime DB</span>
-                        <span id="statusFirebase" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">CONNECTED</span>
-                    </div>
-
-                    <!-- Telegram Connection -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
-                        <span style="font-size: 13px; color: #e2e8f0;">📢 Telegram Signal Bot</span>
-                        <span id="statusTelegram" style="background: rgba(234, 179, 8, 0.2); color: #eab308; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">CHECKING...</span>
-                    </div>
-
-                    <!-- Binance Engine Connection -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px;">
-                        <span style="font-size: 13px; color: #e2e8f0;">⚡ Binance Spot API</span>
-                        <span id="statusBinance" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">ONLINE (PUBLIC)</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🔑 2. DATABASE & SECURE API CREDENTIALS FORM -->
+            <!-- 🔑 3. CLOUD API CREDENTIALS FORM -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">🔐 Cloud & Core API Keys</h3>
                 
@@ -61,7 +82,7 @@ async function renderCryptoSettings() {
                 </div>
 
                 <div style="margin-bottom: 12px;">
-                    <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">BINANCE API KEY (FOR LIVE EXECUTION)</label>
+                    <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">BINANCE API KEY</label>
                     <input type="password" id="setBinanceKey" placeholder="Paste your Binance API key" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
 
@@ -71,7 +92,7 @@ async function renderCryptoSettings() {
                 </div>
             </div>
 
-            <!-- 📢 3. TELEGRAM ALERTS CONFIGURATION -->
+            <!-- 📢 4. TELEGRAM ALERTS CONFIGURATION -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">📢 Telegram Bot Alerts</h3>
                 
@@ -80,19 +101,21 @@ async function renderCryptoSettings() {
                     <input type="text" id="setTgToken" placeholder="123456789:ABCdefGhI..." style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
 
-                <div style="margin-bottom: 4px;">
+                <div style="margin-bottom: 10px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">TELEGRAM CHAT ID</label>
                     <input type="text" id="setTgChatId" placeholder="987654321" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
+
+                <button onclick="testTelegramAlert()" style="width: 100%; background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">⚡ Send Test Telegram Ping</button>
             </div>
 
-            <!-- 🎛️ 4. GLOBAL RISK & BOT SWITCHES -->
-            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 20px;">
+            <!-- 🎛️ 5. GLOBAL RISK & BOT RULES -->
+            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">🎛️ Global Engine Rules</h3>
                 
                 <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Auto Trading Bot</span>
+                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Auto Trading Master Switch</span>
                         <span style="color: #64748b; font-size: 10px;">पूरी तरह से ऑटोबाय/सेल ऑन या ऑफ करें</span>
                     </div>
                     <select id="setBotSwitch" style="background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; outline: none;">
@@ -103,39 +126,120 @@ async function renderCryptoSettings() {
 
                 <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Paper Trading Mode</span>
-                        <span style="color: #64748b; font-size: 10px;">मैनुअल पेपर ट्रेडिंग सिमुलेशन अलाउ करें</span>
+                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Max Risk Per Trade ($)</span>
+                        <span style="color: #64748b; font-size: 10px;">सिंगल ऑटो सिग्नल का मैक्स बजट</span>
                     </div>
-                    <select id="setPaperSwitch" style="background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; outline: none;">
-                        <option value="ON">🟢 ON</option>
-                        <option value="OFF">🔴 OFF</option>
-                    </select>
+                    <input type="number" id="setMaxRisk" value="1000" style="width: 80px; background: #1e293b; border: 1px solid #334155; color: #38bdf8; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; text-align: center; outline: none;">
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Max Allocation Per Trade</span>
-                        <span style="color: #64748b; font-size: 10px;">एक सिंगल ऑटो सिग्नल पर मैक्सिमम रिस्क ($)</span>
+                        <span style="font-size: 13px; display: block; color: #fff; font-weight: bold;">Daily Drawdown Circuit Breaker</span>
+                        <span style="color: #64748b; font-size: 10px;">इतना % लॉस होने पर ऑटो बॉट पॉज़ हो जाएगा</span>
                     </div>
-                    <input type="number" id="setMaxRisk" value="1000" style="width: 80px; background: #1e293b; border: 1px solid #334155; color: #38bdf8; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; text-align: center; outline: none;">
+                    <input type="number" id="setMaxDrawdown" value="5" style="width: 80px; background: #1e293b; border: 1px solid #334155; color: #ef4444; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; text-align: center; outline: none;">
                 </div>
             </div>
 
-            <!-- ACTION BUTTONS -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button onclick="testTelegramAlert()" style="background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;">⚡ Test Telegram</button>
-                <button onclick="saveAllSettings()" style="background: #22c55e; color: #0f172a; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;">💾 Save Config</button>
+            <!-- 🧹 6. PRO SYSTEM COMMANDS & MAINTENANCE (नया) -->
+            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #ef4444; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">🛠️ Admin Maintenance Tools</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button onclick="clearBotTradeHistory()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">🗑️ Clear Bot Trade Logs</button>
+                    <button onclick="resetAppCache()" style="background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">🧹 Hard Reset Cache</button>
+                </div>
             </div>
+
+            <!-- SAVE MAIN CONFIG -->
+            <button onclick="saveAllSettings()" style="width: 100%; background: #22c55e; color: #0f172a; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);">
+                💾 Save Global Configuration
+            </button>
 
         </div>
     `;
 
-    // इनपुट्स और लाइव स्कैनर डेटा लोड करें
+    // ऑल इनिशियल लोडर्स
     loadSettingsFromDatabase();
     loadLiveScannerInSettings();
+    checkCronEngineHealth();
 }
 
-// 🔍 लाइव स्कैनर स्टेटस लोड करने का नया फ़ंक्शन
+// ⏱️ Cron Job Engine Tracker
+async function checkCronEngineHealth() {
+    const cronBadge = document.getElementById('statusCron');
+    const cronTime = document.getElementById('cronLastPing');
+    const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
+
+    try {
+        const res = await fetch(`${baseUrl}/bot_trades.json?orderBy="$key"&limitToLast=1`);
+        const data = await res.json();
+        
+        if (data) {
+            const key = Object.keys(data)[0];
+            const lastTrade = data[key];
+            if (lastTrade.timestamp) {
+                const diffSec = Math.floor((new Date() - new Date(lastTrade.timestamp)) / 1000);
+                if (cronTime) cronTime.innerText = `Last Activity: ${diffSec}s ago`;
+                
+                if (diffSec < 180 && cronBadge) { // 3 मिनट से कम
+                    cronBadge.innerText = "ACTIVE (RUNNING)";
+                    cronBadge.style.background = "rgba(34, 197, 94, 0.2)";
+                    cronBadge.style.color = "#22c55e";
+                    return;
+                }
+            }
+        }
+        if (cronBadge) {
+            cronBadge.innerText = "STANDBY / WAITING";
+            cronBadge.style.background = "rgba(234, 179, 8, 0.2)";
+            cronBadge.style.color = "#eab308";
+        }
+    } catch (e) {
+        if (cronBadge) cronBadge.innerText = "OFFLINE";
+    }
+}
+
+// 🔍 Firebase Latency and Rules Diagnostic
+async function diagnoseFirebaseDB() {
+    const startTime = Date.now();
+    const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
+
+    try {
+        const res = await fetch(`${baseUrl}/app_settings.json`);
+        const latency = Date.now() - startTime;
+        
+        const latencyBox = document.getElementById('firebasePingTime');
+        if (latencyBox) latencyBox.innerText = `Latency: ${latency}ms (Fast)`;
+
+        if (res.ok) {
+            alert(`✅ Firebase Realtime DB Diagnostic Passed!\n\nResponse Time: ${latency}ms\nStatus: Read/Write Access OK`);
+        } else {
+            alert(`⚠️ Firebase Permission Error (${res.status}): Please check Realtime Database Rules.`);
+        }
+    } catch (e) {
+        alert("❌ Firebase Connection Failed: " + e.message);
+    }
+}
+
+// ⚡ Trigger Manual Cron Ping
+async function testCronPing() {
+    alert("🔄 Triggering Vercel Cron API Endpoint...");
+    try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+        if (res.ok) {
+            alert(`🚀 Cron Scan Executed Successfully!\nMessage: ${data.message || 'Scanned'}`);
+            checkCronEngineHealth();
+        } else {
+            alert("⚠️ Cron Endpoint replied with error: " + JSON.stringify(data));
+        }
+    } catch (e) {
+        alert("❌ Error hitting /api/scan endpoint: " + e.message);
+    }
+}
+
+// 🔍 लाइव स्कैनर
 async function loadLiveScannerInSettings() {
     const listCont = document.getElementById('liveScannerList');
     if (!listCont) return;
@@ -171,17 +275,13 @@ async function loadLiveScannerInSettings() {
                                 Scanning Live
                             </span>
                         </div>
-                        <div style="color: #94a3b8; font-size: 10px; margin-top: 4px; display: flex; justify-content: space-between;">
-                            <span>TF: ${s.signalTF || '1d'}/${s.entryTF || '1h'}</span>
-                            <span>SL: ${s.slPercent || '2'}% | TP: ${s.tpPercent || '5'}%</span>
-                        </div>
                     </div>
                 `;
             }
         }
 
         if (activeCount === 0) {
-            listCont.innerHTML = `<p style="color: #eab308; font-size: 12px; text-align: center;">⚠️ All strategies are OFF in Auto mode. Turn them ON in Strategies Tab to scan.</p>`;
+            listCont.innerHTML = `<p style="color: #eab308; font-size: 12px; text-align: center;">⚠️ All strategies are OFF in Auto mode.</p>`;
         } else {
             listCont.innerHTML = html;
         }
@@ -205,8 +305,8 @@ async function loadSettingsFromDatabase() {
             if (s.tgToken && document.getElementById('setTgToken')) document.getElementById('setTgToken').value = s.tgToken;
             if (s.tgChatId && document.getElementById('setTgChatId')) document.getElementById('setTgChatId').value = s.tgChatId;
             if (s.botSwitch && document.getElementById('setBotSwitch')) document.getElementById('setBotSwitch').value = s.botSwitch;
-            if (s.paperSwitch && document.getElementById('setPaperSwitch')) document.getElementById('setPaperSwitch').value = s.paperSwitch;
             if (s.maxRisk && document.getElementById('setMaxRisk')) document.getElementById('setMaxRisk').value = s.maxRisk;
+            if (s.maxDrawdown && document.getElementById('setMaxDrawdown')) document.getElementById('setMaxDrawdown').value = s.maxDrawdown;
             
             if (s.tgToken && s.tgChatId) {
                 const tgBadge = document.getElementById('statusTelegram');
@@ -216,14 +316,9 @@ async function loadSettingsFromDatabase() {
                     tgBadge.style.color = "#22c55e";
                 }
             }
-        } else {
-            const tgBadge = document.getElementById('statusTelegram');
-            if (tgBadge) tgBadge.innerText = "NOT CONFIGURED";
         }
     } catch (e) {
-        console.log("Settings loading failed, using defaults.");
-        const tgBadge = document.getElementById('statusTelegram');
-        if (tgBadge) tgBadge.innerText = "DISCONNECTED";
+        console.log("Settings loading failed.");
     }
 }
 
@@ -233,8 +328,8 @@ async function saveAllSettings() {
     const tgToken = document.getElementById('setTgToken').value;
     const tgChatId = document.getElementById('setTgChatId').value;
     const botSwitch = document.getElementById('setBotSwitch').value;
-    const paperSwitch = document.getElementById('setPaperSwitch').value;
     const maxRisk = document.getElementById('setMaxRisk').value;
+    const maxDrawdown = document.getElementById('setMaxDrawdown').value;
 
     const finalSettings = {
         binanceKey,
@@ -242,8 +337,9 @@ async function saveAllSettings() {
         tgToken,
         tgChatId,
         botSwitch,
-        paperSwitch,
-        maxRisk
+        maxRisk,
+        maxDrawdown,
+        updatedAt: new Date().toISOString()
     };
 
     try {
@@ -253,36 +349,62 @@ async function saveAllSettings() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(finalSettings)
         });
-        alert("🟢 System configurations updated successfully on Firebase cloud!");
+        alert("🟢 Pro Configuration updated on Firebase Cloud!");
         loadSettingsFromDatabase();
     } catch(e) {
-        alert("❌ कॉन्फ़िगरेशन सेव करने में एरर आया!");
+        alert("❌ Failed to save settings to Firebase!");
     }
 }
 
+// 🗑️ Admin Commands: Clear Logs
+async function clearBotTradeHistory() {
+    if (!confirm("⚠️ क्या आप सारे बॉट ट्रेड लॉग्स डिलीट करना चाहते हैं?")) return;
+
+    try {
+        const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
+        await fetch(`${baseUrl}/bot_trades.json`, { method: 'DELETE' });
+        alert("🧹 All Bot Trade History Cleared Successfully!");
+    } catch(e) {
+        alert("❌ Error clearing history: " + e.message);
+    }
+}
+
+// 🧹 Admin Commands: Hard Reset Cache
+function resetAppCache() {
+    if (confirm("🔄 App Cache रिफ्रेश करें?")) {
+        window.location.reload(true);
+    }
+}
+
+// 📢 Telegram Ping Test
 async function testTelegramAlert() {
     const token = document.getElementById('setTgToken').value;
     const chatId = document.getElementById('setTgChatId').value;
 
     if (!token || !chatId) {
-        return alert("❌ पहले टेलीग्राम टोकन और चैट आईडी भरें भाई!");
+        return alert("❌ कृपया पहले Telegram Token और Chat ID दर्ज करें!");
     }
 
-    alert("🔄 Sending test ping to your Telegram...");
-
     try {
-        const text = encodeURIComponent("🚀 Crypto Trading Bot: Integration Test Successful! Settings are now synced. 🔥");
+        const text = encodeURIComponent("⚡ [APEX TERMINAL PING] System Settings & Alert Engine Synchronized!");
         const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${text}`;
         
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.ok) {
-            alert("🎯 Success! अपने टेलीग्राम ऐप में चेक करो, बोट का मैसेज आ गया होगा।");
+            alert("🎯 Ping Success! आपके टेलीग्राम में टेस्ट मैसेज आ गया है।");
         } else {
-            alert("❌ टेलीग्राम API ने एरर दिया: " + data.description);
+            alert("❌ Telegram API Error: " + data.description);
         }
     } catch (e) {
-        alert("❌ नेटवर्क एरर! टेलीग्राम कनेक्ट नहीं हो सका।");
+        alert("❌ Network Error connecting to Telegram.");
     }
+}
+
+function runSystemDiagnostics() {
+    loadSettingsFromDatabase();
+    loadLiveScannerInSettings();
+    checkCronEngineHealth();
+    diagnoseFirebaseDB();
 }
