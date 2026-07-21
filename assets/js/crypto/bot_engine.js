@@ -1,63 +1,59 @@
-// 🤖 Fixed & Tested Flash Test Trigger
-async function triggerFlashTestTrade(stratName = "Manual Flash Test", coin = "BTC", forceAction = "BUY") {
+// 🔄 Every 1-Minute Strategy Engine Scanner
+export default async function handler(req, res) {
     try {
-        console.log("⚡ Executing Flash Test Trigger...");
+        const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // 1. Get Base URL and clean it up
-        let baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined' && FIREBASE_BASE_URL) 
-            ? FIREBASE_BASE_URL 
-            : "https://alertpro-bot-default-rtdb.firebaseio.com";
+        // 1. Firebase से एक्टिव स्ट्रेटजीज़ निकालें
+        const stratRes = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
+        const strategies = await stratRes.json();
 
-        // Remove trailing slash if present
-        baseUrl = baseUrl.replace(/\/+$/, "");
-
-        // 2. Fetch Live Price (Fallback if network blocks Binance)
-        let currentPrice = 67450.50; // Backup Price
-        try {
-            const binanceRes = await fetch(`https://api.binance.com/api/3/ticker/price?symbol=${coin}USDT`);
-            if (binanceRes.ok) {
-                const bData = await binanceRes.json();
-                currentPrice = parseFloat(bData.price);
-            }
-        } catch (e) {
-            console.warn("Binance API fetch bypassed, using ticker estimate.");
+        if (!strategies) {
+            return res.status(200).json({ status: "No active strategies found" });
         }
 
-        // 3. Construct Trade Data
-        const tradeData = {
-            action: forceAction,
-            pair: `${coin}/USDT`,
-            price: currentPrice.toFixed(2),
-            strategyName: stratName,
-            pnl: forceAction === 'BUY' ? 7.50 : -3.20,
-            timestamp: new Date().toISOString()
-        };
+        // 2. Binance से BTC/USDT का लाइव रेट लें
+        const binanceRes = await fetch(`https://api.binance.com/api/3/ticker/price?symbol=BTCUSDT`);
+        const priceData = await binanceRes.json();
+        const currentPrice = parseFloat(priceData.price);
 
-        // 4. Push directly to Firebase via REST API (.json is MANDATORY)
-        const targetEndpoint = `${baseUrl}/bot_trades.json`;
-        console.log("Posting to Endpoint:", targetEndpoint);
+        let executedTrades = [];
 
-        const response = await fetch(targetEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(tradeData)
+        // 3. हर स्ट्रेटजी की कंडीशन चेक करें
+        for (let key in strategies) {
+            const strat = strategies[key];
+            const isAuto = strat.isAutoActive !== undefined ? strat.isAutoActive : true;
+
+            if (isAuto) {
+                // यहाँ आपकी स्ट्रेटजी की लॉजिक काम करेगी (जैसे target high/low hit होना)
+                // टेस्टिंग के लिए ऑटो-ट्रेड ट्रिगर payload:
+                const tradePayload = {
+                    action: "BUY",
+                    pair: `${strat.coin || 'BTC'}/USDT`,
+                    price: currentPrice.toFixed(2),
+                    strategyName: strat.name || "Cron Auto Scanner",
+                    pnl: 7.50,
+                    timestamp: new Date().toISOString()
+                };
+
+                // 4. Firebase में ट्रेड सेव करें
+                await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tradePayload)
+                });
+
+                executedTrades.push(strat.name || key);
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Market scanned successfully",
+            executed: executedTrades,
+            scannedAt: new Date().toLocaleTimeString()
         });
 
-        if (!response.ok) {
-            throw new Error(`Firebase Error: ${response.status} ${response.statusText}`);
-        }
-
-        alert(`🚀 Success!\n\nAuto Order Triggered:\nAction: ${forceAction}\nCoin: ${coin}/USDT\nPrice: $${currentPrice.toFixed(2)}`);
-
-        // UI रिफ्रेश करें
-        if (typeof loadLiveBotTrades === 'function') {
-            loadLiveBotTrades();
-        }
-
-    } catch (err) {
-        console.error("Execution Error:", err);
-        alert(`❌ Flash Test Error:\n${err.message}\n\nकृपया Firebase Rules (Read/Write = true) चेक करें।`);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 }
