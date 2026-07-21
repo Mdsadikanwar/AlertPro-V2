@@ -6,9 +6,17 @@ async function renderBotTrading() {
         ${typeof getMarketNavbar === 'function' ? getMarketNavbar() : ''}
         <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc; padding-bottom: 80px;">
             
+            <!-- हेडर और Instant Flash Test बटन -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="color: #38bdf8; margin: 0; font-size: 20px;">🤖 Algorithmic Terminal</h2>
-                <span id="botEngineBadge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 1px solid rgba(34, 197, 94, 0.3);">ENGINE ONLINE</span>
+                <div>
+                    <h2 style="color: #38bdf8; margin: 0; font-size: 18px;">🤖 Algorithmic Terminal</h2>
+                    <span id="botEngineBadge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid rgba(34, 197, 94, 0.3);">ENGINE ONLINE</span>
+                </div>
+
+                <!-- ⚡ Manual Flash Test Button -->
+                <button onclick="triggerFlashTestTrade('Manual Strategy Test', 'BTC', 'BUY')" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    ⚡ Test Auto Buy
+                </button>
             </div>
 
             <!-- लाइव इंजन स्टैट्स -->
@@ -84,7 +92,6 @@ async function loadLiveBotTrades() {
     if (!listCont) return;
 
     try {
-        // 'bot_trades' और 'bot_executed_trades' दोनों से बैकवर्ड सपोर्ट
         let res = await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`);
         let data = await res.json();
 
@@ -110,7 +117,6 @@ async function loadLiveBotTrades() {
             const stratName = t.strategyName || t.strategy || 'Auto Model';
             const timeStr = t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : 'Recent';
             
-            // ट्रेड प्रॉफ़िट सिमुलेशन
             let currentTradePnL = t.pnl !== undefined ? parseFloat(t.pnl) : (isBuy ? 7.50 : -7.50);
             totalBotPnL += currentTradePnL;
 
@@ -135,7 +141,6 @@ async function loadLiveBotTrades() {
 
         listCont.innerHTML = html;
         
-        // नेट बॉट प्रॉफिट अपडेट करें
         const pnlBox = document.getElementById('botPnLBox');
         if (pnlBox) {
             pnlBox.innerText = `${totalBotPnL >= 0 ? '+' : ''}$${totalBotPnL.toFixed(2)}`;
