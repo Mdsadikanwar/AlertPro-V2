@@ -15,7 +15,7 @@ async function renderCryptoSettings() {
                 </div>
             </div>
 
-            <!-- 🔍 0. LIVE AUTO STRATEGY SCANNER STATUS (नया जोड़ा गया) -->
+            <!-- 🔍 0. LIVE AUTO STRATEGY SCANNER STATUS -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;">
                     <h3 style="color: #38bdf8; margin: 0; font-size: 12px; text-transform: uppercase;">📡 Active Strategy Scanner Engine</h3>
@@ -141,7 +141,8 @@ async function loadLiveScannerInSettings() {
     if (!listCont) return;
 
     try {
-        const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
+        const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
+        const res = await fetch(`${baseUrl}/trading_strategies.json`);
         const data = await res.json();
 
         if (!data) {
@@ -162,7 +163,7 @@ async function loadLiveScannerInSettings() {
                     <div style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; font-size: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <b style="color: #fff;">${s.name}</b>
+                                <b style="color: #fff;">${s.name || 'Strategy'}</b>
                                 <span style="color: #38bdf8; font-weight: bold; margin-left: 5px;">(${s.coin || 'BTC'})</span>
                             </div>
                             <span style="color: #22c55e; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
@@ -190,36 +191,39 @@ async function loadLiveScannerInSettings() {
 }
 
 async function loadSettingsFromDatabase() {
+    const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
     const urlInput = document.getElementById('setFirebaseUrl');
-    if(urlInput) urlInput.value = FIREBASE_BASE_URL || '';
+    if (urlInput) urlInput.value = baseUrl || '';
 
     try {
-        const res = await fetch(`${FIREBASE_BASE_URL}/app_settings.json`);
+        const res = await fetch(`${baseUrl}/app_settings.json`);
         const s = await res.json();
 
         if (s) {
-            if (s.binanceKey) document.getElementById('setBinanceKey').value = s.binanceKey;
-            if (s.binanceSecret) document.getElementById('setBinanceSecret').value = s.binanceSecret;
-            if (s.tgToken) document.getElementById('setTgToken').value = s.tgToken;
-            if (s.tgChatId) document.getElementById('setTgChatId').value = s.tgChatId;
-            if (s.botSwitch) document.getElementById('setBotSwitch').value = s.botSwitch;
-            if (s.paperSwitch) document.getElementById('setPaperSwitch').value = s.paperSwitch;
-            if (s.maxRisk) document.getElementById('setMaxRisk').value = s.maxRisk;
+            if (s.binanceKey && document.getElementById('setBinanceKey')) document.getElementById('setBinanceKey').value = s.binanceKey;
+            if (s.binanceSecret && document.getElementById('setBinanceSecret')) document.getElementById('setBinanceSecret').value = s.binanceSecret;
+            if (s.tgToken && document.getElementById('setTgToken')) document.getElementById('setTgToken').value = s.tgToken;
+            if (s.tgChatId && document.getElementById('setTgChatId')) document.getElementById('setTgChatId').value = s.tgChatId;
+            if (s.botSwitch && document.getElementById('setBotSwitch')) document.getElementById('setBotSwitch').value = s.botSwitch;
+            if (s.paperSwitch && document.getElementById('setPaperSwitch')) document.getElementById('setPaperSwitch').value = s.paperSwitch;
+            if (s.maxRisk && document.getElementById('setMaxRisk')) document.getElementById('setMaxRisk').value = s.maxRisk;
             
             if (s.tgToken && s.tgChatId) {
                 const tgBadge = document.getElementById('statusTelegram');
-                if(tgBadge) {
+                if (tgBadge) {
                     tgBadge.innerText = "ACTIVE";
                     tgBadge.style.background = "rgba(34, 197, 94, 0.2)";
                     tgBadge.style.color = "#22c55e";
                 }
             }
         } else {
-            document.getElementById('statusTelegram').innerText = "NOT CONFIGURED";
+            const tgBadge = document.getElementById('statusTelegram');
+            if (tgBadge) tgBadge.innerText = "NOT CONFIGURED";
         }
     } catch (e) {
         console.log("Settings loading failed, using defaults.");
-        document.getElementById('statusTelegram').innerText = "DISCONNECTED";
+        const tgBadge = document.getElementById('statusTelegram');
+        if (tgBadge) tgBadge.innerText = "DISCONNECTED";
     }
 }
 
@@ -243,8 +247,10 @@ async function saveAllSettings() {
     };
 
     try {
-        await fetch(`${FIREBASE_BASE_URL}/app_settings.json`, {
+        const baseUrl = (typeof FIREBASE_BASE_URL !== 'undefined') ? FIREBASE_BASE_URL.replace(/\/+$/, "") : '';
+        await fetch(`${baseUrl}/app_settings.json`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(finalSettings)
         });
         alert("🟢 System configurations updated successfully on Firebase cloud!");
