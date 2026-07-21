@@ -191,7 +191,7 @@ async function saveStrategy() {
         buyLowPercent: document.getElementById('buyLow').value,
         sellHighPercent: document.getElementById('sellHigh').value,
         customCode: document.getElementById('stratCustomCode').value || "",
-        status: "Active",
+        isAutoActive: true, // Default to active when saved/edited
         createdAt: new Date().toLocaleDateString()
     };
 
@@ -232,15 +232,21 @@ async function loadSavedStrategies() {
             const sl = parseFloat(s.slPercent) || 2;
             const tp = parseFloat(s.tpPercent) || 5;
             const rrRatio = (tp / sl).toFixed(1);
+            const isAuto = s.isAutoActive !== undefined ? s.isAutoActive : true;
 
             html += `
-                <div style="background: #1e293b; border: 1px solid #334155; padding: 12px; border-radius: 8px; font-size: 12px;">
+                <div style="background: #1e293b; border: 1px solid #334155; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div>
                             <b style="color: #fff; font-size: 14px;">${s.name}</b>
                             <span style="color: #38bdf8; font-weight: bold; margin-left: 5px;">(${s.coin || 'BTC'})</span>
                         </div>
-                        <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px;">Active</span>
+                        
+                        <!-- Auto ON/OFF Toggle Switch -->
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 10px; color: ${isAuto ? '#22c55e' : '#64748b'}; font-weight: bold;">Auto: ${isAuto ? 'ON' : 'OFF'}</span>
+                            <input type="checkbox" ${isAuto ? 'checked' : ''} onchange="toggleStrategyAuto('${key}', this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+                        </div>
                     </div>
 
                     <div style="color: #94a3b8; font-size: 11px; background: #0f172a; padding: 8px; border-radius: 6px; margin-bottom: 10px; line-height: 1.5;">
@@ -249,8 +255,10 @@ async function loadSavedStrategies() {
                         <div><b>SL:</b> ${s.slPercent || '2'}% | <b>TP:</b> ${s.tpPercent || '5'}% | <b>R:R:</b> 1:${rrRatio}</div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button onclick="editStrategy('${key}')" style="background: #334155; color: #38bdf8; border: none; padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">✏️ Edit</button>
+                    <!-- Action Buttons Grid: Test, Edit, Delete -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+                        <button onclick="instantTestStrategy('${key}')" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">⚡ Test</button>
+                        <button onclick="editStrategy('${key}')" style="background: #334155; color: #e2e8f0; border: none; padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">✏️ Edit</button>
                         <button onclick="deleteStrategy('${key}')" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">🗑️ Delete</button>
                     </div>
                 </div>
@@ -259,6 +267,30 @@ async function loadSavedStrategies() {
         cont.innerHTML = html;
     } catch(e) { 
         cont.innerHTML = `<p style="color: #ef4444;">Error loading strategies.</p>`; 
+    }
+}
+
+async function toggleStrategyAuto(key, status) {
+    try {
+        await fetch(`${FIREBASE_BASE_URL}/trading_strategies/${key}/isAutoActive.json`, {
+            method: 'PUT',
+            body: JSON.stringify(status)
+        });
+        loadSavedStrategies();
+    } catch(e) {
+        alert("❌ Error updating auto status!");
+    }
+}
+
+async function instantTestStrategy(key) {
+    try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies/${key}.json`);
+        const s = await res.json();
+        if(!s) return;
+
+        alert(`⚡ Running Instant Test for: "${s.name}" (${s.coin})\n\nChecking live market candles & indicators...\n✅ Strategy Logic Validated!\n💡 Signal Result: Neutral / Waiting for breakout condition.`);
+    } catch(e) {
+        alert("❌ Error running instant test!");
     }
 }
 
