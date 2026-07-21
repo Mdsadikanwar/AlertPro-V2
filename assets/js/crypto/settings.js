@@ -4,7 +4,7 @@ async function renderCryptoSettings() {
 
     // 📱 प्रीमियम और डार्क-थीम मोबाइल रिस्पॉन्सिव सेटिंग्स पैनल
     root.innerHTML = `
-        ${getMarketNavbar()}
+        ${typeof getMarketNavbar === 'function' ? getMarketNavbar() : ''}
         <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc; padding-bottom: 80px;">
             
             <!-- हेडर और मास्टर स्टेटस -->
@@ -15,7 +15,18 @@ async function renderCryptoSettings() {
                 </div>
             </div>
 
-            <!-- 🟢 LIVE SYSTEM HEALTH & CORE CONNECTORS -->
+            <!-- 🔍 0. LIVE AUTO STRATEGY SCANNER STATUS (नया जोड़ा गया) -->
+            <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px;">
+                    <h3 style="color: #38bdf8; margin: 0; font-size: 12px; text-transform: uppercase;">📡 Active Strategy Scanner Engine</h3>
+                    <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold;">LIVE MONITOR</span>
+                </div>
+                <div id="liveScannerList" style="display: flex; flex-direction: column; gap: 8px;">
+                    <p style="color: #64748b; font-size: 12px; text-align: center;">Checking active strategies on Firebase...</p>
+                </div>
+            </div>
+
+            <!-- 🟢 1. LIVE SYSTEM HEALTH & CORE CONNECTORS -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #94a3b8; margin-top: 0; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">🌐 Integration Gateway Status</h3>
                 
@@ -40,42 +51,42 @@ async function renderCryptoSettings() {
                 </div>
             </div>
 
-            <!-- 🔑 1. DATABASE & SECURE API CREDENTIALS FORM -->
+            <!-- 🔑 2. DATABASE & SECURE API CREDENTIALS FORM -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">🔐 Cloud & Core API Keys</h3>
                 
                 <div style="margin-bottom: 12px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">FIREBASE BASE URL</label>
-                    <input type="text" id="setFirebaseUrl" style="width: 93%; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="text" id="setFirebaseUrl" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
 
                 <div style="margin-bottom: 12px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">BINANCE API KEY (FOR LIVE EXECUTION)</label>
-                    <input type="password" id="setBinanceKey" placeholder="Paste your Binance API key" style="width: 93%; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="password" id="setBinanceKey" placeholder="Paste your Binance API key" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
 
                 <div style="margin-bottom: 4px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">BINANCE SECRET KEY</label>
-                    <input type="password" id="setBinanceSecret" placeholder="Paste your Binance Secret key" style="width: 93%; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="password" id="setBinanceSecret" placeholder="Paste your Binance Secret key" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
             </div>
 
-            <!-- 📢 2. TELEGRAM ALERTS CONFIGURATION -->
+            <!-- 📢 3. TELEGRAM ALERTS CONFIGURATION -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 15px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">📢 Telegram Bot Alerts</h3>
                 
                 <div style="margin-bottom: 12px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">TELEGRAM BOT TOKEN</label>
-                    <input type="text" id="setTgToken" placeholder="123456789:ABCdefGhI..." style="width: 93%; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="text" id="setTgToken" placeholder="123456789:ABCdefGhI..." style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
 
                 <div style="margin-bottom: 4px;">
                     <label style="color: #64748b; display: block; margin-bottom: 4px; font-size: 10px; font-weight: bold;">TELEGRAM CHAT ID</label>
-                    <input type="text" id="setTgChatId" placeholder="987654321" style="width: 93%; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="text" id="setTgChatId" placeholder="987654321" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
             </div>
 
-            <!-- 🎛️ 3. GLOBAL RISK & BOT SWITCHES (ALL TABS CONFIG) -->
+            <!-- 🎛️ 4. GLOBAL RISK & BOT SWITCHES -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 15px; margin-bottom: 20px;">
                 <h3 style="color: #38bdf8; margin-top: 0; margin-bottom: 15px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">🎛️ Global Engine Rules</h3>
                 
@@ -119,13 +130,68 @@ async function renderCryptoSettings() {
         </div>
     `;
 
-    // इनपुट्स में मौजूदा वैल्यूज लोड करें
+    // इनपुट्स और लाइव स्कैनर डेटा लोड करें
     loadSettingsFromDatabase();
+    loadLiveScannerInSettings();
+}
+
+// 🔍 लाइव स्कैनर स्टेटस लोड करने का नया फ़ंक्शन
+async function loadLiveScannerInSettings() {
+    const listCont = document.getElementById('liveScannerList');
+    if (!listCont) return;
+
+    try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
+        const data = await res.json();
+
+        if (!data) {
+            listCont.innerHTML = `<p style="color: #64748b; font-size: 12px; text-align: center;">No active strategies found. Please add strategies in Strategy Tab.</p>`;
+            return;
+        }
+
+        let html = '';
+        let activeCount = 0;
+
+        for (let key in data) {
+            const s = data[key];
+            const isAuto = s.isAutoActive !== undefined ? s.isAutoActive : true;
+
+            if (isAuto) {
+                activeCount++;
+                html += `
+                    <div style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; font-size: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <b style="color: #fff;">${s.name}</b>
+                                <span style="color: #38bdf8; font-weight: bold; margin-left: 5px;">(${s.coin || 'BTC'})</span>
+                            </div>
+                            <span style="color: #22c55e; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                                <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block;"></span>
+                                Scanning Live
+                            </span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 10px; margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>TF: ${s.signalTF || '1d'}/${s.entryTF || '1h'}</span>
+                            <span>SL: ${s.slPercent || '2'}% | TP: ${s.tpPercent || '5'}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        if (activeCount === 0) {
+            listCont.innerHTML = `<p style="color: #eab308; font-size: 12px; text-align: center;">⚠️ All strategies are OFF in Auto mode. Turn them ON in Strategies Tab to scan.</p>`;
+        } else {
+            listCont.innerHTML = html;
+        }
+    } catch(e) {
+        listCont.innerHTML = `<p style="color: #ef4444; font-size: 12px;">Error connecting scanner database.</p>`;
+    }
 }
 
 async function loadSettingsFromDatabase() {
-    // ग्लोबल कॉन्स्टेंट यूआरएल को सेटिंग इनपुट में सेट करें
-    document.getElementById('setFirebaseUrl').value = FIREBASE_BASE_URL || '';
+    const urlInput = document.getElementById('setFirebaseUrl');
+    if(urlInput) urlInput.value = FIREBASE_BASE_URL || '';
 
     try {
         const res = await fetch(`${FIREBASE_BASE_URL}/app_settings.json`);
@@ -140,7 +206,6 @@ async function loadSettingsFromDatabase() {
             if (s.paperSwitch) document.getElementById('setPaperSwitch').value = s.paperSwitch;
             if (s.maxRisk) document.getElementById('setMaxRisk').value = s.maxRisk;
             
-            // अगर टोकन और चैट आईडी मौजूद है, तो टेलीग्राम का स्टेटस "ACTIVE" दिखाएं
             if (s.tgToken && s.tgChatId) {
                 const tgBadge = document.getElementById('statusTelegram');
                 if(tgBadge) {
