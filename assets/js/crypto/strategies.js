@@ -6,6 +6,17 @@ async function renderCryptoStrategies() {
         ${typeof getMarketNavbar === 'function' ? getMarketNavbar() : ''}
         <div style="padding: 15px; max-width: 100%; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; min-height: 100vh; color: #f8fafc; padding-bottom: 80px;">
             
+            <!-- 📡 Live Firebase Sync & Status Widget -->
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="color: #38bdf8; margin: 0; font-size: 15px; font-weight: bold;">📡 Live Firebase Engine Status</h3>
+                    <button onclick="renderFirebaseStrategies()" style="background: #334155; color: #cbd5e1; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">🔄 Refresh</button>
+                </div>
+                <div id="strategies-list-container">
+                    <div style="text-align: center; color: #94a3b8; font-size: 12px;">🔄 Syncing with Firebase...</div>
+                </div>
+            </div>
+
             <!-- ⚡ Main Strategy Builder Card -->
             <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                 <h2 style="color: #38bdf8; margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">🎯 Crypto Strategy Builder</h2>
@@ -29,7 +40,7 @@ async function renderCryptoStrategies() {
                     <input type="text" id="stratName" value="BTC EMA + RSI Scalp" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; outline: none;">
                 </div>
 
-                <!-- 3️⃣ Dynamic Parameters Grid (Clean 2-Column Layout) -->
+                <!-- 3️⃣ Dynamic Parameters Grid -->
                 <div id="technicalParamsGrid" style="margin-bottom: 15px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                         <div>
@@ -134,7 +145,57 @@ async function renderCryptoStrategies() {
             </div>
         </div>
     `;
+    
+    // Load local list and trigger Firebase API check
     loadSavedStrategies();
+    renderFirebaseStrategies();
+}
+
+// 🟢 Option 1 Implementation: Fetch Strategies from Firebase via /api/check-strategies
+async function renderFirebaseStrategies() {
+    const container = document.getElementById('strategies-list-container');
+    if (!container) return;
+
+    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 10px; font-size: 12px;">🔄 Syncing with Firebase...</div>`;
+
+    try {
+        const response = await fetch('/api/check-strategies');
+        const data = await response.json();
+
+        if (data.strategiesList && data.strategiesList.length > 0) {
+            let html = `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+            
+            data.strategiesList.forEach(strat => {
+                const isActive = strat.status === 'active';
+                html += `
+                    <div style="background: #0f172a; border: 1px solid ${isActive ? '#22c55e' : '#334155'}; border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <strong style="font-size: 14px; color: #f8fafc;">${strat.name}</strong>
+                            <span style="background: ${isActive ? 'rgba(34,197,94,0.2)' : 'rgba(234,179,8,0.2)'}; color: ${isActive ? '#22c55e' : '#eab308'}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                ${strat.status.toUpperCase()}
+                            </span>
+                        </div>
+                        <div style="font-size: 11px; color: #94a3b8; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                            <div>Asset: <b style="color: #cbd5e1;">${strat.symbol}</b></div>
+                            <div>Buy Target: <b style="color: #22c55e;">${strat.buyTarget}</b></div>
+                            <div>Sell Target: <b style="color: #ef4444;">${strat.sellTarget}</b></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div style="background: #0f172a; border: 1px dashed #ef4444; border-radius: 8px; padding: 12px; text-align: center; color: #f87171; font-size: 12px;">
+                    ⚠️ Firebase में कोई एक्टिव स्ट्रेटजी नहीं मिली।
+                </div>
+            `;
+        }
+    } catch (err) {
+        container.innerHTML = `<div style="color: #ef4444; text-align: center; font-size: 12px;">❌ Error loading strategy status from API</div>`;
+    }
 }
 
 function toggleStrategyModeFields() {
@@ -191,7 +252,8 @@ async function saveStrategy() {
         buyLowPercent: document.getElementById('buyLow').value,
         sellHighPercent: document.getElementById('sellHigh').value,
         customCode: document.getElementById('stratCustomCode').value || "",
-        isAutoActive: true, // Default to active when saved/edited
+        isAutoActive: true,
+        status: "active", // Added status field for backend scanner compatibility
         createdAt: new Date().toLocaleDateString()
     };
 
@@ -208,6 +270,7 @@ async function saveStrategy() {
         document.getElementById('saveStratBtn').innerText = "💾 Save & Activate Strategy";
         
         loadSavedStrategies();
+        renderFirebaseStrategies(); // Refresh API status box as well
     } catch(e) { 
         alert("❌ Error saving strategy!"); 
     }
@@ -277,6 +340,7 @@ async function toggleStrategyAuto(key, status) {
             body: JSON.stringify(status)
         });
         loadSavedStrategies();
+        renderFirebaseStrategies();
     } catch(e) {
         alert("❌ Error updating auto status!");
     }
@@ -335,6 +399,7 @@ async function deleteStrategy(key) {
         });
         alert("🗑️ Strategy deleted successfully!");
         loadSavedStrategies();
+        renderFirebaseStrategies();
     } catch(e) { 
         alert("❌ Error deleting strategy!"); 
     }
