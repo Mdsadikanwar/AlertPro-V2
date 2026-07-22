@@ -146,12 +146,11 @@ async function renderCryptoStrategies() {
         </div>
     `;
     
-    // Load local list and trigger Firebase API check
     loadSavedStrategies();
     renderFirebaseStrategies();
 }
 
-// 🟢 Option 1 Implementation: Fetch Strategies from Firebase via /api/check-strategies
+// 🟢 Smart Target Logic Function
 async function renderFirebaseStrategies() {
     const container = document.getElementById('strategies-list-container');
     if (!container) return;
@@ -166,19 +165,35 @@ async function renderFirebaseStrategies() {
             let html = `<div style="display: flex; flex-direction: column; gap: 10px;">`;
             
             data.strategiesList.forEach(strat => {
-                const isActive = strat.status === 'active';
+                const isActive = strat.status === 'active' || strat.isAutoActive === true || strat.isAutoActive === 'true';
+                
+                // 🔹 Target Logic
+                let buyText = 'N/A';
+                let sellText = 'N/A';
+
+                if (strat.buyTarget || strat.sellTarget) {
+                    buyText = strat.buyTarget;
+                    sellText = strat.sellTarget;
+                } else if (strat.mode === 'EMA_RSI_SCALP' || strat.rsiBuyLevel) {
+                    buyText = `RSI < ${strat.rsiBuyLevel || 45}`;
+                    sellText = `TP ${strat.tpPercent || 5}% / SL ${strat.slPercent || 2}%`;
+                } else if (strat.mode === 'PERCENTAGE' || strat.buyLowPercent) {
+                    buyText = `${strat.buyLowPercent || -0.2}% Drop`;
+                    sellText = `${strat.sellHighPercent || 0.2}% Rise`;
+                }
+
                 html += `
                     <div style="background: #0f172a; border: 1px solid ${isActive ? '#22c55e' : '#334155'}; border-radius: 8px; padding: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <strong style="font-size: 14px; color: #f8fafc;">${strat.name}</strong>
+                            <strong style="font-size: 14px; color: #f8fafc;">${strat.name || 'Crypto Strategy'}</strong>
                             <span style="background: ${isActive ? 'rgba(34,197,94,0.2)' : 'rgba(234,179,8,0.2)'}; color: ${isActive ? '#22c55e' : '#eab308'}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">
-                                ${strat.status.toUpperCase()}
+                                ${isActive ? 'ACTIVE' : 'INACTIVE'}
                             </span>
                         </div>
                         <div style="font-size: 11px; color: #94a3b8; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                            <div>Asset: <b style="color: #cbd5e1;">${strat.symbol}</b></div>
-                            <div>Buy Target: <b style="color: #22c55e;">${strat.buyTarget}</b></div>
-                            <div>Sell Target: <b style="color: #ef4444;">${strat.sellTarget}</b></div>
+                            <div>Asset: <b style="color: #cbd5e1;">${strat.symbol || strat.coin || 'BTC'}USDT</b></div>
+                            <div>Buy Target: <b style="color: #22c55e;">${buyText}</b></div>
+                            <div>Sell Target: <b style="color: #ef4444;">${sellText}</b></div>
                         </div>
                     </div>
                 `;
@@ -189,7 +204,7 @@ async function renderFirebaseStrategies() {
         } else {
             container.innerHTML = `
                 <div style="background: #0f172a; border: 1px dashed #ef4444; border-radius: 8px; padding: 12px; text-align: center; color: #f87171; font-size: 12px;">
-                    ⚠️ Firebase में कोई एक्टिव स्ट्रेटजी नहीं मिली।
+                    ⚠️ Firebase में कोई स्ट्रेटजी नहीं मिली।
                 </div>
             `;
         }
@@ -253,7 +268,7 @@ async function saveStrategy() {
         sellHighPercent: document.getElementById('sellHigh').value,
         customCode: document.getElementById('stratCustomCode').value || "",
         isAutoActive: true,
-        status: "active", // Added status field for backend scanner compatibility
+        status: "active",
         createdAt: new Date().toLocaleDateString()
     };
 
@@ -270,7 +285,7 @@ async function saveStrategy() {
         document.getElementById('saveStratBtn').innerText = "💾 Save & Activate Strategy";
         
         loadSavedStrategies();
-        renderFirebaseStrategies(); // Refresh API status box as well
+        renderFirebaseStrategies();
     } catch(e) { 
         alert("❌ Error saving strategy!"); 
     }
@@ -305,7 +320,6 @@ async function loadSavedStrategies() {
                             <span style="color: #38bdf8; font-weight: bold; margin-left: 5px;">(${s.coin || 'BTC'})</span>
                         </div>
                         
-                        <!-- Auto ON/OFF Toggle Switch -->
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <span style="font-size: 10px; color: ${isAuto ? '#22c55e' : '#64748b'}; font-weight: bold;">Auto: ${isAuto ? 'ON' : 'OFF'}</span>
                             <input type="checkbox" ${isAuto ? 'checked' : ''} onchange="toggleStrategyAuto('${key}', this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
@@ -318,7 +332,6 @@ async function loadSavedStrategies() {
                         <div><b>SL:</b> ${s.slPercent || '2'}% | <b>TP:</b> ${s.tpPercent || '5'}% | <b>R:R:</b> 1:${rrRatio}</div>
                     </div>
 
-                    <!-- Action Buttons Grid: Test, Edit, Delete -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
                         <button onclick="instantTestStrategy('${key}')" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">⚡ Test</button>
                         <button onclick="editStrategy('${key}')" style="background: #334155; color: #e2e8f0; border: none; padding: 6px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">✏️ Edit</button>
