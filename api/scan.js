@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // 1. Firebase से स्ट्रेटजीज़ और सेटिंग्स लाओ
+        // 1. Fetch Active Strategies & Telegram Settings from Firebase
         const [stratRes, configRes] = await Promise.all([
             fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
             fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
                     avgLoss = (avgLoss * (period - 1) - diff) / period;
                 }
             }
-            return avgLoss === 0 ? 100 : 100 - (100 / (avgGain / avgLoss));
+            return avgLoss === 0 ? 100 : 100 - (100 / (1 + (avgGain / avgLoss)));
         }
 
         // Helper: Calculate EMA
@@ -52,59 +52,57 @@ export default async function handler(req, res) {
             return ema;
         }
 
-        // 2. हर एक्टिव स्ट्रेटजी को स्कैन करो
+        // 2. Loop through all active strategies
         for (const [stratId, strat] of Object.entries(strategies)) {
             const isActive = strat.status === "active" || strat.isAutoActive === true || strat.enabled === true;
             if (!isActive) continue;
 
             const rawCoin = (strat.symbol || strat.coin || "BTC").replace("/", "").toUpperCase();
             const cleanCoin = rawCoin.replace("USDT", "");
-            
-            // 💡 OKX/KuCoin Format (e.g. BTC-USDT) - कभी ब्लॉक नहीं होता!
             const okxSymbol = `${cleanCoin}-USDT`;
 
-            // OKX Public Candle API (Safe, fast and non-blocking for Vercel)
+            // Fetch Live Candles from OKX API (Unblocked & Safe)
             const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${okxSymbol}&bar=1H&limit=100`, { cache: 'no-store' });
-            
             if (!candleRes.ok) continue;
 
             const okxData = await candleRes.json();
             if (!okxData?.data || okxData.data.length === 0) continue;
 
-            // OKX returns newest candle first, reverse it for chronological order
             const candles = okxData.data.reverse();
-            const closePrices = candles.map(c => parseFloat(c[4])); // Index 4 is Close Price
+            const closePrices = candles.map(c => parseFloat(c[4]));
             const currentPrice = closePrices[closePrices.length - 1];
 
             // Indicators Calculation
             const rsiPeriod = parseInt(strat.rsiPeriod) || 14;
             const currentRSI = calculateRSI(closePrices, rsiPeriod);
-
             const emaFast = calculateEMA(closePrices, parseInt(strat.emaFast) || 9);
             const emaSlow = calculateEMA(closePrices, parseInt(strat.emaSlow) || 21);
-
             const rsiBuyLevel = parseFloat(strat.rsiBuyLevel) || 45;
 
             let isTriggered = false;
             let actionType = null;
             let reason = "";
 
-            // 🎯 CrossOver & Signal Condition Check
+            // Signal Condition Check (CrossOver & Targets)
             if (currentRSI <= rsiBuyLevel && emaFast >= emaSlow) {
                 isTriggered = true;
                 actionType = "BUY 🟢";
                 reason = `CrossOver Matched! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & Fast EMA (${emaFast.toFixed(1)}) >= Slow EMA (${emaSlow.toFixed(1)})`;
+            } else if (strat.buyTarget && currentPrice <= parseFloat(strat.buyTarget)) {
+                isTriggered = true;
+                actionType = "BUY 🟢";
+                reason = `Target Buy Hit: $${currentPrice}`;
             } else if (strat.sellTarget && currentPrice >= parseFloat(strat.sellTarget)) {
                 isTriggered = true;
                 actionType = "SELL 🔴";
-                reason = `Price Target Hit: $${currentPrice}`;
+                reason = `Target Sell Hit: $${currentPrice}`;
             }
 
-            // 3. सिग्नल बनने पर Firebase में स्टोर (P&L के लिए) + टेलीग्राम नोटिफिकेशन
+            // Execute Signal
             if (isTriggered) {
                 const tradeLog = {
                     strategyId: stratId,
-                    strategyName: strat.name || "EMA RSI Scalp",
+                    strategyName: strat.name || "Custom Strategy",
                     type: actionType.includes("BUY") ? "BUY" : "SELL",
                     symbol: `${cleanCoin}USDT`,
                     price: currentPrice,
@@ -114,7 +112,7 @@ export default async function handler(req, res) {
                     timestamp: new Date().toISOString()
                 };
 
-                // Save Trade for UI (bot_trading.js & Paper Trading P&L)
+                // Record Trade in Firebase (For P&L & Logs)
                 await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -126,14 +124,14 @@ export default async function handler(req, res) {
                 // Send Telegram Notification
                 if (tgToken && tgChatId) {
                     const tgMsg = encodeURIComponent(
-                        `🚀 *[AUTOMATED STRATEGY SIGNAL]*\n\n` +
-                        `📋 *Strategy:* ${strat.name || "Custom"}\n` +
+                        `🚨 *[AUTO TRADING SIGNAL GENERATED]*\n\n` +
+                        `📋 *Strategy:* ${strat.name || "Custom Strategy"}\n` +
                         `🎯 *Action:* ${actionType}\n` +
                         `📊 *Symbol:* ${cleanCoin}USDT\n` +
-                        `💰 *Live Price:* $${currentPrice.toLocaleString()}\n` +
-                        `📈 *RSI Value:* ${currentRSI.toFixed(1)}\n` +
+                        `💰 *Execution Price:* $${currentPrice.toLocaleString()}\n` +
+                        `📈 *RSI:* ${currentRSI.toFixed(1)}\n` +
                         `💡 *Reason:* ${reason}\n\n` +
-                        `⚡ *ApexTraders V2 Engine*`
+                        `🚀 *ApexTraders V2 Engine*`
                     );
                     await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage?chat_id=${tgChatId}&text=${tgMsg}&parse_mode=Markdown`);
                 }
