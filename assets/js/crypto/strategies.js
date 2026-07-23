@@ -1,53 +1,91 @@
-(function () {
+document.addEventListener('DOMContentLoaded', () => {
     const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-    async function fetchStrategiesSafe() {
+    const addStratBtn = document.getElementById('addStrategyBtn');
+    const stratModal = document.getElementById('strategyModal');
+    const stratForm = document.getElementById('strategyForm');
+    const stratList = document.getElementById('strategyListContainer');
+
+    async function fetchStrategies() {
+        if (!stratList) return;
         try {
             const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
-            if (!res.ok) return;
             const data = await res.json() || {};
-            
-            // Multiple fallback elements to prevent breaking JS
-            const targetEl = document.getElementById("strategies-list") || 
-                             document.getElementById("strategy-list") || 
-                             document.querySelector(".strategies-container");
-
-            if (!targetEl) return;
-
-            targetEl.innerHTML = "";
-            const entries = Object.entries(data);
-
-            if (entries.length === 0) {
-                targetEl.innerHTML = `<div class="p-3 text-muted">No saved strategies found.</div>`;
-                return;
-            }
-
-            entries.forEach(([id, strat]) => {
-                const coinName = (strat.coin || strat.symbol || "BTC").toUpperCase();
-                targetEl.innerHTML += `
-                    <div class="card bg-dark text-white mb-2 border-secondary">
-                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1 fw-bold">${strat.name || "Strategy"} (${coinName})</h6>
-                                <small class="text-muted">
-                                    RSI Level: <b>${strat.rsiBuyLevel || 45}</b> | Fast/Slow EMA: <b>${strat.emaFast || 9}/${strat.emaSlow || 21}</b>
-                                </small>
-                            </div>
-                            <span class="badge ${strat.status === 'active' || strat.isAutoActive ? 'bg-success' : 'bg-secondary'}">
-                                ${strat.status || 'Active'}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (err) {
-            console.warn("Strategy fetch warning:", err);
+            renderStrategies(data);
+        } catch (e) {
+            console.error("Error fetching strategies:", e);
         }
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", fetchStrategiesSafe);
-    } else {
-        fetchStrategiesSafe();
+    function renderStrategies(data) {
+        if (!stratList) return;
+        stratList.innerHTML = '';
+        const keys = Object.keys(data);
+        if (keys.length === 0) {
+            stratList.innerHTML = `<p class="text-muted text-center py-4">No active strategies found. Click "Add Strategy" to create one.</p>`;
+            return;
+        }
+
+        keys.forEach(key => {
+            const item = data[key];
+            const card = document.createElement('div');
+            card.className = 'glass-card mb-3 p-3 position-relative';
+            card.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="m-0 font-weight-bold text-gradient">${item.name || 'Unnamed Strategy'}</h5>
+                    <span class="badge badge-soft-${item.status === 'active' ? 'success' : 'secondary'}">${item.status || 'Active'}</span>
+                </div>
+                <div class="row text-muted small">
+                    <div class="col-6">Asset: <strong class="text-white">${item.coin || 'BTC'}</strong></div>
+                    <div class="col-6">Timeframe: <strong class="text-white">${item.entryTF || '1h'}</strong></div>
+                    <div class="col-6 mt-1">Buy Target: <strong class="text-success">$${item.buyTarget || 'N/A'}</strong></div>
+                    <div class="col-6 mt-1">Sell Target: <strong class="text-danger">$${item.sellTarget || 'N/A'}</strong></div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger position-absolute" style="top:10px; right:10px;" onclick="deleteStrategy('${key}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            stratList.appendChild(card);
+        });
     }
-})();
+
+    if (stratForm) {
+        stratForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('stratName')?.value || 'Strategy',
+                coin: document.getElementById('stratCoin')?.value || 'BTC',
+                entryTF: document.getElementById('stratTF')?.value || '1h',
+                buyTarget: document.getElementById('stratBuy')?.value || '',
+                sellTarget: document.getElementById('stratSell')?.value || '',
+                status: 'active',
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (window.jQuery && stratModal) $(stratModal).modal('hide');
+                stratForm.reset();
+                fetchStrategies();
+            } catch (err) {
+                alert('Error saving strategy');
+            }
+        });
+    }
+
+    window.deleteStrategy = async (id) => {
+        if (!confirm('Are you sure you want to delete this strategy?')) return;
+        try {
+            await fetch(`${FIREBASE_BASE_URL}/trading_strategies/${id}.json`, { method: 'DELETE' });
+            fetchStrategies();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    fetchStrategies();
+});
