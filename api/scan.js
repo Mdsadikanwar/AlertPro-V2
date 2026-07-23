@@ -1,28 +1,11 @@
 export default async function handler(req, res) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // 1. Fetch Live Price from CoinGecko (Safe & No-Block)
-        const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { cache: 'no-store' });
-        const priceData = await priceRes.json();
-        const currentPrice = priceData?.bitcoin?.usd;
-
-        if (!currentPrice) {
-            // Fallback API if CoinGecko rate limits
-            const fallbackRes = await fetch('https://api.coincap.io/v2/assets/bitcoin', { cache: 'no-store' });
-            const fallbackData = await fallbackRes.json();
-            var finalPrice = parseFloat(fallbackData?.data?.priceUsd);
-        } else {
-            var finalPrice = currentPrice;
-        }
-
-        if (!finalPrice || isNaN(finalPrice)) {
-            return res.status(500).json({ success: false, error: "Unable to fetch live price from CoinGecko/CoinCap" });
-        }
-
-        // 2. Fetch Active Strategies & Settings from Firebase
+        // 1. Firebase से स्ट्रेटजीज़ और सेटिंग्स लाओ
         const [stratRes, configRes] = await Promise.all([
             fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
             fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
@@ -31,73 +14,135 @@ export default async function handler(req, res) {
         const strategies = await stratRes.json() || {};
         const config = await configRes.json() || {};
 
-        const tgToken = config.tgToken || config.telegramToken || config.botToken; //
-        const tgChatId = config.tgChatId || config.telegramChatId || config.chatId; //
+        const tgToken = config.tgToken || config.telegramToken || config.botToken;
+        const tgChatId = config.tgChatId || config.telegramChatId || config.chatId;
 
         let executedTrades = [];
 
-        // 3. Loop through ALL User Defined Active Strategies (Dynamic Strategy Execution)
-        for (const [stratId, strat] of Object.entries(strategies)) {
-            if (strat.status !== "active" && strat.enabled !== true) continue;
+        // Helper: Calculate RSI
+        function calculateRSI(closes, period = 14) {
+            if (closes.length < period + 1) return 50;
+            let gains = 0, losses = 0;
+            for (let i = 1; i <= period; i++) {
+                const diff = closes[i] - closes[i - 1];
+                if (diff >= 0) gains += diff; else losses -= diff;
+            }
+            let avgGain = gains / period, avgLoss = losses / period;
+            for (let i = period + 1; i < closes.length; i++) {
+                const diff = closes[i] - closes[i - 1];
+                if (diff >= 0) {
+                    avgGain = (avgGain * (period - 1) + diff) / period;
+                    avgLoss = (avgLoss * (period - 1)) / period;
+                } else {
+                    avgGain = (avgGain * (period - 1)) / period;
+                    avgLoss = (avgLoss * (period - 1) - diff) / period;
+                }
+            }
+            return avgLoss === 0 ? 100 : 100 - (100 / (avgGain / avgLoss));
+        }
 
-            // Read Strategy Parameters (Target, Condition, Thresholds)
-            const symbol = strat.symbol || "BTCUSDT";
-            const stratName = strat.name || "Custom Strategy";
+        // Helper: Calculate EMA
+        function calculateEMA(closes, period) {
+            if (closes.length < period) return closes[closes.length - 1];
+            const k = 2 / (period + 1);
+            let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            for (let i = period; i < closes.length; i++) {
+                ema = (closes[i] * k) + (ema * (1 - k));
+            }
+            return ema;
+        }
+
+        // 2. हर एक्टिव स्ट्रेटजी को स्कैन करो
+        for (const [stratId, strat] of Object.entries(strategies)) {
+            const isActive = strat.status === "active" || strat.isAutoActive === true || strat.enabled === true;
+            if (!isActive) continue;
+
+            const rawCoin = (strat.symbol || strat.coin || "BTC").replace("/", "").toUpperCase();
+            const cleanCoin = rawCoin.replace("USDT", "");
             
-            // Example: Strategy-based Rule Checks
+            // 💡 OKX/KuCoin Format (e.g. BTC-USDT) - कभी ब्लॉक नहीं होता!
+            const okxSymbol = `${cleanCoin}-USDT`;
+
+            // OKX Public Candle API (Safe, fast and non-blocking for Vercel)
+            const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${okxSymbol}&bar=1H&limit=100`, { cache: 'no-store' });
+            
+            if (!candleRes.ok) continue;
+
+            const okxData = await candleRes.json();
+            if (!okxData?.data || okxData.data.length === 0) continue;
+
+            // OKX returns newest candle first, reverse it for chronological order
+            const candles = okxData.data.reverse();
+            const closePrices = candles.map(c => parseFloat(c[4])); // Index 4 is Close Price
+            const currentPrice = closePrices[closePrices.length - 1];
+
+            // Indicators Calculation
+            const rsiPeriod = parseInt(strat.rsiPeriod) || 14;
+            const currentRSI = calculateRSI(closePrices, rsiPeriod);
+
+            const emaFast = calculateEMA(closePrices, parseInt(strat.emaFast) || 9);
+            const emaSlow = calculateEMA(closePrices, parseInt(strat.emaSlow) || 21);
+
+            const rsiBuyLevel = parseFloat(strat.rsiBuyLevel) || 45;
+
             let isTriggered = false;
             let actionType = null;
+            let reason = "";
 
-            // If user strategy defines high/low target or percentage shift
-            if (strat.sellTarget && finalPrice >= strat.sellTarget) {
-                isTriggered = true;
-                actionType = "SELL 🔴";
-            } else if (strat.buyTarget && finalPrice <= strat.buyTarget) {
+            // 🎯 CrossOver & Signal Condition Check
+            if (currentRSI <= rsiBuyLevel && emaFast >= emaSlow) {
                 isTriggered = true;
                 actionType = "BUY 🟢";
+                reason = `CrossOver Matched! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & Fast EMA (${emaFast.toFixed(1)}) >= Slow EMA (${emaSlow.toFixed(1)})`;
+            } else if (strat.sellTarget && currentPrice >= parseFloat(strat.sellTarget)) {
+                isTriggered = true;
+                actionType = "SELL 🔴";
+                reason = `Price Target Hit: $${currentPrice}`;
             }
 
-            // Execute Trade if Strategy Rule Matched
+            // 3. सिग्नल बनने पर Firebase में स्टोर (P&L के लिए) + टेलीग्राम नोटिफिकेशन
             if (isTriggered) {
                 const tradeLog = {
                     strategyId: stratId,
-                    strategyName: stratName,
+                    strategyName: strat.name || "EMA RSI Scalp",
                     type: actionType.includes("BUY") ? "BUY" : "SELL",
-                    symbol: symbol,
-                    price: finalPrice,
+                    symbol: `${cleanCoin}USDT`,
+                    price: currentPrice,
+                    rsi: currentRSI.toFixed(2),
+                    reason: reason,
+                    pnl: "0.00",
                     timestamp: new Date().toISOString()
                 };
 
-                // Record Trade in Firebase
+                // Save Trade for UI (bot_trading.js & Paper Trading P&L)
                 await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(tradeLog)
                 });
 
-                executedTrades.push(`${stratName}: ${actionType}`);
+                executedTrades.push(`${strat.name}: ${actionType} at $${currentPrice}`);
 
                 // Send Telegram Notification
                 if (tgToken && tgChatId) {
                     const tgMsg = encodeURIComponent(
-                        `⚠️ *[BOT STRATEGY SIGNAL]*\n\n` +
-                        `📋 *Strategy:* ${stratName}\n` +
-                        `🎯 *Signal Action:* ${actionType}\n` +
-                        `📊 *Target Asset:* ${symbol}\n` +
-                        `💰 *Trigger Price:* $${finalPrice.toLocaleString()}\n\n` +
-                        `🚀 *ApexTraders V2 Automated Core Engine*`
+                        `🚀 *[AUTOMATED STRATEGY SIGNAL]*\n\n` +
+                        `📋 *Strategy:* ${strat.name || "Custom"}\n` +
+                        `🎯 *Action:* ${actionType}\n` +
+                        `📊 *Symbol:* ${cleanCoin}USDT\n` +
+                        `💰 *Live Price:* $${currentPrice.toLocaleString()}\n` +
+                        `📈 *RSI Value:* ${currentRSI.toFixed(1)}\n` +
+                        `💡 *Reason:* ${reason}\n\n` +
+                        `⚡ *ApexTraders V2 Engine*`
                     );
                     await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage?chat_id=${tgChatId}&text=${tgMsg}&parse_mode=Markdown`);
                 }
             }
         }
 
-        // 4. Send Heartbeat Scan Response
         return res.status(200).json({
             success: true,
-            provider: "CoinGecko/CoinCap",
-            liveBtcPrice: finalPrice,
-            activeStrategiesCount: Object.keys(strategies).length,
+            activeStrategiesChecked: Object.keys(strategies).length,
             executedTrades: executedTrades
         });
 
