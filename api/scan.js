@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // 1. Fetch Active Strategies & Telegram Settings from Firebase
+        // Firebase से स्ट्रेटजीज़ और सेटिंग्स लाओ
         const [stratRes, configRes] = await Promise.all([
             fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
             fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
 
         let executedTrades = [];
 
-        // Helper: Calculate RSI
         function calculateRSI(closes, period = 14) {
             if (closes.length < period + 1) return 50;
             let gains = 0, losses = 0;
@@ -41,7 +40,6 @@ export default async function handler(req, res) {
             return avgLoss === 0 ? 100 : 100 - (100 / (1 + (avgGain / avgLoss)));
         }
 
-        // Helper: Calculate EMA
         function calculateEMA(closes, period) {
             if (closes.length < period) return closes[closes.length - 1];
             const k = 2 / (period + 1);
@@ -52,7 +50,6 @@ export default async function handler(req, res) {
             return ema;
         }
 
-        // 2. Loop through all active strategies
         for (const [stratId, strat] of Object.entries(strategies)) {
             const isActive = strat.status === "active" || strat.isAutoActive === true || strat.enabled === true;
             if (!isActive) continue;
@@ -61,7 +58,6 @@ export default async function handler(req, res) {
             const cleanCoin = rawCoin.replace("USDT", "");
             const okxSymbol = `${cleanCoin}-USDT`;
 
-            // Fetch Live Candles from OKX API (Unblocked & Safe)
             const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${okxSymbol}&bar=1H&limit=100`, { cache: 'no-store' });
             if (!candleRes.ok) continue;
 
@@ -72,7 +68,6 @@ export default async function handler(req, res) {
             const closePrices = candles.map(c => parseFloat(c[4]));
             const currentPrice = closePrices[closePrices.length - 1];
 
-            // Indicators Calculation
             const rsiPeriod = parseInt(strat.rsiPeriod) || 14;
             const currentRSI = calculateRSI(closePrices, rsiPeriod);
             const emaFast = calculateEMA(closePrices, parseInt(strat.emaFast) || 9);
@@ -83,27 +78,25 @@ export default async function handler(req, res) {
             let actionType = null;
             let reason = "";
 
-            // Signal Condition Check (CrossOver & Targets)
             if (currentRSI <= rsiBuyLevel && emaFast >= emaSlow) {
                 isTriggered = true;
-                actionType = "BUY 🟢";
-                reason = `CrossOver Matched! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & Fast EMA (${emaFast.toFixed(1)}) >= Slow EMA (${emaSlow.toFixed(1)})`;
+                actionType = "BUY";
+                reason = `CrossOver Triggered! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & EMA Cross (${emaFast.toFixed(1)} >= ${emaSlow.toFixed(1)})`;
             } else if (strat.buyTarget && currentPrice <= parseFloat(strat.buyTarget)) {
                 isTriggered = true;
-                actionType = "BUY 🟢";
+                actionType = "BUY";
                 reason = `Target Buy Hit: $${currentPrice}`;
             } else if (strat.sellTarget && currentPrice >= parseFloat(strat.sellTarget)) {
                 isTriggered = true;
-                actionType = "SELL 🔴";
+                actionType = "SELL";
                 reason = `Target Sell Hit: $${currentPrice}`;
             }
 
-            // Execute Signal
             if (isTriggered) {
                 const tradeLog = {
                     strategyId: stratId,
                     strategyName: strat.name || "Custom Strategy",
-                    type: actionType.includes("BUY") ? "BUY" : "SELL",
+                    type: actionType,
                     symbol: `${cleanCoin}USDT`,
                     price: currentPrice,
                     rsi: currentRSI.toFixed(2),
@@ -112,7 +105,6 @@ export default async function handler(req, res) {
                     timestamp: new Date().toISOString()
                 };
 
-                // Record Trade in Firebase (For P&L & Logs)
                 await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -121,17 +113,15 @@ export default async function handler(req, res) {
 
                 executedTrades.push(`${strat.name}: ${actionType} at $${currentPrice}`);
 
-                // Send Telegram Notification
                 if (tgToken && tgChatId) {
                     const tgMsg = encodeURIComponent(
-                        `🚨 *[AUTO TRADING SIGNAL GENERATED]*\n\n` +
-                        `📋 *Strategy:* ${strat.name || "Custom Strategy"}\n` +
+                        `🚨 *[AUTO TRADING SIGNAL]*\n\n` +
+                        `📋 *Strategy:* ${strat.name || "Strategy"}\n` +
                         `🎯 *Action:* ${actionType}\n` +
                         `📊 *Symbol:* ${cleanCoin}USDT\n` +
-                        `💰 *Execution Price:* $${currentPrice.toLocaleString()}\n` +
+                        `💰 *Price:* $${currentPrice.toLocaleString()}\n` +
                         `📈 *RSI:* ${currentRSI.toFixed(1)}\n` +
-                        `💡 *Reason:* ${reason}\n\n` +
-                        `🚀 *ApexTraders V2 Engine*`
+                        `💡 *Reason:* ${reason}`
                     );
                     await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage?chat_id=${tgChatId}&text=${tgMsg}&parse_mode=Markdown`);
                 }
@@ -140,7 +130,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            activeStrategiesChecked: Object.keys(strategies).length,
+            activeChecked: Object.keys(strategies).length,
             executedTrades: executedTrades
         });
 
