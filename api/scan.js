@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // Fetch Strategies & Settings
+        // 1. Fetch Strategies & Settings
         const [stratRes, configRes] = await Promise.all([
             fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
             fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
             const cleanCoin = rawCoin.replace("USDT", "");
             const okxSymbol = `${cleanCoin}-USDT`;
 
-            // OKX Unblocked API
+            // OKX Public Candle API (Non-blocking)
             const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${okxSymbol}&bar=1H&limit=100`, { cache: 'no-store' });
             if (!candleRes.ok) continue;
 
@@ -106,6 +106,7 @@ export default async function handler(req, res) {
                     timestamp: new Date().toISOString()
                 };
 
+                // Firebase में सेव (ताकि डैशबोर्ड में P&L दिखे)
                 await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -114,6 +115,7 @@ export default async function handler(req, res) {
 
                 executedTrades.push(`${strat.name}: ${actionType} at $${currentPrice}`);
 
+                // Telegram Alert
                 if (tgToken && tgChatId) {
                     const tgMsg = encodeURIComponent(
                         `🚨 *[AUTO TRADING SIGNAL]*\n\n` +
