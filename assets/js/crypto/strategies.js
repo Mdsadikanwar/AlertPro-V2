@@ -1,63 +1,48 @@
-const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
+// ApexTraders V2 - Strategies Engine
+(function () {
+    const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-// Save Strategy to Firebase
-async function saveStrategy(strategyData) {
-    try {
-        const payload = {
-            name: strategyData.name || "My Strategy",
-            coin: strategyData.coin || strategyData.symbol || "BTC",
-            symbol: (strategyData.coin || "BTC").toUpperCase() + "USDT",
-            rsiBuyLevel: parseFloat(strategyData.rsiBuyLevel) || 45,
-            emaFast: parseInt(strategyData.emaFast) || 9,
-            emaSlow: parseInt(strategyData.emaSlow) || 21,
-            rsiPeriod: parseInt(strategyData.rsiPeriod) || 14,
-            buyTarget: strategyData.buyTarget ? parseFloat(strategyData.buyTarget) : null,
-            sellTarget: strategyData.sellTarget ? parseFloat(strategyData.sellTarget) : null,
-            entryTF: strategyData.entryTF || "1h",
-            isAutoActive: true,
-            status: "active",
-            createdAt: new Date().toISOString()
-        };
+    async function loadStrategies() {
+        try {
+            const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
+            if (!res.ok) return;
+            const data = await res.json() || {};
+            
+            const listEl = document.getElementById("strategies-list") || document.getElementById("strategy-list");
+            if (!listEl) return;
 
-        const response = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+            listEl.innerHTML = "";
+            const entries = Object.entries(data);
 
-        if (response.ok) {
-            alert("✅ Strategy Saved and Activated Successfully!");
-            loadStrategies();
-        } else {
-            alert("❌ Failed to Save Strategy");
+            if (entries.length === 0) {
+                listEl.innerHTML = `<div class="alert alert-info">No active strategies saved yet.</div>`;
+                return;
+            }
+
+            entries.forEach(([id, strat]) => {
+                const coin = strat.coin || strat.symbol || "BTC";
+                const statusClass = (strat.status === "active" || strat.isAutoActive) ? "bg-success" : "bg-secondary";
+                
+                listEl.innerHTML += `
+                    <div class="card bg-dark text-white mb-2 border-secondary">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold">${strat.name || "Custom Strategy"} (${coin.toUpperCase()})</h6>
+                                <small class="text-muted">
+                                    RSI Level: <b>${strat.rsiBuyLevel || 45}</b> | Fast/Slow EMA: <b>${strat.emaFast || 9}/${strat.emaSlow || 21}</b>
+                                </small>
+                            </div>
+                            <span class="badge ${statusClass}">${strat.status || "Active"}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error("Strategies loading error:", err);
         }
-    } catch (err) {
-        console.error("Error saving strategy:", err);
     }
-}
 
-// Fetch & Display Saved Strategies
-async function loadStrategies() {
-    try {
-        const res = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`);
-        const data = await res.json() || {};
-        
-        const container = document.getElementById("saved-strategies-list");
-        if (!container) return;
-
-        container.innerHTML = "";
-        Object.entries(data).forEach(([id, strat]) => {
-            container.innerHTML += `
-                <div class="strategy-card border p-3 mb-2 rounded bg-dark text-white">
-                    <h5>${strat.name} (${strat.coin || strat.symbol})</h5>
-                    <p class="mb-1">RSI Buy Level: <b>${strat.rsiBuyLevel}</b> | Fast/Slow EMA: <b>${strat.emaFast}/${strat.emaSlow}</b></p>
-                    <span class="badge bg-success">Status: ${strat.status || 'Active'}</span>
-                </div>
-            `;
-        });
-    } catch (err) {
-        console.error("Error loading strategies:", err);
-    }
-}
-
-document.addEventListener("DOMContentLoaded", loadStrategies);
+    document.addEventListener("DOMContentLoaded", function () {
+        loadStrategies();
+    });
+})();
