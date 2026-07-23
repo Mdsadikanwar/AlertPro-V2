@@ -1,60 +1,52 @@
-(function () {
+document.addEventListener('DOMContentLoaded', () => {
     const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
+    const tradesContainer = document.getElementById('botTradesTableBody');
+    const totalPnlEl = document.getElementById('totalBotPnl');
 
-    async function syncBotTradesAndPnL() {
+    async function loadBotTrades() {
         try {
             const res = await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`);
-            if (!res.ok) return;
             const data = await res.json() || {};
-
-            let sumPnl = 0;
-            let rowsHtml = "";
-
-            const trades = Object.values(data).reverse();
-
-            trades.forEach(trade => {
-                const pnlVal = parseFloat(trade.pnl || 0);
-                sumPnl += pnlVal;
-
-                const badgeColor = trade.type === "BUY" ? "bg-success" : "bg-danger";
-                const pnlColor = pnlVal >= 0 ? "text-success" : "text-danger";
-
-                rowsHtml += `
-                    <tr>
-                        <td>${new Date(trade.timestamp).toLocaleTimeString()}</td>
-                        <td><b>${trade.strategyName || 'Auto Strategy'}</b></td>
-                        <td>${trade.symbol}</td>
-                        <td><span class="badge ${badgeColor}">${trade.type}</span></td>
-                        <td>$${parseFloat(trade.price).toFixed(2)}</td>
-                        <td class="${pnlColor}">$${pnlVal.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            // Update PnL Display safely
-            const pnlBox = document.getElementById("bot-pnl-display") || 
-                           document.getElementById("total-pnl") || 
-                           document.querySelector(".pnl-display");
-            if (pnlBox) pnlBox.innerText = `$${sumPnl.toFixed(2)}`;
-
-            // Update Table safely
-            const tableBody = document.getElementById("bot-trades-body") || 
-                              document.getElementById("trades-table-body") || 
-                              document.querySelector("tbody");
-            if (tableBody && rowsHtml !== "") tableBody.innerHTML = rowsHtml;
-
-        } catch (err) {
-            console.warn("PnL sync warning:", err);
+            renderTrades(data);
+        } catch (e) {
+            console.error("Error loading bot trades:", e);
         }
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", function () {
-            syncBotTradesAndPnL();
-            setInterval(syncBotTradesAndPnL, 5000);
+    function renderTrades(data) {
+        if (!tradesContainer) return;
+        tradesContainer.innerHTML = '';
+        let totalPnl = 0;
+
+        const entries = Object.entries(data).reverse();
+        if (entries.length === 0) {
+            tradesContainer.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No trade logs available</td></tr>`;
+            if (totalPnlEl) totalPnlEl.innerText = "$0.00";
+            return;
+        }
+
+        entries.forEach(([id, trade]) => {
+            const pnl = parseFloat(trade.pnl || 0);
+            totalPnl += pnl;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${new Date(trade.timestamp).toLocaleTimeString()}</td>
+                <td><strong>${trade.strategyName || 'Auto Strategy'}</strong></td>
+                <td><span class="badge badge-soft-info">${trade.symbol}</span></td>
+                <td><span class="badge badge-${trade.type === 'BUY' ? 'success' : 'danger'}">${trade.type}</span></td>
+                <td>$${parseFloat(trade.price).toFixed(2)}</td>
+                <td class="${pnl >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">$${pnl.toFixed(2)}</td>
+            `;
+            tradesContainer.appendChild(tr);
         });
-    } else {
-        syncBotTradesAndPnL();
-        setInterval(syncBotTradesAndPnL, 5000);
+
+        if (totalPnlEl) {
+            totalPnlEl.innerText = `$${totalPnl.toFixed(2)}`;
+            totalPnlEl.className = totalPnl >= 0 ? 'text-success font-weight-bold' : 'text-danger font-weight-bold';
+        }
     }
-})();
+
+    loadBotTrades();
+    setInterval(loadBotTrades, 5000);
+});
