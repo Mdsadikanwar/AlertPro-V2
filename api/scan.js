@@ -1,61 +1,70 @@
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Access-Control-Allow-Origin', '*');
 
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // Fetch active strategies
-        const stratRes = await fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' });
-        const strategies = await stratRes.json() || {};
+        // 1. Fetch Live Price from CoinGecko (Safe & No-Block)
+        const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { cache: 'no-store' });
+        const priceData = await priceRes.json();
+        const currentPrice = priceData?.bitcoin?.usd;
 
-        // Fetch Telegram Config from Firebase
-        const configRes = await fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' });
+        if (!currentPrice) {
+            // Fallback API if CoinGecko rate limits
+            const fallbackRes = await fetch('https://api.coincap.io/v2/assets/bitcoin', { cache: 'no-store' });
+            const fallbackData = await fallbackRes.json();
+            var finalPrice = parseFloat(fallbackData?.data?.priceUsd);
+        } else {
+            var finalPrice = currentPrice;
+        }
+
+        if (!finalPrice || isNaN(finalPrice)) {
+            return res.status(500).json({ success: false, error: "Unable to fetch live price from CoinGecko/CoinCap" });
+        }
+
+        // 2. Fetch Active Strategies & Settings from Firebase
+        const [stratRes, configRes] = await Promise.all([
+            fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
+            fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
+        ]);
+
+        const strategies = await stratRes.json() || {};
         const config = await configRes.json() || {};
 
-        const tgToken = config.tgToken || config.telegramToken || config.botToken;
-        const tgChatId = config.tgChatId || config.telegramChatId || config.chatId;
+        const tgToken = config.tgToken || config.telegramToken || config.botToken; //
+        const tgChatId = config.tgChatId || config.telegramChatId || config.chatId; //
 
         let executedTrades = [];
 
-        // Fetch Live Price from Coingecko
-        const priceRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd", { cache: 'no-store' });
-        const prices = await priceRes.json() || {};
-
-        const coinMap = {
-            "BTC": prices.bitcoin?.usd || 0,
-            "ETH": prices.ethereum?.usd || 0,
-            "SOL": prices.solana?.usd || 0
-        };
-
+        // 3. Loop through ALL User Defined Active Strategies (Dynamic Strategy Execution)
         for (const [stratId, strat] of Object.entries(strategies)) {
-            const isActive = strat.status === "active" || strat.isAutoActive === true || strat.enabled === true;
-            if (!isActive) continue;
+            if (strat.status !== "active" && strat.enabled !== true) continue;
 
-            const coin = (strat.coin || strat.symbol || "BTC").toUpperCase();
-            const currentPrice = coinMap[coin] || 0;
-
-            if (currentPrice === 0) continue;
-
+            // Read Strategy Parameters (Target, Condition, Thresholds)
+            const symbol = strat.symbol || "BTCUSDT";
+            const stratName = strat.name || "Custom Strategy";
+            
+            // Example: Strategy-based Rule Checks
             let isTriggered = false;
-            let action = null;
+            let actionType = null;
 
-            if (strat.buyTarget && currentPrice <= parseFloat(strat.buyTarget)) {
+            // If user strategy defines high/low target or percentage shift
+            if (strat.sellTarget && finalPrice >= strat.sellTarget) {
                 isTriggered = true;
-                action = "BUY";
-            } else if (strat.sellTarget && currentPrice >= parseFloat(strat.sellTarget)) {
+                actionType = "SELL 🔴";
+            } else if (strat.buyTarget && finalPrice <= strat.buyTarget) {
                 isTriggered = true;
-                action = "SELL";
+                actionType = "BUY 🟢";
             }
 
+            // Execute Trade if Strategy Rule Matched
             if (isTriggered) {
-                const tradeData = {
+                const tradeLog = {
                     strategyId: stratId,
-                    strategyName: strat.name || "Strategy Trade",
-                    type: action,
-                    symbol: `${coin}USDT`,
-                    price: currentPrice,
-                    pnl: "0.00",
+                    strategyName: stratName,
+                    type: actionType.includes("BUY") ? "BUY" : "SELL",
+                    symbol: symbol,
+                    price: finalPrice,
                     timestamp: new Date().toISOString()
                 };
 
@@ -63,26 +72,36 @@ export default async function handler(req, res) {
                 await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(tradeData)
+                    body: JSON.stringify(tradeLog)
                 });
 
-                executedTrades.push(`${strat.name}: ${action} at $${currentPrice}`);
+                executedTrades.push(`${stratName}: ${actionType}`);
 
                 // Send Telegram Notification
                 if (tgToken && tgChatId) {
-                    const msg = encodeURIComponent(`🚨 [AUTO ${action} SIGNAL]\nStrategy: ${strat.name}\nCoin: ${coin}\nPrice: $${currentPrice}`);
-                    await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage?chat_id=${tgChatId}&text=${msg}`);
+                    const tgMsg = encodeURIComponent(
+                        `⚠️ *[BOT STRATEGY SIGNAL]*\n\n` +
+                        `📋 *Strategy:* ${stratName}\n` +
+                        `🎯 *Signal Action:* ${actionType}\n` +
+                        `📊 *Target Asset:* ${symbol}\n` +
+                        `💰 *Trigger Price:* $${finalPrice.toLocaleString()}\n\n` +
+                        `🚀 *ApexTraders V2 Automated Core Engine*`
+                    );
+                    await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage?chat_id=${tgChatId}&text=${tgMsg}&parse_mode=Markdown`);
                 }
             }
         }
 
+        // 4. Send Heartbeat Scan Response
         return res.status(200).json({
             success: true,
-            checkedCount: Object.keys(strategies).length,
+            provider: "CoinGecko/CoinCap",
+            liveBtcPrice: finalPrice,
+            activeStrategiesCount: Object.keys(strategies).length,
             executedTrades: executedTrades
         });
 
-    } catch (err) {
-        return res.status(500).json({ success: false, error: err.message });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
     }
 }
