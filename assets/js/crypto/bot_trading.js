@@ -1,46 +1,51 @@
-const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
+// ApexTraders V2 - Bot Trading & PnL Engine
+(function () {
+    const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-async function loadBotTradesAndPNL() {
-    try {
-        const res = await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`);
-        const data = await res.json() || {};
+    async function fetchBotData() {
+        try {
+            const res = await fetch(`${FIREBASE_BASE_URL}/bot_trades.json`);
+            if (!res.ok) return;
+            const data = await res.json() || {};
 
-        let totalTrades = 0;
-        let totalPnl = 0;
-        let htmlContent = "";
+            let totalPnl = 0;
+            let rowsHtml = "";
 
-        const tradesArray = Object.values(data).reverse(); // Latest Trades First
+            const trades = Object.values(data).reverse();
 
-        tradesArray.forEach(trade => {
-            totalTrades++;
-            const pnlVal = parseFloat(trade.pnl || 0);
-            totalPnl += pnlVal;
+            trades.forEach(trade => {
+                const pnl = parseFloat(trade.pnl || 0);
+                totalPnl += pnl;
 
-            htmlContent += `
-                <tr>
-                    <td>${new Date(trade.timestamp).toLocaleString()}</td>
-                    <td><b>${trade.strategyName}</b></td>
-                    <td>${trade.symbol}</td>
-                    <td><span class="badge ${trade.type === 'BUY' ? 'bg-success' : 'bg-danger'}">${trade.type}</span></td>
-                    <td>$${trade.price}</td>
-                    <td>${trade.rsi || 'N/A'}</td>
-                    <td class="${pnlVal >= 0 ? 'text-success' : 'text-danger'}">$${pnlVal.toFixed(2)}</td>
-                </tr>
-            `;
-        });
+                const badgeClass = trade.type === "BUY" ? "bg-success" : "bg-danger";
+                const pnlClass = pnl >= 0 ? "text-success" : "text-danger";
 
-        // Update UI Elements if they exist
-        const pnlElement = document.getElementById("total-pnl-display");
-        if (pnlElement) pnlElement.innerText = `$${totalPnl.toFixed(2)}`;
+                rowsHtml += `
+                    <tr>
+                        <td>${new Date(trade.timestamp).toLocaleTimeString()}</td>
+                        <td><b>${trade.strategyName || 'Auto Bot'}</b></td>
+                        <td>${trade.symbol}</td>
+                        <td><span class="badge ${badgeClass}">${trade.type}</span></td>
+                        <td>$${parseFloat(trade.price).toFixed(2)}</td>
+                        <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
 
-        const tradesTable = document.getElementById("bot-trades-table-body");
-        if (tradesTable) tradesTable.innerHTML = htmlContent;
+            // Update PnL display elements cleanly without crashing
+            const pnlDisplay = document.getElementById("bot-pnl-display") || document.getElementById("total-pnl");
+            if (pnlDisplay) pnlDisplay.innerText = `$${totalPnl.toFixed(2)}`;
 
-    } catch (err) {
-        console.error("Error loading P&L and Bot Trades:", err);
+            const tableBody = document.getElementById("bot-trades-body") || document.getElementById("trades-table-body");
+            if (tableBody && rowsHtml !== "") tableBody.innerHTML = rowsHtml;
+
+        } catch (err) {
+            console.error("Bot Trading Sync Error:", err);
+        }
     }
-}
 
-// Auto Refresh every 5 seconds
-setInterval(loadBotTradesAndPNL, 5000);
-document.addEventListener("DOMContentLoaded", loadBotTradesAndPNL);
+    document.addEventListener("DOMContentLoaded", function () {
+        fetchBotData();
+        setInterval(fetchBotData, 5000); // 5 sec live sync
+    });
+})();
