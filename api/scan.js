@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     try {
         const FIREBASE_BASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
 
-        // Firebase से स्ट्रेटजीज़ और सेटिंग्स लाओ
+        // Fetch Strategies & Settings
         const [stratRes, configRes] = await Promise.all([
             fetch(`${FIREBASE_BASE_URL}/trading_strategies.json`, { cache: 'no-store' }),
             fetch(`${FIREBASE_BASE_URL}/app_settings.json`, { cache: 'no-store' })
@@ -58,6 +58,7 @@ export default async function handler(req, res) {
             const cleanCoin = rawCoin.replace("USDT", "");
             const okxSymbol = `${cleanCoin}-USDT`;
 
+            // OKX Unblocked API
             const candleRes = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${okxSymbol}&bar=1H&limit=100`, { cache: 'no-store' });
             if (!candleRes.ok) continue;
 
@@ -81,21 +82,21 @@ export default async function handler(req, res) {
             if (currentRSI <= rsiBuyLevel && emaFast >= emaSlow) {
                 isTriggered = true;
                 actionType = "BUY";
-                reason = `CrossOver Triggered! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & EMA Cross (${emaFast.toFixed(1)} >= ${emaSlow.toFixed(1)})`;
+                reason = `CrossOver Matched! RSI (${currentRSI.toFixed(1)}) <= ${rsiBuyLevel} & Fast EMA (${emaFast.toFixed(1)}) >= Slow EMA (${emaSlow.toFixed(1)})`;
             } else if (strat.buyTarget && currentPrice <= parseFloat(strat.buyTarget)) {
                 isTriggered = true;
                 actionType = "BUY";
-                reason = `Target Buy Hit: $${currentPrice}`;
+                reason = `Buy Target Price Hit: $${currentPrice}`;
             } else if (strat.sellTarget && currentPrice >= parseFloat(strat.sellTarget)) {
                 isTriggered = true;
                 actionType = "SELL";
-                reason = `Target Sell Hit: $${currentPrice}`;
+                reason = `Sell Target Price Hit: $${currentPrice}`;
             }
 
             if (isTriggered) {
                 const tradeLog = {
                     strategyId: stratId,
-                    strategyName: strat.name || "Custom Strategy",
+                    strategyName: strat.name || "Strategy Trade",
                     type: actionType,
                     symbol: `${cleanCoin}USDT`,
                     price: currentPrice,
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
                 if (tgToken && tgChatId) {
                     const tgMsg = encodeURIComponent(
                         `🚨 *[AUTO TRADING SIGNAL]*\n\n` +
-                        `📋 *Strategy:* ${strat.name || "Strategy"}\n` +
+                        `📋 *Strategy:* ${strat.name || "Custom"}\n` +
                         `🎯 *Action:* ${actionType}\n` +
                         `📊 *Symbol:* ${cleanCoin}USDT\n` +
                         `💰 *Price:* $${currentPrice.toLocaleString()}\n` +
