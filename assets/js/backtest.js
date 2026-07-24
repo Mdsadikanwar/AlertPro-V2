@@ -45,71 +45,79 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        document.getElementById('backtest-form')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('bt-btn');
-            const resultsDiv = document.getElementById('bt-results');
+        const form = document.getElementById('backtest-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('bt-btn');
+                const resultsDiv = document.getElementById('bt-results');
 
-            const coin = document.getElementById('bt-coin').value.toUpperCase().replace("USDT", "");
-            const tf = document.getElementById('bt-tf').value;
-            const targetRsi = parseFloat(document.getElementById('bt-rsi').value) || 45;
+                const coinInput = document.getElementById('bt-coin');
+                const tfInput = document.getElementById('bt-tf');
+                const rsiInput = document.getElementById('bt-rsi');
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Candles...`;
+                const coin = coinInput ? coinInput.value.toUpperCase().replace("USDT", "") : "BTC";
+                const tf = tfInput ? tfInput.value : "1H";
 
-            try {
-                // Fetch 100 historical candles from OKX
-                const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${coin}-USDT&bar=${tf}&limit=100`);
-                const data = await res.json();
-
-                if (!data?.data?.length) {
-                    resultsDiv.innerHTML = `<p class="text-danger">Failed to fetch historical market data from OKX.</p>`;
-                    return;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching Candles...`;
                 }
 
-                const candles = data.data.reverse();
-                let buyTriggers = 0;
-                let simulatedPnl = 0;
+                try {
+                    const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${coin}-USDT&bar=${tf}&limit=100`);
+                    const data = await res.json();
 
-                // Simple simulated historical check
-                candles.forEach((c, index) => {
-                    if (index > 14) {
-                        const close = parseFloat(c[4]);
-                        if (close < (parseFloat(candles[index-1][4]) * 0.98)) { 
+                    if (!data || !data.data || data.data.length === 0) {
+                        if (resultsDiv) resultsDiv.innerHTML = `<p class="text-danger">Failed to fetch historical market data from OKX.</p>`;
+                        return;
+                    }
+
+                    const candles = data.data.reverse();
+                    let buyTriggers = 0;
+                    let simulatedPnl = 0;
+
+                    for (let i = 15; i < candles.length; i++) {
+                        const close = parseFloat(candles[i][4]);
+                        const prevClose = parseFloat(candles[i - 1][4]);
+                        if (close < prevClose * 0.98) {
                             buyTriggers++;
-                            simulatedPnl += (close * 0.015); // Simulated win estimate
+                            simulatedPnl += close * 0.015;
                         }
                     }
-                });
 
-                resultsDiv.innerHTML = `
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="p-3 border border-secondary rounded bg-dark">
-                                <span class="text-muted small">Buy Signals Triggered</span>
-                                <h3 class="m-0 text-info font-monospace">${buyTriggers}</h3>
+                    if (resultsDiv) {
+                        resultsDiv.innerHTML = `
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <div class="p-3 border border-secondary rounded bg-dark">
+                                        <span class="text-muted small">Buy Signals Triggered</span>
+                                        <h3 class="m-0 text-info font-monospace">${buyTriggers}</h3>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 border border-secondary rounded bg-dark">
+                                        <span class="text-muted small">Estimated Historical Win P&L</span>
+                                        <h3 class="m-0 text-success font-monospace">+$${simulatedPnl.toFixed(2)}</h3>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 border border-secondary rounded bg-dark">
-                                <span class="text-muted small">Estimated Historical Win P&L</span>
-                                <h3 class="m-0 text-success font-monospace">+$${simulatedPnl.toFixed(2)}</h3>
+                            <div class="alert alert-dark border-secondary text-start text-muted small m-0">
+                                <i class="fa-solid fa-info-circle text-warning me-2"></i>
+                                Tested on 100 historical candles for <strong>${coin}-USDT (${tf})</strong>.
                             </div>
-                        </div>
-                    </div>
-                    <div class="alert alert-dark border-secondary text-start text-muted small">
-                        <i class="fa-solid fa-info-circle text-warning me-2"></i>
-                        Tested on 100 historical candles for <strong>${coin}-USDT (${tf})</strong>. 
-                        Target RSI condition matched ${buyTriggers} times across the historical range.
-                    </div>
-                `;
+                        `;
+                    }
 
-            } catch (err) {
-                resultsDiv.innerHTML = `<p class="text-danger">Backtest error: ${err.message}</p>`;
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-play me-1"></i> Run Backtest`;
-            }
-        });
+                } catch (err) {
+                    if (resultsDiv) resultsDiv.innerHTML = `<p class="text-danger">Backtest error: ${err.message}</p>`;
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="fa-solid fa-play me-1"></i> Run Backtest`;
+                    }
+                }
+            });
+        }
     }
 });
