@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com";
     const container = document.getElementById('strategies-container');
+    const stratForm = document.getElementById('add-strat-form');
 
     // 1. Fetch & Render Strategies
     window.loadStrategies = async function() {
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             entries.forEach(([id, strat]) => {
                 const coin = (strat.coin || "BTC").toUpperCase().replace("USDT", "");
-                const typeBadge = strat.type === 'pinescript' ? 'bg-info' : (strat.type === 'ai' ? 'bg-primary' : 'bg-warning text-dark');
+                const typeBadge = strat.pineCode ? 'bg-info text-dark' : 'bg-warning text-dark';
                 
                 const card = document.createElement('div');
                 card.className = 'col-md-6 col-lg-4';
@@ -34,15 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h5 class="card-title m-0 text-warning fw-bold">${strat.name || 'Strategy'}</h5>
-                                    <span class="badge ${typeBadge}">${strat.type ? strat.type.toUpperCase() : 'STANDARD'}</span>
+                                    <span class="badge ${typeBadge}">${strat.pineCode ? 'PINESCRIPT' : 'STANDARD'}</span>
                                 </div>
                                 
                                 <div class="small text-light mt-3">
                                     <p class="mb-1"><i class="fa-solid fa-coins text-warning me-2"></i><strong>Asset:</strong> ${coin}/USDT</p>
-                                    <p class="mb-1"><i class="fa-solid fa-clock me-2 text-info"></i><strong>Timeframe:</strong> ${strat.timeframe || '1h'}</p>
-                                    <p class="mb-1"><i class="fa-solid fa-wave-square text-info me-2"></i><strong>RSI Target:</strong> ≤ ${strat.rsiBuyLevel || 45}</p>
+                                    <p class="mb-1"><i class="fa-solid fa-wave-square text-info me-2"></i><strong>RSI Buy:</strong> ≤ ${strat.rsiBuyLevel || 45}</p>
                                     <p class="mb-1"><i class="fa-solid fa-chart-line text-primary me-2"></i><strong>EMAs:</strong> Fast (${strat.emaFast || 9}) / Slow (${strat.emaSlow || 21})</p>
-                                    ${strat.pineCode ? `<div class="p-2 mt-2 bg-dark rounded font-monospace text-muted small text-truncate">Code: ${strat.pineCode.substring(0, 30)}...</div>` : ''}
+                                    ${strat.buyTarget ? `<p class="mb-1 text-success"><i class="fa-solid fa-circle-arrow-up me-2"></i><strong>Buy Target:</strong> $${strat.buyTarget}</p>` : ''}
+                                    ${strat.sellTarget ? `<p class="mb-1 text-danger"><i class="fa-solid fa-circle-arrow-down me-2"></i><strong>Sell Target:</strong> $${strat.sellTarget}</p>` : ''}
+                                    ${strat.pineCode ? `<div class="p-2 mt-2 bg-dark rounded font-monospace text-muted small text-truncate">Code: ${strat.pineCode.substring(0, 35)}...</div>` : ''}
                                 </div>
                             </div>
                             <div class="d-flex gap-2 mt-3">
@@ -61,25 +63,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 2. AI Prompt Parser Engine
+    // 2. AI Strategy Generator Engine (Auto-Fills Form)
     window.parseAIStrategy = function() {
-        const promptText = document.getElementById('ai-prompt-input')?.value.toLowerCase();
-        if (!promptText) return alert("Please enter an AI prompt description!");
-
-        // Auto extract parameters using simple keyword match
-        if (promptText.includes("btc")) document.getElementById('strat-coin').value = "BTC";
-        if (promptText.includes("eth")) document.getElementById('strat-coin').value = "ETH";
-        if (promptText.includes("sol")) document.getElementById('strat-coin').value = "SOL";
-
-        if (promptText.includes("rsi")) {
-            const match = promptText.match(/rsi\s*(<|<=|below|under)?\s*(\d+)/);
-            if (match && match[2]) document.getElementById('strat-rsi').value = match[2];
+        const promptInput = document.getElementById('ai-prompt-input');
+        const promptText = promptInput ? promptInput.value.toLowerCase() : '';
+        
+        if (!promptText.trim()) {
+            alert("Please enter a strategy description in the AI prompt box!");
+            return;
         }
 
-        alert("✨ AI successfully configured parameters based on your strategy prompt!");
+        // Detect Coin Name
+        if (promptText.includes("btc") || promptText.includes("bitcoin")) document.getElementById('strat-coin').value = "BTC";
+        else if (promptText.includes("eth") || promptText.includes("ethereum")) document.getElementById('strat-coin').value = "ETH";
+        else if (promptText.includes("sol") || promptText.includes("solana")) document.getElementById('strat-coin').value = "SOL";
+
+        // Detect RSI
+        const rsiMatch = promptText.match(/rsi\s*(<|<=|under|below)?\s*(\d+)/i);
+        if (rsiMatch && rsiMatch[2]) {
+            document.getElementById('strat-rsi').value = rsiMatch[2];
+        }
+
+        // Set Default Strategy Name if empty
+        const nameInput = document.getElementById('strat-name');
+        if (!nameInput.value) {
+            nameInput.value = "AI Custom " + (document.getElementById('strat-coin').value || "BTC");
+        }
+
+        alert("✨ AI Strategy parameters generated and filled into the form!");
     };
 
-    // Delete Strategy
+    // 3. Save Strategy Form Handler
+    if (stratForm) {
+        stratForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const newStrat = {
+                name: document.getElementById('strat-name').value,
+                coin: document.getElementById('strat-coin').value.toUpperCase().replace("USDT", ""),
+                rsiBuyLevel: parseFloat(document.getElementById('strat-rsi').value) || 45,
+                emaFast: parseInt(document.getElementById('strat-fast').value) || 9,
+                emaSlow: parseInt(document.getElementById('strat-slow').value) || 21,
+                buyTarget: document.getElementById('strat-buy-target').value || null,
+                sellTarget: document.getElementById('strat-sell-target').value || null,
+                pineCode: document.getElementById('strat-pine').value || "",
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                const res = await fetch(`${FIREBASE_URL}/trading_strategies.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newStrat)
+                });
+
+                if (res.ok) {
+                    stratForm.reset();
+                    // Close Bootstrap Modal
+                    const modalEl = document.getElementById('addStratModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+
+                    // Reload Strategies
+                    window.loadStrategies();
+                } else {
+                    alert("Failed to save strategy to Firebase.");
+                }
+            } catch (err) {
+                alert("Error saving strategy: " + err.message);
+            }
+        });
+    }
+
+    // 4. Delete Strategy
     window.deleteStrategy = async (id) => {
         if (!confirm("Are you sure you want to delete this strategy?")) return;
         try {
@@ -90,5 +146,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    loadStrategies();
+    window.loadStrategies();
 });
