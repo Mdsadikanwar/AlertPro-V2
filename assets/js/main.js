@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Tab Switching Logic
     const navLinks = document.querySelectorAll('.nav-link[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -7,18 +8,29 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const targetTab = link.getAttribute('data-tab');
 
-            // Update active link
+            // Toggle active classes on links
             navLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
 
-            // Hide all tabs & show target
-            tabContents.forEach(tab => {
-                if (tab.id === `tab-${targetTab}`) {
-                    tab.classList.remove('d-none');
-                } else {
-                    tab.classList.add('d-none');
-                }
+            // Hide all tab contents and show active
+            tabContents.forEach(content => {
+                content.classList.add('d-none');
+                content.classList.remove('active');
             });
+
+            const activeSection = document.getElementById(`tab-${targetTab}`);
+            if (activeSection) {
+                activeSection.classList.remove('d-none');
+                activeSection.classList.add('active');
+            }
+
+            // Trigger specific tab loaders if they exist
+            if (targetTab === 'strategies' && typeof window.loadStrategies === 'function') {
+                window.loadStrategies();
+            }
+            if (targetTab === 'bot_trading' && typeof window.loadBotTrades === 'function') {
+                window.loadBotTrades();
+            }
         });
     });
 });
