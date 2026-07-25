@@ -1,349 +1,133 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexTraders V3 - Pro Automated Engine</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <style>
-        /* Custom Pro Crypto Theme */
-        body { 
-            background-color: #0b0e11 !important; 
-            color: #e0e6ed; 
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
+<!-- STRATEGY BUILDER MODAL -->
+<div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content text-white" style="background-color: #12161c; border: 1px solid #2b313a; border-radius: 16px;">
+            <div class="modal-header border-bottom border-secondary px-4 py-3">
+                <h5 class="modal-title text-warning fw-bold d-flex align-items-center">
+                    <i class="fa-solid fa-sliders me-2"></i> Strategy Architect
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                
+                <!-- 1. MODE SELECTION TABS -->
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold mb-2">SELECT BUILDER MODE</label>
+                    <div class="btn-group w-100" role="group" id="strat-mode-selector">
+                        <input type="radio" class="btn-check" name="stratMode" id="mode-ai" value="ai" checked>
+                        <label class="btn btn-outline-warning fw-bold py-2" for="mode-ai"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Prompt</label>
 
-        .navbar {
-            background-color: #12161c !important;
-            border-bottom: 1px solid #1e2329 !important;
-        }
+                        <input type="radio" class="btn-check" name="stratMode" id="mode-manual" value="manual">
+                        <label class="btn btn-outline-warning fw-bold py-2" for="mode-manual"><i class="fa-solid fa-sliders me-1"></i> Manual Rules</label>
 
-        .nav-pills .nav-link { 
-            color: #848e9c; 
-            margin-right: 6px; 
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-pills .nav-link.active { 
-            background: linear-gradient(135deg, #f0b90b, #d99b00) !important; 
-            color: #000000 !important; 
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(240, 185, 11, 0.25);
-        }
-
-        /* Strategy Cards Design */
-        .strat-card {
-            background: #181a20 !important;
-            border: 1px solid #2b313a !important;
-            border-radius: 12px !important;
-            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .strat-card:hover {
-            transform: translateY(-4px);
-            border-color: #f0b90b !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(240, 185, 11, 0.15);
-        }
-
-        .strat-card-header {
-            background: #12161c;
-            border-bottom: 1px solid #2b313a;
-            padding: 12px 16px;
-        }
-
-        .badge-pine {
-            background: rgba(14, 203, 129, 0.15) !important;
-            color: #0ecb81 !important;
-            border: 1px solid rgba(14, 203, 129, 0.3);
-            font-size: 0.75rem;
-        }
-
-        .badge-ai {
-            background: rgba(171, 71, 188, 0.15) !important;
-            color: #ab47bc !important;
-            border: 1px solid rgba(171, 71, 188, 0.3);
-            font-size: 0.75rem;
-        }
-
-        /* Live Pulsing Dot */
-        .pulse-dot {
-            height: 8px;
-            width: 8px;
-            background-color: #0ecb81;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 rgba(14, 203, 129, 0.7);
-            animation: pulse 1.6s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(14, 203, 129, 0.7); }
-            70% { box-shadow: 0 0 0 8px rgba(14, 203, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(14, 203, 129, 0); }
-        }
-
-        .parameter-box {
-            background: #0b0e11;
-            border-radius: 8px;
-            padding: 10px;
-            border: 1px solid #22272e;
-        }
-
-        .code-snippet-box {
-            background: #080a0c;
-            border-left: 3px solid #0ecb81;
-            border-radius: 4px;
-            padding: 8px;
-            font-family: 'Courier New', Courier, monospace;
-            color: #a0aec0;
-            font-size: 0.8rem;
-        }
-
-        /* Modal Custom Styles */
-        .modal-content {
-            background-color: #181a20 !important;
-            border: 1px solid #2b313a !important;
-            border-radius: 16px !important;
-        }
-
-        .bg-input {
-            background-color: #0b0e11 !important;
-            color: #ffffff !important;
-            border: 1px solid #2b313a !important;
-            border-radius: 8px;
-        }
-
-        .bg-input:focus {
-            border-color: #f0b90b !important;
-            box-shadow: 0 0 0 0.25rem rgba(240, 185, 11, 0.15) !important;
-        }
-
-        .ai-box {
-            background: linear-gradient(135deg, rgba(240, 185, 11, 0.05), rgba(171, 71, 188, 0.05));
-            border: 1px dashed #f0b90b;
-            border-radius: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-3 py-2">
-        <a class="navbar-brand fw-bold text-warning d-flex align-items-center" href="#">
-            <i class="fa-solid fa-bolt-lightning fs-4 me-2"></i>
-            <span>APEX<span class="text-white">TRADERS</span> <span class="badge bg-warning text-dark fs-6 ms-1">PRO</span></span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto nav-pills">
-                <li class="nav-item"><a class="nav-link active" data-tab="dashboard" href="#"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" data-tab="strategies" href="#"><i class="fa-solid fa-microchip me-1"></i> Strategies Lab</a></li>
-                <li class="nav-item"><a class="nav-link" data-tab="bot_trading" href="#"><i class="fa-solid fa-robot me-1"></i> Bot Trading</a></li>
-                <li class="nav-item"><a class="nav-link" data-tab="paper_trading" href="#"><i class="fa-solid fa-wallet me-1"></i> Paper Trading</a></li>
-                <li class="nav-item"><a class="nav-link" data-tab="backtest" href="#"><i class="fa-solid fa-clock-rotate-left me-1"></i> Backtest</a></li>
-                <li class="nav-item"><a class="nav-link" data-tab="settings" href="#"><i class="fa-solid fa-sliders me-1"></i> Settings</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <div class="container-fluid px-4 py-4">
-
-        <!-- TAB 1: DASHBOARD -->
-        <section id="tab-dashboard" class="tab-content active">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="strat-card p-3">
-                        <small class="text-muted fw-bold">TOTAL LIVE BOT P&L</small>
-                        <h2 id="dash-total-pnl" class="text-success fw-bold my-1">+$0.00</h2>
-                        <small class="text-muted"><i class="fa-solid fa-arrow-trend-up text-success me-1"></i>Real-time calculated</small>
+                        <input type="radio" class="btn-check" name="stratMode" id="mode-template" value="template">
+                        <label class="btn btn-outline-warning fw-bold py-2" for="mode-template"><i class="fa-solid fa-code me-1"></i> PineScript / Template</label>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="strat-card p-3">
-                        <small class="text-muted fw-bold">ACTIVE STRATEGIES</small>
-                        <h2 id="dash-active-strats" class="text-warning fw-bold my-1">0</h2>
-                        <small class="text-muted">Running live on engine</small>
+
+                <!-- AI PROMPT SECTION (Conditional) -->
+                <div id="ai-section" class="p-3 mb-4 rounded" style="background: rgba(240, 185, 11, 0.05); border: 1px dashed #f0b90b;">
+                    <label class="form-label text-warning small fw-bold mb-1"><i class="fa-solid fa-bolt me-1"></i> AI Prompt Auto-Fill</label>
+                    <div class="input-group">
+                        <input type="text" id="ai-prompt-input" class="form-control bg-input" placeholder="e.g. Buy BTC when RSI under 30 with 10x leverage, SL 1.5%, TP 3%">
+                        <button class="btn btn-warning fw-bold px-3" type="button" onclick="parseAIStrategy()">Auto-Parse</button>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="strat-card p-3">
-                        <small class="text-muted fw-bold">SYSTEM STATUS</small>
-                        <h2 class="text-success fw-bold my-1"><span class="pulse-dot me-2"></span>Engine Online</h2>
-                        <small class="text-muted">Binance WebSocket Connected</small>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- TAB 2: STRATEGIES -->
-        <section id="tab-strategies" class="tab-content d-none">
-            <!-- Header Section -->
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary">
-                <div>
-                    <h3 class="m-0 text-white fw-bold d-flex align-items-center">
-                        <i class="fa-solid fa-microchip text-warning me-2 fs-3"></i> Strategy Control Lab
-                    </h3>
-                    <small class="text-muted">Deploy AI Prompts, PineScript Signals & Indicator Crossovers</small>
-                </div>
-                <button class="btn btn-warning fw-bold px-4 py-2 rounded-pill shadow" data-bs-toggle="modal" data-bs-target="#addStratModal">
-                    <i class="fa-solid fa-plus me-1"></i> Create Strategy
-                </button>
-            </div>
-
-            <!-- Dynamic Cards Container -->
-            <div id="strategies-container" class="row g-3">
-                <!-- Cards render here via JS -->
-            </div>
-        </section>
-
-        <!-- TAB 3: BOT TRADING -->
-        <section id="tab-bot_trading" class="tab-content d-none">
-            <h4 class="fw-bold text-white mb-3"><i class="fa-solid fa-list-check text-warning me-2"></i>Live Execution Logs</h4>
-            <div class="table-responsive">
-                <table class="table table-dark table-hover align-middle rounded border border-secondary">
-                    <thead>
-                        <tr class="text-muted">
-                            <th>TIME</th>
-                            <th>STRATEGY</th>
-                            <th>SYMBOL</th>
-                            <th>ACTION</th>
-                            <th>EXECUTION PRICE</th>
-                            <th>P&L</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bot-trades-table">
-                        <tr><td colspan="6" class="text-center text-muted py-5">No trade signals executed yet.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- TAB 4: PAPER TRADING -->
-        <section id="tab-paper_trading" class="tab-content d-none">
-            <h4 class="fw-bold">Paper Trading Sandbox</h4>
-            <p class="text-muted">Virtual portfolio with paper funds active.</p>
-        </section>
-
-        <!-- TAB 5: BACKTEST -->
-        <section id="tab-backtest" class="tab-content d-none">
-            <h4 class="fw-bold">Historical Backtester</h4>
-            <p class="text-muted">Simulate your rules against 1-year historical Binance data.</p>
-        </section>
-
-        <!-- TAB 6: SETTINGS -->
-        <section id="tab-settings" class="tab-content d-none">
-            <h4 class="fw-bold mb-3">Alerts & API Integration</h4>
-            <div class="strat-card p-4 col-md-6">
-                <form id="settings-form">
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
-                        <input type="text" id="tg-token" class="form-control bg-input py-2" placeholder="e.g. 123456789:ABCDEF...">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
-                        <input type="text" id="tg-chatid" class="form-control bg-input py-2" placeholder="e.g. 987654321">
-                    </div>
-                    <button type="submit" class="btn btn-warning fw-bold px-4 py-2">Save Integration</button>
-                </form>
-            </div>
-        </section>
-
-    </div>
-
-    <!-- STRATEGY CREATION MODAL -->
-    <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary px-4 py-3">
-                    <h5 class="modal-title text-warning fw-bold d-flex align-items-center">
-                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Strategy Builder Studio
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
+                <!-- MAIN FORM -->
+                <form id="add-strat-form">
                     
-                    <!-- 1. AI PROMPT SECTION -->
-                    <div class="p-3 ai-box mb-4">
-                        <label class="form-label text-warning small fw-bold mb-1">
-                            <i class="fa-solid fa-bolt me-1"></i> Instant AI Prompt Generator
-                        </label>
-                        <div class="input-group">
-                            <input type="text" id="ai-prompt-input" class="form-control bg-input" placeholder="e.g. Buy SOL when RSI drops below 35 and Fast EMA crosses Slow EMA">
-                            <button class="btn btn-warning fw-bold px-3" type="button" onclick="parseAIStrategy()">
-                                Auto-Fill <i class="fa-solid fa-arrow-right ms-1"></i>
-                            </button>
+                    <!-- BASIC INFO -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
+                            <input type="text" id="strat-name" class="form-control bg-input" placeholder="e.g. BTC Aggressive Scalper" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small text-muted fw-bold">PAIR / SYMBOL</label>
+                            <input type="text" id="strat-coin" class="form-control bg-input" placeholder="BTC or ETH" required>
                         </div>
                     </div>
 
-                    <!-- 2. FORM FIELDS -->
-                    <form id="add-strat-form">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-7">
-                                <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
-                                <input type="text" id="strat-name" class="form-control bg-input" placeholder="e.g. BTC Momentum Scalper" required>
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label small text-muted fw-bold">PAIR / SYMBOL</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input" placeholder="BTC or ETH" required>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-3">
+                    <!-- 2. ENTRY RULES -->
+                    <div class="p-3 mb-3 rounded" style="background: #181a20; border: 1px solid #22272e;">
+                        <h6 class="text-warning small fw-bold mb-3"><i class="fa-solid fa-right-to-bracket me-1"></i> ENTRY RULES</h6>
+                        <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label small text-muted fw-bold">RSI BUY LEVEL</label>
-                                <input type="number" id="strat-rsi" class="form-control bg-input" value="35">
+                                <label class="form-label small text-muted">RSI Buy Condition (≤)</label>
+                                <input type="number" id="strat-rsi" class="form-control bg-input" value="30">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small text-muted fw-bold">FAST EMA</label>
+                                <label class="form-label small text-muted">Fast EMA Period</label>
                                 <input type="number" id="strat-fast" class="form-control bg-input" value="9">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small text-muted fw-bold">SLOW EMA</label>
+                                <label class="form-label small text-muted">Slow EMA Period</label>
                                 <input type="number" id="strat-slow" class="form-control bg-input" value="21">
                             </div>
                         </div>
+                    </div>
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <label class="form-label small text-muted fw-bold">BUY TARGET PRICE ($)</label>
-                                <input type="number" step="any" id="strat-buy-target" class="form-control bg-input" placeholder="Optional">
+                    <!-- 3. EXIT RULES (SL, TP, RR) -->
+                    <div class="p-3 mb-3 rounded" style="background: #181a20; border: 1px solid #22272e;">
+                        <h6 class="text-danger small fw-bold mb-3"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> EXIT RULES</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Stop Loss (SL %)</label>
+                                <input type="number" step="0.1" id="strat-sl" class="form-control bg-input" placeholder="1.5">
                             </div>
-                            <div class="col-6">
-                                <label class="form-label small text-muted fw-bold">SELL TARGET PRICE ($)</label>
-                                <input type="number" step="any" id="strat-sell-target" class="form-control bg-input" placeholder="Optional">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Take Profit (TP %)</label>
+                                <input type="number" step="0.1" id="strat-tp" class="form-control bg-input" placeholder="3.0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Target Risk-Reward (RR)</label>
+                                <input type="text" id="strat-rr" class="form-control bg-input" placeholder="1:2" readonly>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- 3. PINESCRIPT AREA -->
-                        <div class="mb-3">
-                            <label class="form-label text-info small fw-bold">
-                                <i class="fa-solid fa-code me-1"></i> TRADINGVIEW PINESCRIPT CODE (OPTIONAL)
+                    <!-- 4. MONEY MANAGEMENT -->
+                    <div class="p-3 mb-3 rounded" style="background: #181a20; border: 1px solid #22272e;">
+                        <h6 class="text-info small fw-bold mb-3"><i class="fa-solid fa-calculator me-1"></i> MONEY MANAGEMENT</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Trade Amount ($ USDT)</label>
+                                <input type="number" id="strat-amount" class="form-control bg-input" placeholder="50" value="50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Leverage (x)</label>
+                                <select id="strat-leverage" class="form-select bg-input text-white">
+                                    <option value="1">1x (Spot / No Leverage)</option>
+                                    <option value="5">5x Leverage</option>
+                                    <option value="10" selected>10x Leverage</option>
+                                    <option value="20">20x Leverage</option>
+                                    <option value="50">50x Leverage</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PINESCRIPT TEMPLATE AREA (Conditional) -->
+                    <div id="pine-section" class="mb-3 d-none">
+                        <label class="form-label text-info small fw-bold"><i class="fa-solid fa-code me-1"></i> TradingView Pine Script Code</label>
+                        <textarea id="strat-pine" class="form-control bg-input font-monospace" rows="4" placeholder="// Paste PineScript strategy code here..."></textarea>
+                    </div>
+
+                    <!-- 5. AUTO-TRADE & SAVE BUTTON ROW -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary mt-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input bg-warning border-0 fs-5" type="checkbox" id="strat-autotrade" checked>
+                            <label class="form-check-label fw-bold ms-2 align-middle text-white" for="strat-autotrade">
+                                Auto-Trade Enabled
                             </label>
-                            <textarea id="strat-pine" class="form-control bg-input font-monospace" rows="4" placeholder="// Paste your TradingView PineScript v5 logic here..."></textarea>
                         </div>
-
-                        <div class="modal-footer border-top border-secondary px-0 pb-0 mt-4">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" id="save-strat-btn" class="btn btn-warning fw-bold rounded-pill px-4">Deploy Strategy Engine</button>
-                        </div>
-                    </form>
-                </div>
+                        <button type="submit" id="save-strat-btn" class="btn btn-warning fw-bold px-4 py-2 rounded-pill">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Strategy
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-
-    <!-- Scripts Loading -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/crypto.js"></script>
-</body>
-</html>
+</div>
