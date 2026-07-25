@@ -1,30 +1,40 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const navLinks = document.querySelectorAll('.nav-link[data-tab]');
-    const tabContents = document.querySelectorAll('.tab-content');
+    console.log("ApexTraders App Initialized");
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetTab = link.getAttribute('data-tab');
+    // Tab Switching Logic with Dynamic JS Function Triggers
+    const tabButtons = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
 
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', (event) => {
+            const targetTab = event.target.getAttribute('data-tab');
+            console.log("Tab Switched To:", targetTab);
 
-            tabContents.forEach(content => {
-                content.classList.add('d-none');
-                content.classList.remove('active');
-            });
-
-            const activeSection = document.getElementById(`tab-${targetTab}`);
-            if (activeSection) {
-                activeSection.classList.remove('d-none');
-                activeSection.classList.add('active');
+            // Trigger Specific Module Loads based on Tab Clicked
+            switch(targetTab) {
+                case 'dashboard':
+                    if (typeof window.loadDashboard === 'function') window.loadDashboard();
+                    break;
+                case 'strategies':
+                    if (typeof window.loadStrategies === 'function') window.loadStrategies();
+                    break;
+                case 'paper_trading':
+                    if (typeof window.loadPaperTrading === 'function') window.loadPaperTrading();
+                    break;
+                case 'bot_trading':
+                    if (typeof window.loadBotLogs === 'function') window.loadBotLogs();
+                    break;
+                case 'backtest':
+                    if (typeof window.loadBacktest === 'function') window.loadBacktest();
+                    break;
+                case 'settings':
+                    if (typeof window.loadSettings === 'function') window.loadSettings();
+                    break;
             }
-
-            // Trigger Tab Specific Loaders
-            if (targetTab === 'strategies' && typeof window.loadStrategies === 'function') window.loadStrategies();
-            if (targetTab === 'dashboard' && typeof window.loadDashboard === 'function') window.loadDashboard();
-            if (targetTab === 'paper_trading' && typeof window.loadPaperTrading === 'function') window.loadPaperTrading();
         });
     });
+
+    // Initial Load for Dashboard
+    if (typeof window.loadDashboard === 'function') {
+        window.loadDashboard();
+    }
 });
