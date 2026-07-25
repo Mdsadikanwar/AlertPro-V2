@@ -5,59 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ApexTraders Bot Engine</title>
 
-    <!-- CDN LINKS (CSS & ICONS) -->
+    <!-- CDN LINKS (Bootstrap & Icons) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- MASTER DARK THEME CSS -->
-    <style>
-        :root {
-            --bg-dark: #0b0e11;
-            --bg-card: #1e2329;
-            --bg-input: #2b313a;
-            --text-gold: #f0b90b;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: #eaeaea;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
-
-        .bg-card { background-color: var(--bg-card) !important; }
-        .bg-input { background-color: var(--bg-input) !important; border: 1px solid #474d57; }
-        .text-warning { color: var(--text-gold) !important; }
-        .btn-warning { background-color: var(--text-gold) !important; border: none; color: #000; }
-        .btn-warning:hover { background-color: #d9a507 !important; }
-
-        .nav-tabs { border-bottom: 1px solid #2b313a; }
-        .nav-tabs .nav-link { color: #848e9c; border: none; padding: 10px 20px; font-weight: 600; }
-        .nav-tabs .nav-link.active { color: var(--text-gold); background: transparent; border-bottom: 3px solid var(--text-gold); }
-        .nav-tabs .nav-link:hover { color: #fff; }
-
-        .form-control:focus, .form-select:focus {
-            background-color: var(--bg-input);
-            color: #fff;
-            border-color: var(--text-gold);
-            box-shadow: none;
-        }
-    </style>
+    <!-- EXTERNAL CUSTOM CSS -->
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body class="bg-dark text-white">
 
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3">
         <div class="container-fluid">
-            <a class="navbar-brand text-warning fw-bold fs-4 d-flex align-items-center" href="#">
-                <i class="fa-solid fa-robot me-2"></i> ApexTraders <span class="badge bg-warning text-dark ms-2 fs-6">BOT</span>
+            <a class="navbar-brand text-accent fw-bold fs-4 d-flex align-items-center" href="#">
+                <i class="fa-solid fa-robot me-2"></i> ApexTraders <span class="badge bg-primary ms-2 fs-6">BOT</span>
             </a>
             <span class="badge border border-success text-success px-3 py-2">
-                <i class="fa-solid fa-circle me-1 small"></i> Bot Engine Active
+                <i class="fa-solid fa-circle me-1 small"></i> Engine Active
             </span>
         </div>
     </nav>
 
-    <!-- TABS NAVIGATION (ONLY 3 TABS) -->
+    <!-- TABS NAVIGATION -->
     <div class="container-fluid py-3">
         <ul class="nav nav-tabs mb-4" id="mainTab" role="tablist">
             <li class="nav-item">
@@ -83,20 +52,20 @@
             <!-- 1. STRATEGIES TAB -->
             <div class="tab-pane fade show active" id="strategies-tab" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="m-0 text-warning"><i class="fa-solid fa-sliders me-2"></i> Strategy Management</h4>
-                    <button class="btn btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#addStratModal">
+                    <h4 class="m-0 text-accent"><i class="fa-solid fa-sliders me-2"></i> Strategy Management</h4>
+                    <button class="btn btn-accent fw-bold" data-bs-toggle="modal" data-bs-target="#addStratModal">
                         <i class="fa-solid fa-plus me-1"></i> Create Strategy
                     </button>
                 </div>
                 <div class="row" id="strategies-container">
-                    <!-- Cards will render here -->
+                    <!-- Dynamic Strategy Cards will load here -->
                 </div>
             </div>
 
             <!-- 2. BOT TRADING TAB -->
             <div class="tab-pane fade" id="bot-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-list-check me-2"></i> Automated Execution Logs</h4>
-                <div class="table-responsive bg-card p-3 rounded border border-secondary">
+                <h4 class="mb-3 text-accent"><i class="fa-solid fa-list-check me-2"></i> Automated Execution Logs</h4>
+                <div class="table-responsive bg-card p-3 rounded">
                     <table class="table table-dark table-hover mb-0">
                         <thead>
                             <tr class="text-muted">
@@ -109,7 +78,7 @@
                             </tr>
                         </thead>
                         <tbody id="bot-trades-table">
-                            <!-- Logs will render here -->
+                            <!-- Execution Rows will load here -->
                         </tbody>
                     </table>
                 </div>
@@ -117,22 +86,22 @@
 
             <!-- 3. SETTINGS TAB -->
             <div class="tab-pane fade" id="settings-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-sliders me-2"></i> System Configuration</h4>
-                <div class="card bg-card p-4 border-secondary col-md-6">
+                <h4 class="mb-3 text-accent"><i class="fa-solid fa-sliders me-2"></i> System Configuration</h4>
+                <div class="card bg-card p-4 col-md-6">
                     <form id="master-settings-form">
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">FIREBASE REALTIME DB URL</label>
-                            <input type="text" id="cfg-firebase" class="form-control bg-input text-white" placeholder="https://your-app.firebaseio.com">
+                            <input type="text" id="cfg-firebase" class="form-control bg-input" placeholder="https://your-app.firebaseio.com">
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
-                            <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="123456789:ABC...">
+                            <input type="text" id="cfg-tg-token" class="form-control bg-input" placeholder="123456789:ABC...">
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
-                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="-100123456789">
+                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input" placeholder="-100123456789">
                         </div>
-                        <button type="submit" class="btn btn-warning fw-bold">Save Settings</button>
+                        <button type="submit" class="btn btn-accent fw-bold">Save Settings</button>
                     </form>
                 </div>
             </div>
@@ -143,9 +112,9 @@
     <!-- STRATEGY MODAL -->
     <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content text-white bg-card border-secondary">
+            <div class="modal-content text-white bg-card">
                 <div class="modal-header border-bottom border-secondary px-4 py-3">
-                    <h5 class="modal-title text-warning fw-bold"><i class="fa-solid fa-sliders me-2"></i> Strategy Architect</h5>
+                    <h5 class="modal-title text-accent fw-bold"><i class="fa-solid fa-sliders me-2"></i> Strategy Architect</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -153,35 +122,35 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-7">
                                 <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
-                                <input type="text" id="strat-name" class="form-control bg-input text-white" placeholder="e.g. BTC Crossover" required>
+                                <input type="text" id="strat-name" class="form-control bg-input" placeholder="e.g. BTC Crossover" required>
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label small text-muted fw-bold">SYMBOL / PAIR</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="BTCUSDT" required>
+                                <input type="text" id="strat-coin" class="form-control bg-input" placeholder="BTCUSDT" required>
                             </div>
                         </div>
                         <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <h6 class="text-info small fw-bold mb-3"><i class="fa-solid fa-shield-halved me-1"></i> RISK MANAGEMENT</h6>
+                            <h6 class="text-accent small fw-bold mb-3"><i class="fa-solid fa-shield-halved me-1"></i> RISK MANAGEMENT</h6>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label small text-muted">Trade Amount ($)</label>
-                                    <input type="number" id="strat-amount" class="form-control bg-input text-white" value="100" required>
+                                    <input type="number" id="strat-amount" class="form-control bg-input" value="100" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small text-muted">Leverage (x)</label>
-                                    <select id="strat-leverage" class="form-select bg-input text-white">
+                                    <select id="strat-leverage" class="form-select bg-input">
                                         <option value="1">1x</option>
                                         <option value="5">5x</option>
                                         <option value="10" selected>10x</option>
                                         <option value="20">20x</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" value="1.5"></div>
-                                <div class="col-md-6"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" value="3.0"></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input" value="1.5"></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input" value="3.0"></div>
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
-                            <button type="submit" class="btn btn-warning fw-bold px-4">Save Strategy</button>
+                            <button type="submit" class="btn btn-accent fw-bold px-4">Save Strategy</button>
                         </div>
                     </form>
                 </div>
@@ -192,28 +161,8 @@
     <!-- BOOTSTRAP JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ROUTER & TAB SWITCHER SCRIPT -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("ApexTraders Engine Initialized");
-
-            // Initial load for active tab (Strategies)
-            if (typeof window.loadStrategies === 'function') window.loadStrategies();
-
-            const tabButtons = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
-            tabButtons.forEach(button => {
-                button.addEventListener('shown.bs.tab', (event) => {
-                    const targetTab = event.target.getAttribute('data-tab');
-                    
-                    if (targetTab === 'strategies' && typeof window.loadStrategies === 'function') window.loadStrategies();
-                    if (targetTab === 'bot_trading' && typeof window.loadBotLogs === 'function') window.loadBotLogs();
-                    if (targetTab === 'settings' && typeof window.loadSettings === 'function') window.loadSettings();
-                });
-            });
-        });
-    </script>
-
-    <!-- TABS JS MODULES -->
+    <!-- PROJECT JS FILES -->
+    <script src="./assets/js/app.js"></script>
     <script src="./assets/js/strategies.js"></script>
     <script src="./assets/js/bot_trading.js"></script>
     <script src="./assets/js/settings.js"></script>
