@@ -8,61 +8,96 @@
     <!-- BOOTSTRAP 5 CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- DIRECT MODERN CSS (No External Path Issues) -->
+    <!-- HIGH CONTRAST ULTRA-MODERN DARK CSS -->
     <style>
         :root {
-            --bg-dark: #0d1117;
-            --bg-card: #161b22;
-            --bg-input: #21262d;
-            --accent-blue: #2f81f7;
-            --text-main: #f0f6fc;
-            --border-color: #30363d;
+            --bg-dark: #0a0e17;
+            --bg-card: #131b2e;
+            --bg-input: #1c263b;
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --text-bright: #ffffff;
+            --border-color: #2a3854;
         }
 
         body {
             background-color: var(--bg-dark) !important;
-            color: var(--text-main) !important;
+            color: var(--text-bright) !important;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* Clean High Contrast Labels & Text */
+        label, .form-label {
+            color: #cbd5e1 !important;
+            font-size: 0.8rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px !important;
+        }
+
+        /* High Contrast Cards & Input Boxes */
         .bg-card { 
             background-color: var(--bg-card) !important; 
             border: 1px solid var(--border-color) !important; 
+            border-radius: 12px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
-        .bg-input { 
+        .form-control, .form-select, .bg-input { 
             background-color: var(--bg-input) !important; 
             border: 1px solid var(--border-color) !important; 
-            color: #fff !important; 
-        }
-
-        .text-accent { color: var(--accent-blue) !important; }
-
-        .btn-accent { 
-            background-color: var(--accent-blue) !important; 
-            border: none; 
             color: #ffffff !important; 
-            font-weight: 600;
+            border-radius: 8px !important;
+            padding: 10px 14px !important;
+            font-size: 0.9rem !important;
         }
-        .btn-accent:hover { 
-            background-color: #1f6feb !important; 
+
+        .form-control::placeholder {
+            color: #64748b !important;
         }
 
         .form-control:focus, .form-select:focus {
-            background-color: var(--bg-input) !important;
-            color: #fff !important;
-            border-color: var(--accent-blue) !important;
-            box-shadow: none !important;
+            background-color: #243049 !important;
+            color: #ffffff !important;
+            border-color: var(--accent-cyan) !important;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25) !important;
+        }
+
+        /* Accent Elements */
+        .text-accent { 
+            color: var(--accent-cyan) !important; 
+        }
+
+        .btn-accent { 
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important; 
+            border: none !important; 
+            color: #000000 !important; 
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            transition: all 0.2s ease;
+        }
+
+        .btn-accent:hover { 
+            opacity: 0.95;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        }
+
+        .badge-bot {
+            background: rgba(0, 242, 254, 0.15) !important;
+            color: var(--accent-cyan) !important;
+            border: 1px solid var(--accent-cyan) !important;
+            font-weight: 700;
         }
     </style>
 </head>
 <body class="bg-dark text-white">
 
-    <!-- CLEAN NAVBAR -->
+    <!-- NAVBAR -->
     <nav class="navbar navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3 py-2">
         <div class="container-fluid p-0">
             <a class="navbar-brand text-accent fw-bold fs-5 m-0" href="#">
-                ApexTraders <span class="badge bg-primary ms-1 fs-6">BOT</span>
+                ApexTraders <span class="badge badge-bot ms-1 fs-6">BOT</span>
             </a>
         </div>
     </nav>
@@ -106,7 +141,7 @@
             <div class="tab-section d-none" id="strategies-tab">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 text-accent fw-bold">Strategy Management</h5>
-                    <button class="btn btn-accent fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#addStratModal">
+                    <button class="btn btn-accent fw-bold btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addStratModal">
                         + Create Strategy
                     </button>
                 </div>
@@ -122,28 +157,28 @@
                     <form id="master-settings-form">
                         
                         <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">FIREBASE REALTIME DB URL</label>
+                            <label class="form-label">FIREBASE REALTIME DB URL</label>
                             <input type="text" id="cfg-firebase" class="form-control bg-input" placeholder="https://your-app.firebaseio.com">
                         </div>
 
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
+                                <label class="form-label">TELEGRAM BOT TOKEN</label>
                                 <input type="text" id="cfg-tg-token" class="form-control bg-input" placeholder="123456789:ABC...">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
+                                <label class="form-label">TELEGRAM CHAT ID</label>
                                 <input type="text" id="cfg-tg-chatid" class="form-control bg-input" placeholder="-100123456789">
                             </div>
                         </div>
 
                         <div class="row g-2 mb-3 border-top border-secondary pt-3">
                             <div class="col-md-6">
-                                <label class="form-label text-muted small fw-bold">BINANCE API KEY</label>
+                                <label class="form-label">BINANCE API KEY</label>
                                 <input type="password" id="cfg-binance-key" class="form-control bg-input" placeholder="Enter API Key">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-muted small fw-bold">BINANCE SECRET KEY</label>
+                                <label class="form-label">BINANCE SECRET KEY</label>
                                 <input type="password" id="cfg-binance-secret" class="form-control bg-input" placeholder="Enter Secret Key">
                             </div>
                         </div>
@@ -168,11 +203,11 @@
                     <form id="add-strat-form">
                         <div class="row g-2 mb-3">
                             <div class="col-7">
-                                <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
+                                <label class="form-label">STRATEGY NAME</label>
                                 <input type="text" id="strat-name" class="form-control bg-input" placeholder="e.g. BTC Crossover" required>
                             </div>
                             <div class="col-5">
-                                <label class="form-label small text-muted fw-bold">SYMBOL</label>
+                                <label class="form-label">SYMBOL</label>
                                 <input type="text" id="strat-coin" class="form-control bg-input" placeholder="BTCUSDT" required>
                             </div>
                         </div>
@@ -180,11 +215,11 @@
                             <h6 class="text-accent small fw-bold mb-2">RISK MANAGEMENT</h6>
                             <div class="row g-2">
                                 <div class="col-6">
-                                    <label class="form-label small text-muted">Amount ($)</label>
+                                    <label class="form-label">Amount ($)</label>
                                     <input type="number" id="strat-amount" class="form-control bg-input" value="100" required>
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label small text-muted">Leverage</label>
+                                    <label class="form-label">Leverage</label>
                                     <select id="strat-leverage" class="form-select bg-input">
                                         <option value="1">1x</option>
                                         <option value="5">5x</option>
@@ -192,8 +227,8 @@
                                         <option value="20">20x</option>
                                     </select>
                                 </div>
-                                <div class="col-6"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input" value="1.5"></div>
-                                <div class="col-6"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input" value="3.0"></div>
+                                <div class="col-6"><label class="form-label">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input" value="1.5"></div>
+                                <div class="col-6"><label class="form-label">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input" value="3.0"></div>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-accent fw-bold w-100">Save Strategy</button>
