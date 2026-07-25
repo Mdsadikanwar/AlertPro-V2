@@ -5,73 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ApexTraders Pro Engine</title>
 
-    <!-- Bootstrap 5 CSS CDN -->
+    <!-- CDN LINKS (CSS & ICONS) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Custom CSS Path -->
-    <link rel="stylesheet" href="./assets/css/style.css">
+    <!-- EMBEDDED MASTER CSS (NoExternal Style Load Issues) -->
+    <style>
+        :root {
+            --bg-dark: #0b0e11;
+            --bg-card: #1e2329;
+            --bg-input: #2b313a;
+            --text-gold: #f0b90b;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #eaeaea;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .bg-card { background-color: var(--bg-card) !important; }
+        .bg-input { background-color: var(--bg-input) !important; border: 1px solid #474d57; }
+        .text-warning { color: var(--text-gold) !important; }
+        .btn-warning { background-color: var(--text-gold) !important; border: none; color: #000; }
+        .btn-warning:hover { background-color: #d9a507 !important; }
+
+        .nav-tabs { border-bottom: 1px solid #2b313a; }
+        .nav-tabs .nav-link { color: #848e9c; border: none; padding: 10px 20px; font-weight: 600; }
+        .nav-tabs .nav-link.active { color: var(--text-gold); background: transparent; border-bottom: 3px solid var(--text-gold); }
+        .nav-tabs .nav-link:hover { color: #fff; }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-input);
+            color: #fff;
+            border-color: var(--text-gold);
+            box-shadow: none;
+        }
+    </style>
 </head>
 <body class="bg-dark text-white">
 
-    <!-- TOP NAVBAR -->
+    <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3">
         <div class="container-fluid">
-            <a class="navbar-navbar-brand text-warning fw-bold fs-4 d-flex align-items-center" href="#">
+            <a class="navbar-brand text-warning fw-bold fs-4 d-flex align-items-center" href="#">
                 <i class="fa-solid fa-chart-line me-2"></i> ApexTraders <span class="badge bg-warning text-dark ms-2 fs-6">PRO</span>
             </a>
-            
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-outline border border-success text-success px-3 py-2">
-                    <i class="fa-solid fa-circle me-1 small"></i> Engine Active
-                </span>
-            </div>
+            <span class="badge border border-success text-success px-3 py-2">
+                <i class="fa-solid fa-circle me-1 small"></i> Engine Active
+            </span>
         </div>
     </nav>
 
-    <!-- MAIN CONTAINER WITH TABS -->
+    <!-- TABS NAVIGATION -->
     <div class="container-fluid py-3">
-        
-        <!-- TAB NAVIGATION MENU -->
-        <ul class="nav nav-tabs border-secondary mb-4" id="mainTab" role="tablist">
+        <ul class="nav nav-tabs mb-4" id="mainTab" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active text-white fw-bold" data-bs-toggle="tab" data-bs-target="#dashboard-tab" type="button" data-tab="dashboard">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard-tab" type="button" data-tab="dashboard">
                     <i class="fa-solid fa-gauge me-1"></i> Dashboard
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link text-white fw-bold" data-bs-toggle="tab" data-bs-target="#strategies-tab" type="button" data-tab="strategies">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#strategies-tab" type="button" data-tab="strategies">
                     <i class="fa-solid fa-chess-board me-1"></i> Strategies
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link text-white fw-bold" data-bs-toggle="tab" data-bs-target="#paper-tab" type="button" data-tab="paper_trading">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paper-tab" type="button" data-tab="paper_trading">
                     <i class="fa-solid fa-flask me-1"></i> Paper Trading
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link text-white fw-bold" data-bs-toggle="tab" data-bs-target="#bot-tab" type="button" data-tab="bot_trading">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#bot-tab" type="button" data-tab="bot_trading">
                     <i class="fa-solid fa-robot me-1"></i> Bot Trading
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link text-white fw-bold" data-bs-toggle="tab" data-bs-target="#backtest-tab" type="button" data-tab="backtest">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#backtest-tab" type="button" data-tab="backtest">
                     <i class="fa-solid fa-clock-rotate-left me-1"></i> Back Test
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link text-white fw-bold" data-bs-toggle="tab" data-bs-target="#settings-tab" type="button" data-tab="settings">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#settings-tab" type="button" data-tab="settings">
                     <i class="fa-solid fa-gear me-1"></i> Settings
                 </button>
             </li>
         </ul>
 
-        <!-- TAB CONTENT SECTION -->
+        <!-- TAB CONTENT -->
         <div class="tab-content" id="mainTabContent">
-            
-            <!-- 1. DASHBOARD TAB -->
+            <!-- 1. DASHBOARD -->
             <div class="tab-pane fade show active" id="dashboard-tab" role="tabpanel">
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -88,20 +111,6 @@
                             <small class="text-muted">Binance WebSocket Feed</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-card text-white p-3 border-secondary">
-                            <span class="text-muted small">Active Strategies</span>
-                            <h3 class="text-info my-1" id="active-strat-count">0</h3>
-                            <small class="text-muted">Auto-Monitoring On</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-card text-white p-3 border-secondary">
-                            <span class="text-muted small">Bot Status</span>
-                            <h3 class="text-success my-1">RUNNING</h3>
-                            <small class="text-muted">Telegram Alerts Active</small>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -113,86 +122,48 @@
                         <i class="fa-solid fa-plus me-1"></i> Create Strategy
                     </button>
                 </div>
-                <div class="row" id="strategies-container">
-                    <!-- Dynamic Strategy Cards render here -->
-                </div>
+                <div class="row" id="strategies-container"></div>
             </div>
 
-            <!-- 3. PAPER TRADING TAB -->
+            <!-- 3. PAPER TRADING -->
             <div class="tab-pane fade" id="paper-tab" role="tabpanel">
                 <h4 class="mb-3 text-warning"><i class="fa-solid fa-receipt me-2"></i> Active Paper Positions</h4>
-                <div class="row" id="paper-positions-container">
-                    <!-- Dynamic Live Positions render here -->
-                </div>
+                <div class="row" id="paper-positions-container"></div>
             </div>
 
-            <!-- 4. BOT TRADING LOGS TAB -->
+            <!-- 4. BOT LOGS -->
             <div class="tab-pane fade" id="bot-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-list-check me-2"></i> Automated Execution Logs</h4>
+                <h4 class="mb-3 text-warning"><i class="fa-solid fa-list-check me-2"></i> Execution Logs</h4>
                 <div class="table-responsive bg-card p-3 rounded border border-secondary">
                     <table class="table table-dark table-hover mb-0">
-                        <thead>
-                            <tr class="text-muted">
-                                <th>TIME</th>
-                                <th>STRATEGY</th>
-                                <th>SYMBOL</th>
-                                <th>ACTION</th>
-                                <th>ENTRY PRICE</th>
-                                <th>STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bot-trades-table">
-                            <!-- Trade Execution Rows Render Here -->
-                        </tbody>
+                        <thead><tr class="text-muted"><th>TIME</th><th>STRATEGY</th><th>SYMBOL</th><th>ACTION</th><th>PRICE</th></tr></thead>
+                        <tbody id="bot-trades-table"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 5. BACKTEST TAB -->
+            <!-- 5. BACKTEST -->
             <div class="tab-pane fade" id="backtest-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-vial me-2"></i> Strategy Backtest Lab</h4>
-                <div class="alert alert-secondary bg-card text-white border-secondary">
-                    Select a strategy from the Strategies Tab and click 'Test' to simulate historical crossover results.
-                </div>
+                <h4 class="mb-3 text-warning"><i class="fa-solid fa-vial me-2"></i> Backtest Lab</h4>
             </div>
 
-            <!-- 6. SETTINGS TAB -->
+            <!-- 6. SETTINGS -->
             <div class="tab-pane fade" id="settings-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-sliders me-2"></i> System Configuration</h4>
-                <div class="card bg-card p-4 border-secondary col-md-6">
-                    <form id="master-settings-form">
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">FIREBASE REALTIME DB URL</label>
-                            <input type="text" id="cfg-firebase" class="form-control bg-input text-white" value="https://alertpro-bot-default-rtdb.firebaseio.com">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
-                            <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="e.g. 123456789:ABCdef...">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
-                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="e.g. -100123456789">
-                        </div>
-                        <button type="submit" class="btn btn-warning fw-bold">Save Settings</button>
-                    </form>
-                </div>
+                <h4 class="mb-3 text-warning"><i class="fa-solid fa-sliders me-2"></i> Configuration</h4>
             </div>
-
         </div>
     </div>
 
-    <!-- STRATEGY BUILDER MODAL -->
+    <!-- STRATEGY MODAL -->
     <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content text-white bg-card border-secondary">
                 <div class="modal-header border-bottom border-secondary px-4 py-3">
                     <h5 class="modal-title text-warning fw-bold"><i class="fa-solid fa-sliders me-2"></i> Strategy Architect</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="add-strat-form">
-                        
-                        <!-- BUILDER MODE DROPDOWN -->
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">SELECT STRATEGY MODE</label>
                             <select id="strat-mode-select" class="form-select bg-input text-white">
@@ -201,59 +172,22 @@
                                 <option value="pinescript">📜 TradingView PineScript Code</option>
                             </select>
                         </div>
-
-                        <!-- AI PROMPT INPUT -->
-                        <div id="ai-section" class="p-3 mb-3 rounded border border-warning" style="background: rgba(240, 185, 11, 0.05);">
-                            <label class="form-label text-warning small fw-bold mb-1"><i class="fa-solid fa-bolt me-1"></i> AI Prompt Auto-Fill</label>
-                            <div class="input-group">
-                                <input type="text" id="ai-prompt-input" class="form-control bg-input text-white" placeholder="e.g. Buy BTC when RSI crosses below 30">
-                                <button class="btn btn-warning fw-bold px-3" type="button" onclick="parseAIStrategy()">Auto-Parse</button>
-                            </div>
-                        </div>
-
-                        <!-- PINESCRIPT TEXTAREA -->
-                        <div id="pine-section" class="mb-3 d-none">
-                            <label class="form-label text-info small fw-bold"><i class="fa-solid fa-code me-1"></i> PineScript / Custom Script</label>
-                            <textarea id="strat-pine" class="form-control bg-input text-white font-monospace" rows="4" placeholder="// Paste PineScript strategy code here..."></textarea>
-                        </div>
-
-                        <!-- BASIC INFO -->
                         <div class="row g-3 mb-3">
                             <div class="col-md-7">
                                 <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
-                                <input type="text" id="strat-name" class="form-control bg-input text-white" placeholder="e.g. BTC Crossover Scalper" required>
+                                <input type="text" id="strat-name" class="form-control bg-input text-white" placeholder="e.g. BTC Crossover" required>
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label small text-muted fw-bold">SYMBOL / PAIR</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="BTC or ETH" required>
+                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="BTC" required>
                             </div>
                         </div>
-
-                        <!-- ENTRY RULES -->
                         <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <h6 class="text-warning small fw-bold mb-3"><i class="fa-solid fa-right-to-bracket me-1"></i> ENTRY & CROSSOVER RULES</h6>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">RSI Entry Trigger (≤)</label>
-                                    <input type="number" id="strat-rsi" class="form-control bg-input text-white" value="30">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">Fast EMA Period</label>
-                                    <input type="number" id="strat-fast" class="form-control bg-input text-white" value="9">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">Slow EMA Period</label>
-                                    <input type="number" id="strat-slow" class="form-control bg-input text-white" value="21">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RISK MANAGEMENT -->
-                        <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <h6 class="text-info small fw-bold mb-3"><i class="fa-solid fa-shield-halved me-1"></i> RISK & MONEY MANAGEMENT</h6>
+                            <h6 class="text-info small fw-bold mb-3"><i class="fa-solid fa-shield-halved me-1"></i> RISK MANAGEMENT</h6>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label small text-muted">Trade Amount (% of Wallet)</label>
+
                                     <div class="input-group">
                                         <input type="number" id="strat-amount-pct" class="form-control bg-input text-white" value="5" min="1" max="100" required>
                                         <span class="input-group-text bg-secondary text-white border-0">%</span>
@@ -262,35 +196,17 @@
                                 <div class="col-md-6">
                                     <label class="form-label small text-muted">Leverage (x)</label>
                                     <select id="strat-leverage" class="form-select bg-input text-white">
-                                        <option value="1">1x (Spot)</option>
-                                        <option value="5">5x</option>
-                                        <option value="10" selected>10x</option>
-                                        <option value="20">20x</option>
+                                        <option value="1">1x</option><option value="10" selected>10x</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">Stop Loss (%)</label>
-                                    <input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" placeholder="1.5" value="1.5">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">Take Profit (%)</label>
-                                    <input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" placeholder="3.0" value="3.0">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted">Risk-Reward (RR)</label>
-                                    <input type="text" id="strat-rr" class="form-control bg-input text-warning fw-bold" value="1:2.0" readonly>
-                                </div>
+                                <div class="col-md-4"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" value="1.5"></div>
+                                <div class="col-md-4"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" value="3.0"></div>
+                                <div class="col-md-4"><label class="form-label small text-muted">Risk-Reward</label><input type="text" id="strat-rr" class="form-control bg-input text-warning fw-bold" value="1:2.0" readonly></div>
                             </div>
                         </div>
-
-                        <!-- AUTO-TRADE & SAVE -->
-                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary mt-4">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input bg-warning border-0 fs-5" type="checkbox" id="strat-autotrade" checked>
-                                <label class="form-check-label fw-bold ms-2 align-middle text-white" for="strat-autotrade">Auto-Trade Market Crossover</label>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
                             <input type="hidden" id="strat-edit-id" value="">
-                            <button type="submit" id="save-strat-btn" class="btn btn-warning fw-bold px-4 py-2">Save Strategy</button>
+                            <button type="submit" class="btn btn-warning fw-bold px-4">Save Strategy</button>
                         </div>
                     </form>
                 </div>
@@ -298,17 +214,35 @@
         </div>
     </div>
 
-    <!-- Bootstrap 5 JavaScript Bundle CDN -->
+    <!-- BOOTSTRAP JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Project Modular JavaScript Files -->
-    <script src="./assets/js/app.js"></script>
-    <script src="./assets/js/dashboard.js"></script>
+    <!-- EMBEDDED MAIN ROUTER JS (app.js merged) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("ApexTraders Master Shell Ready");
+
+            const tabButtons = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
+            tabButtons.forEach(button => {
+                button.addEventListener('shown.bs.tab', (event) => {
+                    const targetTab = event.target.getAttribute('data-tab');
+                    
+                    // Route tab clicks to specific functions inside external tab JS files
+                    if (targetTab === 'strategies' && typeof window.loadStrategies === 'function') window.loadStrategies();
+                    if (targetTab === 'paper_trading' && typeof window.loadPaperTrading === 'function') window.loadPaperTrading();
+                    if (targetTab === 'bot_trading' && typeof window.loadBotLogs === 'function') window.loadBotLogs();
+                    if (targetTab === 'backtest' && typeof window.loadBacktest === 'function') window.loadBacktest();
+                    if (targetTab === 'settings' && typeof window.loadSettings === 'function') window.loadSettings();
+                });
+            });
+        });
+    </script>
+
+    <!-- ONLY TABS MODULE JS FILES (Separately Kept) -->
     <script src="./assets/js/strategies.js"></script>
     <script src="./assets/js/paper_trading.js"></script>
     <script src="./assets/js/bot_trading.js"></script>
     <script src="./assets/js/backtest.js"></script>
     <script src="./assets/js/settings.js"></script>
-
 </body>
 </html>
