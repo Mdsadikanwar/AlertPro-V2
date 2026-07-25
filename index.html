@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexTraders Pro Engine</title>
+    <title>ApexTraders Bot Engine</title>
 
     <!-- CDN LINKS (CSS & ICONS) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- EMBEDDED MASTER CSS (NoExternal Style Load Issues) -->
+    <!-- MASTER DARK THEME CSS -->
     <style>
         :root {
             --bg-dark: #0b0e11;
@@ -49,40 +49,25 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3">
         <div class="container-fluid">
             <a class="navbar-brand text-warning fw-bold fs-4 d-flex align-items-center" href="#">
-                <i class="fa-solid fa-chart-line me-2"></i> ApexTraders <span class="badge bg-warning text-dark ms-2 fs-6">PRO</span>
+                <i class="fa-solid fa-robot me-2"></i> ApexTraders <span class="badge bg-warning text-dark ms-2 fs-6">BOT</span>
             </a>
             <span class="badge border border-success text-success px-3 py-2">
-                <i class="fa-solid fa-circle me-1 small"></i> Engine Active
+                <i class="fa-solid fa-circle me-1 small"></i> Bot Engine Active
             </span>
         </div>
     </nav>
 
-    <!-- TABS NAVIGATION -->
+    <!-- TABS NAVIGATION (ONLY 3 TABS) -->
     <div class="container-fluid py-3">
         <ul class="nav nav-tabs mb-4" id="mainTab" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard-tab" type="button" data-tab="dashboard">
-                    <i class="fa-solid fa-gauge me-1"></i> Dashboard
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#strategies-tab" type="button" data-tab="strategies">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#strategies-tab" type="button" data-tab="strategies">
                     <i class="fa-solid fa-chess-board me-1"></i> Strategies
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paper-tab" type="button" data-tab="paper_trading">
-                    <i class="fa-solid fa-flask me-1"></i> Paper Trading
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#bot-tab" type="button" data-tab="bot_trading">
                     <i class="fa-solid fa-robot me-1"></i> Bot Trading
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#backtest-tab" type="button" data-tab="backtest">
-                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Back Test
                 </button>
             </li>
             <li class="nav-item">
@@ -94,63 +79,64 @@
 
         <!-- TAB CONTENT -->
         <div class="tab-content" id="mainTabContent">
-            <!-- 1. DASHBOARD -->
-            <div class="tab-pane fade show active" id="dashboard-tab" role="tabpanel">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="card bg-card text-white p-3 border-secondary">
-                            <span class="text-muted small">Total Live Wallet</span>
-                            <h3 class="text-warning my-1">$10,000.00</h3>
-                            <small class="text-success"><i class="fa-solid fa-arrow-up"></i> Simulated Sandbox</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-card text-white p-3 border-secondary">
-                            <span class="text-muted small">Live Floating P&L</span>
-                            <h3 id="paper-live-pnl" class="text-white my-1">$0.00</h3>
-                            <small class="text-muted">Binance WebSocket Feed</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. STRATEGIES TAB -->
-            <div class="tab-pane fade" id="strategies-tab" role="tabpanel">
+            
+            <!-- 1. STRATEGIES TAB -->
+            <div class="tab-pane fade show active" id="strategies-tab" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="m-0 text-warning"><i class="fa-solid fa-sliders me-2"></i> Strategy Management</h4>
                     <button class="btn btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#addStratModal">
                         <i class="fa-solid fa-plus me-1"></i> Create Strategy
                     </button>
                 </div>
-                <div class="row" id="strategies-container"></div>
+                <div class="row" id="strategies-container">
+                    <!-- Cards will render here -->
+                </div>
             </div>
 
-            <!-- 3. PAPER TRADING -->
-            <div class="tab-pane fade" id="paper-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-receipt me-2"></i> Active Paper Positions</h4>
-                <div class="row" id="paper-positions-container"></div>
-            </div>
-
-            <!-- 4. BOT LOGS -->
+            <!-- 2. BOT TRADING TAB -->
             <div class="tab-pane fade" id="bot-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-list-check me-2"></i> Execution Logs</h4>
+                <h4 class="mb-3 text-warning"><i class="fa-solid fa-list-check me-2"></i> Automated Execution Logs</h4>
                 <div class="table-responsive bg-card p-3 rounded border border-secondary">
                     <table class="table table-dark table-hover mb-0">
-                        <thead><tr class="text-muted"><th>TIME</th><th>STRATEGY</th><th>SYMBOL</th><th>ACTION</th><th>PRICE</th></tr></thead>
-                        <tbody id="bot-trades-table"></tbody>
+                        <thead>
+                            <tr class="text-muted">
+                                <th>TIME</th>
+                                <th>STRATEGY</th>
+                                <th>SYMBOL</th>
+                                <th>ACTION</th>
+                                <th>ENTRY PRICE</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bot-trades-table">
+                            <!-- Logs will render here -->
+                        </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 5. BACKTEST -->
-            <div class="tab-pane fade" id="backtest-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-vial me-2"></i> Backtest Lab</h4>
+            <!-- 3. SETTINGS TAB -->
+            <div class="tab-pane fade" id="settings-tab" role="tabpanel">
+                <h4 class="mb-3 text-warning"><i class="fa-solid fa-sliders me-2"></i> System Configuration</h4>
+                <div class="card bg-card p-4 border-secondary col-md-6">
+                    <form id="master-settings-form">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">FIREBASE REALTIME DB URL</label>
+                            <input type="text" id="cfg-firebase" class="form-control bg-input text-white" placeholder="https://your-app.firebaseio.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
+                            <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="123456789:ABC...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
+                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="-100123456789">
+                        </div>
+                        <button type="submit" class="btn btn-warning fw-bold">Save Settings</button>
+                    </form>
+                </div>
             </div>
 
-            <!-- 6. SETTINGS -->
-            <div class="tab-pane fade" id="settings-tab" role="tabpanel">
-                <h4 class="mb-3 text-warning"><i class="fa-solid fa-sliders me-2"></i> Configuration</h4>
-            </div>
         </div>
     </div>
 
@@ -164,14 +150,6 @@
                 </div>
                 <div class="modal-body p-4">
                     <form id="add-strat-form">
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">SELECT STRATEGY MODE</label>
-                            <select id="strat-mode-select" class="form-select bg-input text-white">
-                                <option value="ai" selected>🤖 AI Prompt Builder</option>
-                                <option value="manual">⚙️ Custom Indicator Rules</option>
-                                <option value="pinescript">📜 TradingView PineScript Code</option>
-                            </select>
-                        </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-7">
                                 <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
@@ -179,33 +157,30 @@
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label small text-muted fw-bold">SYMBOL / PAIR</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="BTC" required>
+                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="BTCUSDT" required>
                             </div>
                         </div>
                         <div class="p-3 mb-3 rounded border border-secondary bg-dark">
                             <h6 class="text-info small fw-bold mb-3"><i class="fa-solid fa-shield-halved me-1"></i> RISK MANAGEMENT</h6>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label small text-muted">Trade Amount (% of Wallet)</label>
-
-                                    <div class="input-group">
-                                        <input type="number" id="strat-amount-pct" class="form-control bg-input text-white" value="5" min="1" max="100" required>
-                                        <span class="input-group-text bg-secondary text-white border-0">%</span>
-                                    </div>
+                                    <label class="form-label small text-muted">Trade Amount ($)</label>
+                                    <input type="number" id="strat-amount" class="form-control bg-input text-white" value="100" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small text-muted">Leverage (x)</label>
                                     <select id="strat-leverage" class="form-select bg-input text-white">
-                                        <option value="1">1x</option><option value="10" selected>10x</option>
+                                        <option value="1">1x</option>
+                                        <option value="5">5x</option>
+                                        <option value="10" selected>10x</option>
+                                        <option value="20">20x</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" value="1.5"></div>
-                                <div class="col-md-4"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" value="3.0"></div>
-                                <div class="col-md-4"><label class="form-label small text-muted">Risk-Reward</label><input type="text" id="strat-rr" class="form-control bg-input text-warning fw-bold" value="1:2.0" readonly></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" value="1.5"></div>
+                                <div class="col-md-6"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" value="3.0"></div>
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
-                            <input type="hidden" id="strat-edit-id" value="">
                             <button type="submit" class="btn btn-warning fw-bold px-4">Save Strategy</button>
                         </div>
                     </form>
@@ -217,32 +192,30 @@
     <!-- BOOTSTRAP JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- EMBEDDED MAIN ROUTER JS (app.js merged) -->
+    <!-- ROUTER & TAB SWITCHER SCRIPT -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("ApexTraders Master Shell Ready");
+            console.log("ApexTraders Engine Initialized");
+
+            // Initial load for active tab (Strategies)
+            if (typeof window.loadStrategies === 'function') window.loadStrategies();
 
             const tabButtons = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
             tabButtons.forEach(button => {
                 button.addEventListener('shown.bs.tab', (event) => {
                     const targetTab = event.target.getAttribute('data-tab');
                     
-                    // Route tab clicks to specific functions inside external tab JS files
                     if (targetTab === 'strategies' && typeof window.loadStrategies === 'function') window.loadStrategies();
-                    if (targetTab === 'paper_trading' && typeof window.loadPaperTrading === 'function') window.loadPaperTrading();
                     if (targetTab === 'bot_trading' && typeof window.loadBotLogs === 'function') window.loadBotLogs();
-                    if (targetTab === 'backtest' && typeof window.loadBacktest === 'function') window.loadBacktest();
                     if (targetTab === 'settings' && typeof window.loadSettings === 'function') window.loadSettings();
                 });
             });
         });
     </script>
 
-    <!-- ONLY TABS MODULE JS FILES (Separately Kept) -->
+    <!-- TABS JS MODULES -->
     <script src="./assets/js/strategies.js"></script>
-    <script src="./assets/js/paper_trading.js"></script>
     <script src="./assets/js/bot_trading.js"></script>
-    <script src="./assets/js/backtest.js"></script>
     <script src="./assets/js/settings.js"></script>
 </body>
 </html>
