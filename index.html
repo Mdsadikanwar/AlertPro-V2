@@ -1,152 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexTraders Bot Engine</title>
-
-    <!-- CDN LINKS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="./assets/css/style.css">
-</head>
-<body class="bg-dark text-white">
-
-    <!-- CLEAN NAVBAR -->
-    <nav class="navbar navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3 py-2">
-        <div class="container-fluid p-0">
-            <a class="navbar-brand text-accent fw-bold fs-5 m-0" href="#">
-                ApexTraders <span class="badge bg-primary ms-1 fs-6">BOT</span>
-            </a>
-        </div>
-    </nav>
-
-    <!-- NAVIGATION DROPDOWN -->
-    <div class="container-fluid py-3">
-        <div class="mb-4">
-            <select id="tab-dropdown" class="form-select bg-input text-white fw-bold py-2">
-                <option value="bot_trading" selected>Bot Trading</option>
-                <option value="strategies">Strategies</option>
-                <option value="settings">Settings</option>
-            </select>
-        </div>
-
-        <!-- TAB CONTENT SECTION -->
-        <div class="tab-content" id="mainTabContent">
-            
-            <!-- 1. BOT TRADING TAB (DEFAULT ACTIVE) -->
-            <div class="tab-section" id="bot-tab">
-                <h5 class="mb-3 text-accent fw-bold">Automated Execution Logs</h5>
-                <div class="table-responsive bg-card p-2 rounded">
-                    <table class="table table-dark table-hover mb-0 align-middle">
-                        <thead>
-                            <tr class="text-muted small">
-                                <th>TIME</th>
-                                <th>STRATEGY</th>
-                                <th>SYMBOL</th>
-                                <th>ACTION</th>
-                                <th>PRICE</th>
-                                <th>STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bot-trades-table">
-                            <!-- Execution Rows -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 2. STRATEGIES TAB -->
-            <div class="tab-section d-none" id="strategies-tab">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-accent fw-bold">Strategy Management</h5>
-                    <button class="btn btn-accent fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#addStratModal">
-                        + Create Strategy
-                    </button>
-                </div>
-                <div class="row g-3" id="strategies-container">
-                    <!-- Dynamic Strategy Cards -->
-                </div>
-            </div>
-
             <!-- 3. SETTINGS TAB -->
             <div class="tab-section d-none" id="settings-tab">
                 <h5 class="mb-3 text-accent fw-bold">System Configuration</h5>
-                <div class="card bg-card p-3 col-md-6">
+                <div class="card bg-card p-3 col-md-8">
                     <form id="master-settings-form">
+                        
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">FIREBASE REALTIME DB URL</label>
                             <input type="text" id="cfg-firebase" class="form-control bg-input" placeholder="https://your-app.firebaseio.com">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
-                            <input type="text" id="cfg-tg-token" class="form-control bg-input" placeholder="123456789:ABC...">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
-                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input" placeholder="-100123456789">
-                        </div>
-                        <button type="submit" class="btn btn-accent fw-bold w-100">Save Settings</button>
-                    </form>
-                </div>
-            </div>
 
-        </div>
-    </div>
-
-    <!-- STRATEGY MODAL -->
-    <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-white bg-card">
-                <div class="modal-header border-bottom border-secondary px-3 py-2">
-                    <h6 class="modal-title text-accent fw-bold">Strategy Architect</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-3">
-                    <form id="add-strat-form">
                         <div class="row g-2 mb-3">
-                            <div class="col-7">
-                                <label class="form-label small text-muted fw-bold">STRATEGY NAME</label>
-                                <input type="text" id="strat-name" class="form-control bg-input" placeholder="e.g. BTC Crossover" required>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">TELEGRAM BOT TOKEN</label>
+                                <input type="text" id="cfg-tg-token" class="form-control bg-input" placeholder="123456789:ABC...">
                             </div>
-                            <div class="col-5">
-                                <label class="form-label small text-muted fw-bold">SYMBOL</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input" placeholder="BTCUSDT" required>
-                            </div>
-                        </div>
-                        <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <h6 class="text-accent small fw-bold mb-2">RISK MANAGEMENT</h6>
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Amount ($)</label>
-                                    <input type="number" id="strat-amount" class="form-control bg-input" value="100" required>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Leverage</label>
-                                    <select id="strat-leverage" class="form-select bg-input">
-                                        <option value="1">1x</option>
-                                        <option value="5">5x</option>
-                                        <option value="10" selected>10x</option>
-                                        <option value="20">20x</option>
-                                    </select>
-                                </div>
-                                <div class="col-6"><label class="form-label small text-muted">Stop Loss (%)</label><input type="number" step="0.1" id="strat-sl" class="form-control bg-input" value="1.5"></div>
-                                <div class="col-6"><label class="form-label small text-muted">Take Profit (%)</label><input type="number" step="0.1" id="strat-tp" class="form-control bg-input" value="3.0"></div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">TELEGRAM CHAT ID</label>
+                                <input type="text" id="cfg-tg-chatid" class="form-control bg-input" placeholder="-100123456789">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-accent fw-bold w-100">Save Strategy</button>
+
+                        <div class="row g-2 mb-3 border-top border-secondary pt-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">BINANCE API KEY</label>
+                                <input type="password" id="cfg-binance-key" class="form-control bg-input" placeholder="Enter API Key">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">BINANCE SECRET KEY</label>
+                                <input type="password" id="cfg-binance-secret" class="form-control bg-input" placeholder="Enter Secret Key">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-accent fw-bold w-100 mt-2">Save All Settings</button>
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- BOOTSTRAP JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- PROJECT JS FILES -->
-    <script src="./assets/js/app.js"></script>
-    <script src="./assets/js/bot_trading.js"></script>
-    <script src="./assets/js/strategies.js"></script>
-    <script src="./assets/js/settings.js"></script>
-</body>
-</html>
