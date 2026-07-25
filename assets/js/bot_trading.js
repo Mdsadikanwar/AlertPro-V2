@@ -1,11 +1,9 @@
-// Bot Trading Execution Logs Module
 window.loadBotLogs = function() {
     console.log("Loading Bot Trading Logs...");
     
     const tableBody = document.getElementById('bot-trades-table');
     if (!tableBody) return;
 
-    // Simulated/Real Execution Logs (Yeh baad me Firebase ya Binance WebSocket se connect hoga)
     const dummyLogs = [
         { time: '21:35:10', strategy: 'BTC Crossover', symbol: 'BTCUSDT', action: 'BUY (LONG)', price: '$64,250.00', status: 'SUCCESS' },
         { time: '20:12:45', strategy: 'ETH RSI Dip', symbol: 'ETHUSDT', action: 'SELL (SHORT)', price: '$3,480.50', status: 'PENDING' },
