@@ -1,11 +1,8 @@
-// Master Settings Module
 (function() {
-    // Helper to get saved config
     function getStoredSettings() {
         return JSON.parse(localStorage.getItem('apex_settings') || '{}');
     }
 
-    // Load Settings into Input Fields
     window.loadSettings = function() {
         console.log("Loading System Settings...");
         const config = getStoredSettings();
@@ -23,7 +20,6 @@
         if (binanceSecretInput) binanceSecretInput.value = config.binanceSecret || '';
     };
 
-    // Save Settings Form Event Listener
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('master-settings-form');
         
@@ -39,19 +35,17 @@
                     binanceSecret: document.getElementById('cfg-binance-secret').value.trim()
                 };
 
-                // Save to localStorage
                 localStorage.setItem('apex_settings', JSON.stringify(newConfig));
 
-                // Quick feedback animation
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     const originalText = submitBtn.innerText;
                     submitBtn.innerText = "Saved Successfully!";
-                    submitBtn.classList.replace('btn-accent', 'btn-success');
+                    submitBtn.style.background = "#10b981";
 
                     setTimeout(() => {
                         submitBtn.innerText = originalText;
-                        submitBtn.classList.replace('btn-success', 'btn-accent');
+                        submitBtn.style.background = "";
                     }, 1800);
                 }
             });
