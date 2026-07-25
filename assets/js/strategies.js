@@ -1,6 +1,4 @@
-// Strategies Tab Management Module
 (function() {
-    // LocalStorage helper
     function getStoredStrategies() {
         return JSON.parse(localStorage.getItem('apex_strategies') || '[]');
     }
@@ -9,7 +7,6 @@
         localStorage.setItem('apex_strategies', JSON.stringify(strategies));
     }
 
-    // Render Strategy Cards
     window.loadStrategies = function() {
         console.log("Loading Strategies...");
         const container = document.getElementById('strategies-container');
@@ -57,7 +54,6 @@
         container.innerHTML = html;
     };
 
-    // Global toggle active/paused function
     window.toggleStrategy = function(index) {
         const strategies = getStoredStrategies();
         if (strategies[index]) {
@@ -67,7 +63,6 @@
         }
     };
 
-    // Global delete strategy function
     window.deleteStrategy = function(index) {
         let strategies = getStoredStrategies();
         strategies.splice(index, 1);
@@ -75,7 +70,6 @@
         window.loadStrategies();
     };
 
-    // Form Event Listener
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('add-strat-form');
         if (form) {
@@ -96,13 +90,11 @@
                 strategies.push(newStrat);
                 saveStrategies(strategies);
 
-                // Reset form & close modal
                 form.reset();
                 const modalElement = document.getElementById('addStratModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
                 if (modal) modal.hide();
 
-                // Refresh cards
                 window.loadStrategies();
             });
         }
