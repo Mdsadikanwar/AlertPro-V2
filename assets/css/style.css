@@ -88,3 +88,26 @@ label, .form-label, .text-contrast {
     border: 1px solid var(--accent-cyan) !important;
     font-weight: 700;
 }
+
+/* TOP NAV PILLS STYLING */
+#app-nav-tabs .nav-link {
+    color: #cbd5e1;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.25s ease;
+}
+
+#app-nav-tabs .nav-link.active {
+    color: #000000;
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+}
+
+/* TOUCH SWIPE CONTAINER STYLING */
+#swipe-container {
+    touch-action: pan-y;
+    user-select: none;
+}
