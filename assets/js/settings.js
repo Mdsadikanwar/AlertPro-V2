@@ -9,7 +9,7 @@
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
 
-        // Check Firebase Connection Status
+        // Check Firebase Status
         if (fbBadge) {
             if (config.firebaseUrl && config.firebaseUrl.startsWith('https://')) {
                 fbBadge.className = "badge bg-success";
@@ -20,15 +20,41 @@
             }
         }
 
-        // Check Telegram Connection Status
+        // Check Telegram Status (Must be Enabled AND have Token/ChatId)
         if (tgBadge) {
-            if (config.tgToken && config.tgChatId) {
+            if (config.tgEnable !== false && config.tgToken && config.tgChatId) {
                 tgBadge.className = "badge bg-success";
-                tgBadge.innerText = "Connected";
+                tgBadge.innerText = "Active";
+            } else if (config.tgEnable === false) {
+                tgBadge.className = "badge bg-warning text-dark";
+                tgBadge.innerText = "Paused";
             } else {
                 tgBadge.className = "badge bg-danger";
                 tgBadge.innerText = "Disconnected";
             }
+        }
+    }
+
+    // Dynamic UI Update for Telegram Switch
+    function updateTelegramUIState() {
+        const tgToggle = document.getElementById('cfg-tg-enable');
+        const tgTokenInput = document.getElementById('cfg-tg-token');
+        const tgChatIdInput = document.getElementById('cfg-tg-chatid');
+        const testTgBtn = document.getElementById('btn-test-tg');
+
+        if (!tgToggle || !tgTokenInput || !tgChatIdInput || !testTgBtn) return;
+
+        const isEnabled = tgToggle.checked;
+        tgTokenInput.disabled = !isEnabled;
+        tgChatIdInput.disabled = !isEnabled;
+        testTgBtn.disabled = !isEnabled;
+
+        if (!isEnabled) {
+            tgTokenInput.placeholder = "Telegram Alerts Disabled";
+            tgChatIdInput.placeholder = "Telegram Alerts Disabled";
+        } else {
+            tgTokenInput.placeholder = "123456789:ABC...";
+            tgChatIdInput.placeholder = "-100123456789";
         }
     }
 
@@ -55,34 +81,37 @@
         }
     }
 
-    // Master Load Function (Called on page load / tab switch)
+    // Master Load Function
     window.loadSettings = function() {
         console.log("Loading System Settings & Gateway Status...");
         const config = getStoredSettings();
 
-        // Populate System & Telegram Inputs
+        // Database
         if (document.getElementById('cfg-firebase')) document.getElementById('cfg-firebase').value = config.firebaseUrl || '';
+
+        // Telegram Controls
+        if (document.getElementById('cfg-tg-enable')) document.getElementById('cfg-tg-enable').checked = config.tgEnable !== false;
         if (document.getElementById('cfg-tg-token')) document.getElementById('cfg-tg-token').value = config.tgToken || '';
         if (document.getElementById('cfg-tg-chatid')) document.getElementById('cfg-tg-chatid').value = config.tgChatId || '';
 
-        // Populate New Dedicated Exchange API Inputs
+        // Dedicated Exchange API Config
         if (document.getElementById('cfg-api-enable')) document.getElementById('cfg-api-enable').checked = config.apiEnable || false;
         if (document.getElementById('cfg-exchange-select')) document.getElementById('cfg-exchange-select').value = config.selectedExchange || 'binance';
         if (document.getElementById('cfg-api-key')) document.getElementById('cfg-api-key').value = config.apiKey || '';
         if (document.getElementById('cfg-api-secret')) document.getElementById('cfg-api-secret').value = config.apiSecret || '';
 
-        // Populate Cron Provider Dropdown
+        // Cron Provider
         if (config.cronProvider && document.getElementById('cfg-cron-provider')) {
             document.getElementById('cfg-cron-provider').value = config.cronProvider;
         }
 
-        // Populate Global Rules Switches (Default: true if undefined)
-        if (document.getElementById('rule-tg-enable')) document.getElementById('rule-tg-enable').checked = config.ruleTgEnable !== false;
+        // Global Engine Rules
         if (document.getElementById('rule-autotrade-enable')) document.getElementById('rule-autotrade-enable').checked = config.ruleAutoTradeEnable !== false;
         if (document.getElementById('rule-paper-mode')) document.getElementById('rule-paper-mode').checked = config.rulePaperMode !== false;
         if (document.getElementById('rule-sltp-guard')) document.getElementById('rule-sltp-guard').checked = config.ruleSltpGuard !== false;
 
-        // Sync API Form State (Disabled/Enabled Placeholders)
+        // Sync Dynamic UI States
+        updateTelegramUIState();
         updateApiUIState();
 
         // Update Status Badges
@@ -94,10 +123,18 @@
         const testTgBtn = document.getElementById('btn-test-tg');
         const tgStatus = document.getElementById('tg-test-status');
 
+        const tgToggle = document.getElementById('cfg-tg-enable');
         const apiToggle = document.getElementById('cfg-api-enable');
         const exchangeSelect = document.getElementById('cfg-exchange-select');
 
-        // Dynamic listeners for API Toggle & Dropdown
+        // Dynamic Event Listeners
+        if (tgToggle) tgToggle.addEventListener('change', () => {
+            updateTelegramUIState();
+            const config = getStoredSettings();
+            config.tgEnable = tgToggle.checked;
+            updateGatewayBadges(config);
+        });
+
         if (apiToggle) apiToggle.addEventListener('change', updateApiUIState);
         if (exchangeSelect) exchangeSelect.addEventListener('change', updateApiUIState);
 
@@ -110,8 +147,11 @@
                 e.preventDefault();
 
                 const newConfig = {
-                    // DB & Alerts
+                    // Database
                     firebaseUrl: document.getElementById('cfg-firebase').value.trim(),
+
+                    // Telegram Settings
+                    tgEnable: document.getElementById('cfg-tg-enable').checked,
                     tgToken: document.getElementById('cfg-tg-token').value.trim(),
                     tgChatId: document.getElementById('cfg-tg-chatid').value.trim(),
 
@@ -121,23 +161,22 @@
                     apiKey: document.getElementById('cfg-api-key').value.trim(),
                     apiSecret: document.getElementById('cfg-api-secret').value.trim(),
 
-                    // Engine Cron Choice
+                    // Cron Choice
                     cronProvider: document.getElementById('cfg-cron-provider').value,
 
-                    // Master Rules Switches
-                    ruleTgEnable: document.getElementById('rule-tg-enable').checked,
+                    // Master Engine Rules
                     ruleAutoTradeEnable: document.getElementById('rule-autotrade-enable').checked,
                     rulePaperMode: document.getElementById('rule-paper-mode').checked,
                     ruleSltpGuard: document.getElementById('rule-sltp-guard').checked
                 };
 
-                // Save to localStorage
+                // Save to LocalStorage
                 localStorage.setItem('apex_settings', JSON.stringify(newConfig));
 
-                // Refresh Status Badges Immediately
+                // Refresh Status Badges
                 updateGatewayBadges(newConfig);
 
-                // UI Feedback on Save Button
+                // UI Save Confirmation
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     const originalText = submitBtn.innerText;
@@ -151,16 +190,6 @@
                         submitBtn.style.color = "";
                     }, 1800);
                 }
-            });
-        }
-
-        // Live Change Event for Cron Provider Dropdown
-        const cronSelect = document.getElementById('cfg-cron-provider');
-        if (cronSelect) {
-            cronSelect.addEventListener('change', () => {
-                const config = getStoredSettings();
-                config.cronProvider = cronSelect.value;
-                localStorage.setItem('apex_settings', JSON.stringify(config));
             });
         }
 
@@ -189,7 +218,7 @@
                         const tgBadge = document.getElementById('status-telegram-badge');
                         if (tgBadge) {
                             tgBadge.className = "badge bg-success";
-                            tgBadge.innerText = "Connected";
+                            tgBadge.innerText = "Active";
                         }
                     } else {
                         tgStatus.innerHTML = `<span class="text-danger fw-bold">Error: ${data.description}</span>`;
