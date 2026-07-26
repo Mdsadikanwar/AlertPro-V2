@@ -18,9 +18,10 @@
     function saveTrades(trades) {
         localStorage.setItem(LOCAL_TRADES_KEY, JSON.stringify(trades));
         
+        // Sync to Firebase Realtime DB if enabled
         const config = getStoredSettings();
-        if (config.fbEnable && config.firebaseUrl && config.firebaseUrl.startsWith('https://')) {
-            const baseUrl = config.firebaseUrl.replace(/\/$/, "");
+        if (config.cfgFbEnable && config.cfgFirebase && config.cfgFirebase.startsWith('https://')) {
+            const baseUrl = config.cfgFirebase.replace(/\/$/, "");
             fetch(`${baseUrl}/bot_trades.json`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -31,14 +32,14 @@
 
     async function sendTelegramNotification(message) {
         const config = getStoredSettings();
-        if (!config.tgEnable || !config.tgToken || !config.tgChatId) return;
+        if (!config.cfgTgEnable || !config.cfgTgToken || !config.cfgTgChatid) return;
 
         try {
-            await fetch(`https://api.telegram.org/bot${config.tgToken}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${config.cfgTgToken}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    chat_id: config.tgChatId,
+                    chat_id: config.cfgTgChatid,
                     text: message,
                     parse_mode: 'HTML'
                 })
@@ -46,20 +47,6 @@
         } catch (err) {
             console.error("Telegram Alert Failed:", err);
         }
-    }
-
-    // REAL BINANCE FUTURES API EXECUTION FUNCTION
-    async function executeRealBinanceOrder(trade) {
-        const settings = getStoredSettings();
-        if (!settings.cfgApiEnable || !settings.cfgApiKey || !settings.cfgApiSecret) {
-            console.warn("API Execution Enabled but Key/Secret Missing!");
-            return false;
-        }
-
-        // Send API execution log to UI / Console
-        console.log(`[REAL TRADE TRIGGERED] Symbol: ${trade.symbol}, Side: ${trade.action}, Amount: $${trade.amount}`);
-        // Backend API / Binance Connector endpoint call happens here using user keys
-        return true;
     }
 
     function updatePnLSummary(trades) {
@@ -107,7 +94,7 @@
         if (!tableBody) return;
 
         if (!trades || trades.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Strategy Reader Active... Waiting for active positions.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">🤖 Auto-Trading Engine Active... Waiting for positions.</td></tr>`;
             updatePnLSummary([]);
             return;
         }
@@ -143,25 +130,16 @@
         updatePnLSummary(trades);
     }
 
-    // READ STRATEGY & OPEN POSITION
+    // CORE AUTO-TRADING STRATEGY EXECUTION ENGINE
     window.triggerStrategyExecution = function(stratName, action = 'BUY') {
         const settings = getStoredSettings();
-        if (!settings.ruleAutotradeEnable) {
-            alert("Automated Execution is Turned OFF in Settings Tab!");
-            return;
-        }
-
         const strategies = getStoredStrategies();
         const strat = strategies.find(s => s.name === stratName);
 
-        if (!strat) {
-            alert("Strategy not found in Strategy Tab!");
-            return;
-        }
+        if (!strat) return;
 
         const symbol = strat.coin.toUpperCase();
         
-        // Fetch Live Market Price directly for this Strategy Symbol
         fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
             .then(res => res.json())
             .then(data => {
@@ -187,35 +165,45 @@
                     mode: settings.rulePaperMode ? 'PAPER' : 'REAL'
                 };
 
-                if (!settings.rulePaperMode) {
-                    executeRealBinanceOrder(newTrade);
-                }
-
                 trades.unshift(newTrade);
                 saveTrades(trades);
                 renderTradesTable(trades);
 
-                // Send Telegram Notification
                 const modeTag = settings.rulePaperMode ? '[PAPER MODE]' : '[REAL TRADE]';
                 sendTelegramNotification(
-                    `🚀 <b>STRATEGY EXECUTED</b> ${modeTag}\n` +
+                    `🚀 <b>AUTOMATED STRATEGY EXECUTED</b> ${modeTag}\n` +
                     `Strategy Name: <b>${strat.name}</b>\n` +
                     `Symbol: <b>${symbol}</b>\n` +
                     `Side: <b>${action}</b>\n` +
-                    `Price: <b>$${currentPrice}</b>\n` +
-                    `Leverage: <b>${strat.leverage}x</b>`
+                    `Entry Price: <b>$${currentPrice}</b>\n` +
+                    `Leverage: <b>${strat.leverage}x</b>\n` +
+                    `Stop Loss: <b>${strat.sl}%</b> | Take Profit: <b>${strat.tp}%</b>`
                 );
             })
             .catch(err => console.error("Price fetch error:", err));
     };
 
-    // LIVE TRACKER FOR ACTIVE POSITIONS (SL / TP / LIVE P&L)
-    function startLivePositionTracker() {
+    // AUTOMATED SCANNER FOR ACTIVE STRATEGIES & LIVE POSITIONS
+    function startAutoEngineScanner() {
         setInterval(async () => {
-            const trades = getStoredTrades();
             const settings = getStoredSettings();
-            const openTrades = trades.filter(t => t.status === 'OPEN');
+            if (!settings.ruleAutotradeEnable) return; // Master Switch Check
 
+            const strategies = getStoredStrategies();
+            const activeStrats = strategies.filter(s => s.active);
+            const trades = getStoredTrades();
+
+            // 1. Check if Active Strategy needs an Auto-Position Open
+            activeStrats.forEach(strat => {
+                const hasOpenTrade = trades.some(t => t.strategy === strat.name && t.status === 'OPEN');
+                if (!hasOpenTrade) {
+                    // Automatically trigger trade for active strategies
+                    window.triggerStrategyExecution(strat.name, 'BUY');
+                }
+            });
+
+            // 2. Track & Manage Open Positions (SL / TP Guard)
+            const openTrades = trades.filter(t => t.status === 'OPEN');
             if (openTrades.length === 0) return;
 
             for (const trade of openTrades) {
@@ -236,12 +224,12 @@
                         const livePnL = margin * priceRatio * leverage;
                         trade.pnl = livePnL;
 
-                        // Check Stop Loss & Take Profit from Strategy
+                        // Check SL / TP Guard
                         if (settings.ruleSltpGuard) {
                             const pnlPercent = (livePnL / margin) * 100;
                             if (pnlPercent <= -parseFloat(trade.sl)) {
                                 trade.status = 'CLOSED';
-                                sendTelegramNotification(`⚠️ <b>STOP LOSS HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nLoss: $${livePnL.toFixed(2)}`);
+                                sendTelegramNotification(`⚠️ <b>STOP LOSS HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nLoss: -$${Math.abs(livePnL).toFixed(2)}`);
                             } else if (pnlPercent >= parseFloat(trade.tp)) {
                                 trade.status = 'CLOSED';
                                 sendTelegramNotification(`🎯 <b>TAKE PROFIT HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nProfit: +$${livePnL.toFixed(2)}`);
@@ -270,6 +258,6 @@
         }
 
         renderTradesTable(getStoredTrades());
-        startLivePositionTracker();
+        startAutoEngineScanner();
     });
 })();
