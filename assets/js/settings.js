@@ -22,7 +22,10 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('master-settings-form');
+        const testTgBtn = document.getElementById('btn-test-tg');
+        const tgStatus = document.getElementById('tg-test-status');
         
+        // Save Settings Event
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -47,6 +50,37 @@
                         submitBtn.innerText = originalText;
                         submitBtn.style.background = "";
                     }, 1800);
+                }
+            });
+        }
+
+        // Test Telegram Message Event
+        if (testTgBtn) {
+            testTgBtn.addEventListener('click', async () => {
+                const token = document.getElementById('cfg-tg-token').value.trim();
+                const chatId = document.getElementById('cfg-tg-chatid').value.trim();
+
+                if (!token || !chatId) {
+                    tgStatus.innerHTML = `<span class="text-danger">Enter Bot Token & Chat ID first!</span>`;
+                    return;
+                }
+
+                tgStatus.innerHTML = `<span class="text-warning">Sending test alert...</span>`;
+
+                try {
+                    const message = encodeURIComponent("🚀 ApexTraders Bot: Connection Successful!");
+                    const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${message}`;
+
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.ok) {
+                        tgStatus.innerHTML = `<span class="text-success">Message sent! Check Telegram.</span>`;
+                    } else {
+                        tgStatus.innerHTML = `<span class="text-danger">Error: ${data.description}</span>`;
+                    }
+                } catch (err) {
+                    tgStatus.innerHTML = `<span class="text-danger">Failed to send. Check internet/token.</span>`;
                 }
             });
         }
