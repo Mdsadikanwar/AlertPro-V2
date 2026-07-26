@@ -3,7 +3,7 @@
     const LOCAL_SETTINGS_KEY = 'apex_settings';
     const LOCAL_TRADES_KEY = 'apex_bot_trades';
 
-    // Helper: Get Settings
+    // Helper: Get Settings from LocalStorage
     function getStoredSettings() {
         return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
     }
@@ -13,7 +13,7 @@
         return JSON.parse(localStorage.getItem(LOCAL_TRADES_KEY) || '[]');
     }
 
-    // Helper: Save Trades to LocalStorage & Firebase (if enabled)
+    // Helper: Save Trades to LocalStorage & Sync to Firebase (if enabled)
     function saveTrades(trades) {
         localStorage.setItem(LOCAL_TRADES_KEY, JSON.stringify(trades));
         
@@ -43,7 +43,43 @@
         return existing;
     }
 
-    // 1. MAIN LOAD LOGS FUNCTION
+    // 1. RENDER TRADES TABLE
+    function renderTradesTable(logs) {
+        const tableBody = document.getElementById('bot-trades-table');
+        if (!tableBody) return;
+
+        if (!logs || logs.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No execution logs found.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        logs.forEach(log => {
+            // Dynamic Badge Styles
+            let badgeClass = 'bg-secondary text-white';
+            if (log.status === 'SUCCESS' || log.status === 'EXECUTED') badgeClass = 'bg-success text-white';
+            else if (log.status === 'PENDING') badgeClass = 'bg-warning text-dark';
+            else if (log.status === 'FAILED' || log.status === 'CANCELLED') badgeClass = 'bg-danger text-white';
+            else if (log.status === 'CLOSED') badgeClass = 'bg-info text-dark';
+
+            const actionClass = (log.action && log.action.includes('BUY')) ? 'text-success' : 'text-danger';
+
+            html += `
+                <tr>
+                    <td class="text-muted small">${log.time || '--:--:--'}</td>
+                    <td class="fw-bold text-white">${log.strategy || 'Manual Trigger'}</td>
+                    <td><span class="badge bg-secondary border border-secondary">${log.symbol || 'N/A'}</span></td>
+                    <td class="${actionClass} fw-bold">${log.action || 'BUY'}</td>
+                    <td class="fw-bold">${log.price || '$0.00'}</td>
+                    <td><span class="badge ${badgeClass} fw-bold small">${log.status || 'PENDING'}</span></td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = html;
+    }
+
+    // 2. MAIN LOAD LOGS FUNCTION
     window.loadBotLogs = async function() {
         console.log("Loading Bot Trading Logs...");
         const tableBody = document.getElementById('bot-trades-table');
@@ -77,65 +113,39 @@
         renderTradesTable(logs);
     };
 
-    // 2. RENDER TRADES TABLE
-    function renderTradesTable(logs) {
-        const tableBody = document.getElementById('bot-trades-table');
-        if (!tableBody) return;
-
-        if (logs.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No execution logs found.</td></tr>`;
-            return;
-        }
-
-        let html = '';
-        logs.forEach(log => {
-            // Badge Styles
-            let badgeClass = 'bg-secondary text-white';
-            if (log.status === 'SUCCESS' || log.status === 'EXECUTED') badgeClass = 'bg-success text-white';
-            else if (log.status === 'PENDING') badgeClass = 'bg-warning text-dark';
-            else if (log.status === 'FAILED' || log.status === 'CANCELLED') badgeClass = 'bg-danger text-white';
-            else if (log.status === 'CLOSED') badgeClass = 'bg-info text-dark';
-
-            const actionClass = (log.action && log.action.includes('BUY')) ? 'text-success' : 'text-danger';
-
-            html += `
-                <tr>
-                    <td class="text-muted small">${log.time || '--:--:--'}</td>
-                    <td class="fw-bold text-white">${log.strategy || 'Manual Trigger'}</td>
-                    <td><span class="badge bg-secondary border border-secondary">${log.symbol || 'N/A'}</span></td>
-                    <td class="${actionClass} fw-bold">${log.action || 'BUY'}</td>
-                    <td class="fw-bold">${log.price || '$0.00'}</td>
-                    <td><span class="badge ${badgeClass} fw-bold small">${log.status || 'PENDING'}</span></td>
-                </tr>
-            `;
-        });
-
-        tableBody.innerHTML = html;
-    }
-
-    // 3. EXPOSED GLOBAL HELPER: Add new Log dynamically from webhook/engine
+    // 3. EXPOSED GLOBAL HELPER: Dynamically Add New Log (Webhook/Cron)
     window.addNewBotLog = function(logData) {
         const logs = getStoredTrades();
         
-        // Auto Time Format if missing
         if (!logData.time) {
             const now = new Date();
             logData.time = now.toTimeString().split(' ')[0];
         }
 
         logData.id = Date.now();
-        logs.unshift(logData); // Top पर नया लॉग जोड़ें
+        logs.unshift(logData); // Top पर नया ट्रेड जोड़ें
 
-        // Max 50 Logs तक सीमित रखें
+        // 50 से ज़्यादा लॉग्स होने पर पुराने हटाएं
         if (logs.length > 50) logs.pop();
 
         saveTrades(logs);
         renderTradesTable(logs);
     };
 
-    // Initial Event Listener
+    // DOM Ready Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
-        // अगर Bot Tab Active है तो ऑटो लोड करें
+        // Clear Logs Button Handler
+        const clearLogsBtn = document.getElementById('btn-clear-logs');
+        if (clearLogsBtn) {
+            clearLogsBtn.addEventListener('click', () => {
+                if (confirm("Are you sure you want to clear all execution logs?")) {
+                    saveTrades([]);
+                    renderTradesTable([]);
+                }
+            });
+        }
+
+        // Automatic Load on Startup
         window.loadBotLogs();
     });
 
