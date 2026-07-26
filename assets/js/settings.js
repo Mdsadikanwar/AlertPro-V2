@@ -1,7 +1,11 @@
 (function() {
+    // Storage Keys
+    const LOCAL_SETTINGS_KEY = 'apex_settings';
+    let firebaseSyncTimer = null; // 2-Second Delay Timer Reference
+
     // Helper to get settings from LocalStorage
     function getStoredSettings() {
-        return JSON.parse(localStorage.getItem('apex_settings') || '{}');
+        return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
     }
 
     // Helper to update visual Badges (Gateway Status)
@@ -9,18 +13,21 @@
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
 
-        // Check Firebase Status
+        // Check Firebase Connection / Sync Status
         if (fbBadge) {
-            if (config.firebaseUrl && config.firebaseUrl.startsWith('https://')) {
+            if (config.fbEnable === false) {
+                fbBadge.className = "badge bg-secondary";
+                fbBadge.innerText = "Disabled (Local Only)";
+            } else if (config.firebaseUrl && config.firebaseUrl.startsWith('https://')) {
                 fbBadge.className = "badge bg-success";
-                fbBadge.innerText = "Connected";
+                fbBadge.innerText = "Active (Dual-Sync)";
             } else {
                 fbBadge.className = "badge bg-danger";
                 fbBadge.innerText = "Disconnected";
             }
         }
 
-        // Check Telegram Status (Must be Enabled AND have Token/ChatId)
+        // Check Telegram Status
         if (tgBadge) {
             if (config.tgEnable !== false && config.tgToken && config.tgChatId) {
                 tgBadge.className = "badge bg-success";
@@ -32,6 +39,26 @@
                 tgBadge.className = "badge bg-danger";
                 tgBadge.innerText = "Disconnected";
             }
+        }
+    }
+
+    // Dynamic UI Update for Firebase Switch
+    function updateFirebaseUIState() {
+        const fbToggle = document.getElementById('cfg-fb-enable');
+        const fbUrlInput = document.getElementById('cfg-firebase');
+        const fbStatusText = document.getElementById('fb-sync-status');
+
+        if (!fbToggle || !fbUrlInput) return;
+
+        const isEnabled = fbToggle.checked;
+        fbUrlInput.disabled = !isEnabled;
+
+        if (!isEnabled) {
+            fbUrlInput.placeholder = "Firebase Sync Disabled (Data stored in LocalStorage only)";
+            if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">⚡ Offline Mode: Operating purely on LocalStorage.</span>`;
+        } else {
+            fbUrlInput.placeholder = "https://your-app.firebaseio.com";
+            if (fbStatusText) fbStatusText.innerHTML = `<span class="text-info">🔄 Dual Storage: Save to LocalStorage -> 2s Delay -> Push to Firebase.</span>`;
         }
     }
 
@@ -81,12 +108,44 @@
         }
     }
 
+    // Function to sync config to Firebase Realtime DB (REST API Put)
+    async function syncToFirebase(config) {
+        const fbStatusText = document.getElementById('fb-sync-status');
+
+        if (!config.fbEnable || !config.firebaseUrl || !config.firebaseUrl.startsWith('https://')) {
+            return;
+        }
+
+        if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">⏳ Syncing data to Firebase Database...</span>`;
+
+        try {
+            // Clean URL and attach JSON endpoint
+            const baseUrl = config.firebaseUrl.replace(/\/$/, "");
+            const firebaseUrl = `${baseUrl}/settings.json`;
+
+            const response = await fetch(firebaseUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            if (response.ok) {
+                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-success fw-bold">✓ Synced with Firebase (2s delay completed).</span>`;
+            } else {
+                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Sync Failed: HTTP ${response.status}</span>`;
+            }
+        } catch (err) {
+            if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Connection Error!</span>`;
+        }
+    }
+
     // Master Load Function
     window.loadSettings = function() {
-        console.log("Loading System Settings & Gateway Status...");
+        console.log("Loading Master Configurations...");
         const config = getStoredSettings();
 
-        // Database
+        // Firebase Controls
+        if (document.getElementById('cfg-fb-enable')) document.getElementById('cfg-fb-enable').checked = config.fbEnable !== false;
         if (document.getElementById('cfg-firebase')) document.getElementById('cfg-firebase').value = config.firebaseUrl || '';
 
         // Telegram Controls
@@ -111,6 +170,7 @@
         if (document.getElementById('rule-sltp-guard')) document.getElementById('rule-sltp-guard').checked = config.ruleSltpGuard !== false;
 
         // Sync Dynamic UI States
+        updateFirebaseUIState();
         updateTelegramUIState();
         updateApiUIState();
 
@@ -123,11 +183,19 @@
         const testTgBtn = document.getElementById('btn-test-tg');
         const tgStatus = document.getElementById('tg-test-status');
 
+        const fbToggle = document.getElementById('cfg-fb-enable');
         const tgToggle = document.getElementById('cfg-tg-enable');
         const apiToggle = document.getElementById('cfg-api-enable');
         const exchangeSelect = document.getElementById('cfg-exchange-select');
 
         // Dynamic Event Listeners
+        if (fbToggle) fbToggle.addEventListener('change', () => {
+            updateFirebaseUIState();
+            const config = getStoredSettings();
+            config.fbEnable = fbToggle.checked;
+            updateGatewayBadges(config);
+        });
+
         if (tgToggle) tgToggle.addEventListener('change', () => {
             updateTelegramUIState();
             const config = getStoredSettings();
@@ -147,7 +215,8 @@
                 e.preventDefault();
 
                 const newConfig = {
-                    // Database
+                    // Firebase Settings
+                    fbEnable: document.getElementById('cfg-fb-enable').checked,
                     firebaseUrl: document.getElementById('cfg-firebase').value.trim(),
 
                     // Telegram Settings
@@ -155,7 +224,7 @@
                     tgToken: document.getElementById('cfg-tg-token').value.trim(),
                     tgChatId: document.getElementById('cfg-tg-chatid').value.trim(),
 
-                    // Dedicated Exchange API Config
+                    // Exchange API Config
                     apiEnable: document.getElementById('cfg-api-enable').checked,
                     selectedExchange: document.getElementById('cfg-exchange-select').value,
                     apiKey: document.getElementById('cfg-api-key').value.trim(),
@@ -170,25 +239,46 @@
                     ruleSltpGuard: document.getElementById('rule-sltp-guard').checked
                 };
 
-                // Save to LocalStorage
-                localStorage.setItem('apex_settings', JSON.stringify(newConfig));
-
-                // Refresh Status Badges
+                // STEP 1: Instant LocalStorage Save
+                localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(newConfig));
                 updateGatewayBadges(newConfig);
 
-                // UI Save Confirmation
+                // UI Button Immediate Instant Local Storage Feedback
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
-                    const originalText = submitBtn.innerText;
-                    submitBtn.innerText = "All Configurations Saved!";
+                    submitBtn.innerText = "Saved to LocalStorage!";
                     submitBtn.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
                     submitBtn.style.color = "#ffffff";
+                }
 
+                // STEP 2: Delayed Firebase Sync (2 Seconds Delay)
+                if (firebaseSyncTimer) clearTimeout(firebaseSyncTimer);
+
+                const fbStatusText = document.getElementById('fb-sync-status');
+                if (newConfig.fbEnable) {
+                    if (fbStatusText) fbStatusText.innerHTML = `<span class="text-info">⚡ Saved locally. Firebase sync queued in 2s...</span>`;
+
+                    firebaseSyncTimer = setTimeout(() => {
+                        syncToFirebase(newConfig);
+
+                        if (submitBtn) {
+                            submitBtn.innerText = "All Configs & Firebase Synced!";
+                            setTimeout(() => {
+                                submitBtn.innerText = "Save All Master Settings";
+                                submitBtn.style.background = "";
+                                submitBtn.style.color = "";
+                            }, 1800);
+                        }
+                    }, 2000); // 2000ms = 2 Seconds Delay
+                } else {
+                    if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">Saved locally only (Firebase disabled).</span>`;
                     setTimeout(() => {
-                        submitBtn.innerText = originalText;
-                        submitBtn.style.background = "";
-                        submitBtn.style.color = "";
-                    }, 1800);
+                        if (submitBtn) {
+                            submitBtn.innerText = "Save All Master Settings";
+                            submitBtn.style.background = "";
+                            submitBtn.style.color = "";
+                        }
+                    }, 1500);
                 }
             });
         }
@@ -215,11 +305,6 @@
 
                     if (data.ok) {
                         tgStatus.innerHTML = `<span class="text-success fw-bold">Connected! Test message sent to Telegram.</span>`;
-                        const tgBadge = document.getElementById('status-telegram-badge');
-                        if (tgBadge) {
-                            tgBadge.className = "badge bg-success";
-                            tgBadge.innerText = "Active";
-                        }
                     } else {
                         tgStatus.innerHTML = `<span class="text-danger fw-bold">Error: ${data.description}</span>`;
                     }
