@@ -12,8 +12,10 @@
     function updateGatewayBadges(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
+        const cronBadge = document.getElementById('status-cron-badge');
+        const cronLabel = document.getElementById('status-cron-provider-label');
 
-        // Check Firebase Connection / Sync Status
+        // 1. Check Firebase Connection / Sync Status
         if (fbBadge) {
             if (config.fbEnable === false) {
                 fbBadge.className = "badge bg-secondary";
@@ -27,7 +29,7 @@
             }
         }
 
-        // Check Telegram Status
+        // 2. Check Telegram Status
         if (tgBadge) {
             if (config.tgEnable !== false && config.tgToken && config.tgChatId) {
                 tgBadge.className = "badge bg-success";
@@ -40,6 +42,38 @@
                 tgBadge.innerText = "Disconnected";
             }
         }
+
+        // 3. Check Cron Provider & Health Status
+        if (cronBadge) {
+            const providerNames = {
+                'vercel': 'Vercel Cron',
+                'cronjob_org': 'Cron-Job.org',
+                'github_actions': 'GitHub Actions'
+            };
+
+            if (cronLabel) {
+                cronLabel.innerText = providerNames[config.cronProvider] || 'Vercel Cron';
+            }
+
+            if (config.cronEnable === false) {
+                cronBadge.className = "badge bg-danger";
+                cronBadge.innerText = "Inactive";
+            } else {
+                cronBadge.className = "badge bg-success";
+                cronBadge.innerText = "Active";
+            }
+        }
+    }
+
+    // Dynamic UI Update for Cron Switch
+    function updateCronUIState() {
+        const cronToggle = document.getElementById('cfg-cron-enable');
+        const cronSelect = document.getElementById('cfg-cron-provider');
+
+        if (!cronToggle || !cronSelect) return;
+
+        const isEnabled = cronToggle.checked;
+        cronSelect.disabled = !isEnabled;
     }
 
     // Dynamic UI Update for Firebase Switch
@@ -159,7 +193,8 @@
         if (document.getElementById('cfg-api-key')) document.getElementById('cfg-api-key').value = config.apiKey || '';
         if (document.getElementById('cfg-api-secret')) document.getElementById('cfg-api-secret').value = config.apiSecret || '';
 
-        // Cron Provider
+        // Cron Execution Config
+        if (document.getElementById('cfg-cron-enable')) document.getElementById('cfg-cron-enable').checked = config.cronEnable !== false;
         if (config.cronProvider && document.getElementById('cfg-cron-provider')) {
             document.getElementById('cfg-cron-provider').value = config.cronProvider;
         }
@@ -170,6 +205,7 @@
         if (document.getElementById('rule-sltp-guard')) document.getElementById('rule-sltp-guard').checked = config.ruleSltpGuard !== false;
 
         // Sync Dynamic UI States
+        updateCronUIState();
         updateFirebaseUIState();
         updateTelegramUIState();
         updateApiUIState();
@@ -183,12 +219,29 @@
         const testTgBtn = document.getElementById('btn-test-tg');
         const tgStatus = document.getElementById('tg-test-status');
 
+        const cronToggle = document.getElementById('cfg-cron-enable');
+        const cronSelect = document.getElementById('cfg-cron-provider');
         const fbToggle = document.getElementById('cfg-fb-enable');
         const tgToggle = document.getElementById('cfg-tg-enable');
         const apiToggle = document.getElementById('cfg-api-enable');
         const exchangeSelect = document.getElementById('cfg-exchange-select');
 
         // Dynamic Event Listeners
+        if (cronToggle) cronToggle.addEventListener('change', () => {
+            updateCronUIState();
+            const config = getStoredSettings();
+            config.cronEnable = cronToggle.checked;
+            config.cronProvider = cronSelect ? cronSelect.value : 'vercel';
+            updateGatewayBadges(config);
+        });
+
+        if (cronSelect) cronSelect.addEventListener('change', () => {
+            const config = getStoredSettings();
+            config.cronEnable = cronToggle ? cronToggle.checked : true;
+            config.cronProvider = cronSelect.value;
+            updateGatewayBadges(config);
+        });
+
         if (fbToggle) fbToggle.addEventListener('change', () => {
             updateFirebaseUIState();
             const config = getStoredSettings();
@@ -230,7 +283,8 @@
                     apiKey: document.getElementById('cfg-api-key').value.trim(),
                     apiSecret: document.getElementById('cfg-api-secret').value.trim(),
 
-                    // Cron Choice
+                    // Cron Provider Settings
+                    cronEnable: document.getElementById('cfg-cron-enable') ? document.getElementById('cfg-cron-enable').checked : true,
                     cronProvider: document.getElementById('cfg-cron-provider').value,
 
                     // Master Engine Rules
