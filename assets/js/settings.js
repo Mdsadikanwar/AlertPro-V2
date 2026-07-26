@@ -1,11 +1,21 @@
 (function() {
+    // 🔴 अपना असल Firebase Database URL यहाँ पेस्ट करें (1-Time Zero-Config Fix)
+    const DEFAULT_FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/";
+
     // Storage Keys
     const LOCAL_SETTINGS_KEY = 'apex_settings';
     let firebaseSyncTimer = null; // 2-Second Delay Timer Reference
 
-    // Helper to get settings from LocalStorage
+    // Helper to get settings from LocalStorage (Fallback to DEFAULT_FIREBASE_URL if empty)
     function getStoredSettings() {
-        return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
+        const stored = JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
+
+        // अगर नए डिवाइस/लैपटॉप में Firebase URL नहीं है, तो डिफॉल्ट URL यूज़ करो
+        if (!stored.firebaseUrl && DEFAULT_FIREBASE_URL) {
+            stored.firebaseUrl = DEFAULT_FIREBASE_URL;
+            stored.fbEnable = true; // Auto-enable Firebase
+        }
+        return stored;
     }
 
     // 🔴 ASLI LIVE NETWORK HEALTH CHECK (NO FAKE STATUS)
@@ -197,6 +207,10 @@
             if (res.ok) {
                 const remoteConfig = await res.json();
                 if (remoteConfig && typeof remoteConfig === 'object') {
+                    // Firebase ki URL aur Settings preserve rakhein
+                    remoteConfig.firebaseUrl = config.firebaseUrl;
+                    remoteConfig.fbEnable = true;
+
                     localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(remoteConfig));
                     console.log("🔥 Master Settings synced from Firebase to Local Device!");
                     // Re-populate UI inputs with downloaded Firebase data
@@ -306,7 +320,7 @@
                 const newConfig = {
                     // Firebase Settings
                     fbEnable: document.getElementById('cfg-fb-enable').checked,
-                    firebaseUrl: document.getElementById('cfg-firebase').value.trim(),
+                    firebaseUrl: document.getElementById('cfg-firebase').value.trim() || DEFAULT_FIREBASE_URL,
 
                     // Telegram Settings
                     tgEnable: document.getElementById('cfg-tg-enable').checked,
