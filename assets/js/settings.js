@@ -8,42 +8,55 @@
         return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
     }
 
-    // Helper to update visual Badges (Gateway Status)
-    function updateGatewayBadges(config) {
+    // 🔴 ASLI LIVE NETWORK HEALTH CHECK (NO FAKE STATUS)
+    async function checkRealGatewayHealth(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
         const cronBadge = document.getElementById('status-cron-badge');
         const cronLabel = document.getElementById('status-cron-provider-label');
 
-        // 1. Check Firebase Connection / Sync Status
+        // 1. REAL FIREBASE PING CHECK
         if (fbBadge) {
-            if (config.fbEnable === false) {
+            if (!config.fbEnable || !config.firebaseUrl) {
                 fbBadge.className = "badge bg-secondary";
                 fbBadge.innerText = "Disabled (Local Only)";
-            } else if (config.firebaseUrl && config.firebaseUrl.startsWith('https://')) {
-                fbBadge.className = "badge bg-success";
-                fbBadge.innerText = "Active (Dual-Sync)";
             } else {
-                fbBadge.className = "badge bg-danger";
-                fbBadge.innerText = "Disconnected";
+                fbBadge.className = "badge bg-warning text-dark";
+                fbBadge.innerText = "Checking Network...";
+
+                try {
+                    const baseUrl = config.firebaseUrl.replace(/\/$/, "");
+                    // Firebase Database par live ping bhej kar check karo ki Permission/URL sahi hai ya nahi
+                    const res = await fetch(`${baseUrl}/.json?shallow=true`);
+                    if (res.ok) {
+                        fbBadge.className = "badge bg-success";
+                        fbBadge.innerText = "Connected (Live)";
+                    } else {
+                        fbBadge.className = "badge bg-danger";
+                        fbBadge.innerText = "Permission Denied / Error";
+                    }
+                } catch (e) {
+                    fbBadge.className = "badge bg-danger";
+                    fbBadge.innerText = "Disconnected (Network Error)";
+                }
             }
         }
 
-        // 2. Check Telegram Status
+        // 2. TELEGRAM STATUS CHECK
         if (tgBadge) {
-            if (config.tgEnable !== false && config.tgToken && config.tgChatId) {
-                tgBadge.className = "badge bg-success";
-                tgBadge.innerText = "Active";
-            } else if (config.tgEnable === false) {
+            if (config.tgEnable === false) {
                 tgBadge.className = "badge bg-warning text-dark";
                 tgBadge.innerText = "Paused";
+            } else if (config.tgToken && config.tgChatId) {
+                tgBadge.className = "badge bg-success";
+                tgBadge.innerText = "Active";
             } else {
                 tgBadge.className = "badge bg-danger";
                 tgBadge.innerText = "Disconnected";
             }
         }
 
-        // 3. Check Cron Provider & Health Status
+        // 3. CRON PROVIDER & HEALTH
         if (cronBadge) {
             const providerNames = {
                 'vercel': 'Vercel Cron',
@@ -153,7 +166,6 @@
         if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">⏳ Syncing data to Firebase Database...</span>`;
 
         try {
-            // Clean URL and attach JSON endpoint
             const baseUrl = config.firebaseUrl.replace(/\/$/, "");
             const firebaseUrl = `${baseUrl}/settings.json`;
 
@@ -164,19 +176,20 @@
             });
 
             if (response.ok) {
-                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-success fw-bold">✓ Synced with Firebase (2s delay completed).</span>`;
+                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-success fw-bold">✓ Synced with Firebase!</span>`;
+                checkRealGatewayHealth(config); // Save ke baad status dubara check kare
             } else {
-                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Sync Failed: HTTP ${response.status}</span>`;
+                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Rules Error! (Check Read/Write Permissions)</span>`;
             }
         } catch (err) {
-            if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Connection Error!</span>`;
+            if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Connection Error! Check URL.</span>`;
         }
     }
 
     // 🌐 FETCH REMOTE SETTINGS FROM FIREBASE ON LOAD (LAPTOP / PHONE SYNC)
     async function fetchSettingsFromFirebase() {
         const config = getStoredSettings();
-        if (!config.firebaseUrl || !config.firebaseUrl.startsWith('https://')) return;
+        if (!config.fbEnable || !config.firebaseUrl || !config.firebaseUrl.startsWith('https://')) return;
 
         try {
             const baseUrl = config.firebaseUrl.replace(/\/$/, "");
@@ -232,8 +245,8 @@
         updateTelegramUIState();
         updateApiUIState();
 
-        // Update Status Badges
-        updateGatewayBadges(config);
+        // Check Real Status Badges via Network Request
+        checkRealGatewayHealth(config);
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -254,28 +267,28 @@
             const config = getStoredSettings();
             config.cronEnable = cronToggle.checked;
             config.cronProvider = cronSelect ? cronSelect.value : 'vercel';
-            updateGatewayBadges(config);
+            checkRealGatewayHealth(config);
         });
 
         if (cronSelect) cronSelect.addEventListener('change', () => {
             const config = getStoredSettings();
             config.cronEnable = cronToggle ? cronToggle.checked : true;
             config.cronProvider = cronSelect.value;
-            updateGatewayBadges(config);
+            checkRealGatewayHealth(config);
         });
 
         if (fbToggle) fbToggle.addEventListener('change', () => {
             updateFirebaseUIState();
             const config = getStoredSettings();
             config.fbEnable = fbToggle.checked;
-            updateGatewayBadges(config);
+            checkRealGatewayHealth(config);
         });
 
         if (tgToggle) tgToggle.addEventListener('change', () => {
             updateTelegramUIState();
             const config = getStoredSettings();
             config.tgEnable = tgToggle.checked;
-            updateGatewayBadges(config);
+            checkRealGatewayHealth(config);
         });
 
         if (apiToggle) apiToggle.addEventListener('change', updateApiUIState);
@@ -318,7 +331,7 @@
 
                 // STEP 1: Instant LocalStorage Save
                 localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(newConfig));
-                updateGatewayBadges(newConfig);
+                checkRealGatewayHealth(newConfig);
 
                 // UI Button Immediate Instant Local Storage Feedback
                 const submitBtn = form.querySelector('button[type="submit"]');
