@@ -1,4 +1,7 @@
 (function() {
+    // 🔴 DEFAULT FIREBASE URL (settings.js wala same URL yahan daalein)
+    const DEFAULT_FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/";
+
     function getStoredStrategies() {
         return JSON.parse(localStorage.getItem('apex_strategies') || '[]');
     }
@@ -8,12 +11,17 @@
         syncStrategiesToFirebase(strategies);
     }
 
+    // Helper to get Firebase URL (Checks LocalStorage -> Fallback to Default)
+    function getFirebaseUrl() {
+        const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+        return settings.firebaseUrl || DEFAULT_FIREBASE_URL;
+    }
+
     // ⚡ FIREBASE STRATEGY SYNC FUNCTIONS
     async function syncStrategiesToFirebase(strategiesArray) {
-        const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
-        const fbUrl = settings.firebaseUrl;
+        const fbUrl = getFirebaseUrl();
 
-        if (settings.fbEnable === false || !fbUrl || !fbUrl.startsWith('https://')) return;
+        if (!fbUrl || !fbUrl.startsWith('https://')) return;
 
         const cleanUrl = fbUrl.replace(/\/$/, "");
         try {
@@ -29,8 +37,7 @@
     }
 
     async function fetchStrategiesFromFirebase() {
-        const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
-        const fbUrl = settings.firebaseUrl;
+        const fbUrl = getFirebaseUrl();
 
         if (!fbUrl || !fbUrl.startsWith('https://')) return;
 
@@ -38,11 +45,19 @@
         try {
             const res = await fetch(`${cleanUrl}/strategies.json`);
             if (res.ok) {
-                const remoteStrats = await res.json();
-                if (Array.isArray(remoteStrats)) {
-                    localStorage.setItem('apex_strategies', JSON.stringify(remoteStrats));
-                    console.log("🔥 Remote Strategies Loaded from Firebase!");
-                    window.loadStrategies();
+                let remoteStrats = await res.json();
+                
+                if (remoteStrats) {
+                    // Object ko Array me safe-convert karein agar Firebase format badal de
+                    if (!Array.isArray(remoteStrats) && typeof remoteStrats === 'object') {
+                        remoteStrats = Object.values(remoteStrats);
+                    }
+
+                    if (Array.isArray(remoteStrats)) {
+                        localStorage.setItem('apex_strategies', JSON.stringify(remoteStrats));
+                        console.log("🔥 Remote Strategies Loaded from Firebase!");
+                        window.loadStrategies();
+                    }
                 }
             }
         } catch (err) {
@@ -159,7 +174,13 @@
             });
         }
 
+        // Initial Load Call
         window.loadStrategies();
         fetchStrategiesFromFirebase();
+
+        // Safe Fallback: 1.5 Second Baad Dubara Fetch Karein (In case settings script sync ho rahi ho)
+        setTimeout(() => {
+            fetchStrategiesFromFirebase();
+        }, 1500);
     });
 })();
