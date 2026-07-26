@@ -37,7 +37,12 @@
             
             <!-- 1. BOT TRADING TAB -->
             <div class="tab-section" id="bot-tab">
-                <h5 class="mb-3 text-accent fw-bold">Automated Execution Logs</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 text-accent fw-bold">Automated Execution Logs</h5>
+                    <button id="btn-clear-logs" class="btn btn-outline-danger btn-sm fw-bold">
+                        🗑️ Clear Logs
+                    </button>
+                </div>
                 <div class="table-responsive bg-card p-2 rounded">
                     <table class="table table-dark table-hover mb-0 align-middle">
                         <thead>
@@ -51,7 +56,7 @@
                             </tr>
                         </thead>
                         <tbody id="bot-trades-table">
-                            <!-- Execution Rows -->
+                            <!-- Execution Rows dynamically rendered via bot_trading.js -->
                         </tbody>
                     </table>
                 </div>
