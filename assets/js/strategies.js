@@ -1,26 +1,27 @@
 (function() {
-    // 🔴 DEFAULT FIREBASE URL (settings.js wala same URL yahan daalein)
-    const DEFAULT_FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/";
+    let firebaseEventSource = null;
 
     function getStoredStrategies() {
         return JSON.parse(localStorage.getItem('apex_strategies') || '[]');
     }
 
-    function saveStrategies(strategies) {
-        localStorage.setItem('apex_strategies', JSON.stringify(strategies));
-        syncStrategiesToFirebase(strategies);
-    }
-
-    // Helper to get Firebase URL (Checks LocalStorage -> Fallback to Default)
+    // Dynamic Helper to get Firebase URL from Saved Settings
     function getFirebaseUrl() {
         const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
-        return settings.firebaseUrl || DEFAULT_FIREBASE_URL;
+        return settings.firebaseUrl || null;
     }
 
-    // ⚡ FIREBASE STRATEGY SYNC FUNCTIONS
+    function saveStrategies(strategies, skipPush = false) {
+        localStorage.setItem('apex_strategies', JSON.stringify(strategies));
+        window.loadStrategies();
+        if (!skipPush) {
+            syncStrategiesToFirebase(strategies);
+        }
+    }
+
+    // ⚡ PUSH STRATEGIES TO FIREBASE
     async function syncStrategiesToFirebase(strategiesArray) {
         const fbUrl = getFirebaseUrl();
-
         if (!fbUrl || !fbUrl.startsWith('https://')) return;
 
         const cleanUrl = fbUrl.replace(/\/$/, "");
@@ -30,15 +31,58 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(strategiesArray)
             });
-            console.log("⚡ Strategies Synced to Firebase!");
+            console.log("⚡ Strategies Push Success!");
         } catch (err) {
             console.error("Firebase Strategy Push Error:", err);
         }
     }
 
+    // 🔄 REALTIME LISTEN TO FIREBASE (Laptop <-> Phone Live Sync)
+    function listenToFirebaseRealtime() {
+        const fbUrl = getFirebaseUrl();
+        if (!fbUrl || !fbUrl.startsWith('https://')) return;
+
+        const cleanUrl = fbUrl.replace(/\/$/, "");
+
+        // Close existing listener if open
+        if (firebaseEventSource) {
+            firebaseEventSource.close();
+        }
+
+        try {
+            // Firebase SSE EventSource for Realtime Updates
+            firebaseEventSource = new EventSource(`${cleanUrl}/strategies.json`);
+
+            firebaseEventSource.addEventListener('put', (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data && data.data) {
+                        let remoteData = data.data;
+                        if (!Array.isArray(remoteData) && typeof remoteData === 'object') {
+                            remoteData = Object.values(remoteData);
+                        }
+                        if (Array.isArray(remoteData)) {
+                            // Update Local Storage silently without re-pushing back to Firebase
+                            saveStrategies(remoteData, true);
+                            console.log("🔥 Live Strategy Update Received from Firebase!");
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error parsing Realtime Data:", err);
+                }
+            });
+
+            firebaseEventSource.onerror = (err) => {
+                console.warn("Realtime stream reconnecting...");
+            };
+        } catch (err) {
+            console.error("EventSource initialization failed:", err);
+        }
+    }
+
+    // INITIAL FETCH FROM FIREBASE
     async function fetchStrategiesFromFirebase() {
         const fbUrl = getFirebaseUrl();
-
         if (!fbUrl || !fbUrl.startsWith('https://')) return;
 
         const cleanUrl = fbUrl.replace(/\/$/, "");
@@ -46,17 +90,12 @@
             const res = await fetch(`${cleanUrl}/strategies.json`);
             if (res.ok) {
                 let remoteStrats = await res.json();
-                
                 if (remoteStrats) {
-                    // Object ko Array me safe-convert karein agar Firebase format badal de
                     if (!Array.isArray(remoteStrats) && typeof remoteStrats === 'object') {
                         remoteStrats = Object.values(remoteStrats);
                     }
-
                     if (Array.isArray(remoteStrats)) {
-                        localStorage.setItem('apex_strategies', JSON.stringify(remoteStrats));
-                        console.log("🔥 Remote Strategies Loaded from Firebase!");
-                        window.loadStrategies();
+                        saveStrategies(remoteStrats, true);
                     }
                 }
             }
@@ -66,7 +105,6 @@
     }
 
     window.loadStrategies = function() {
-        console.log("Loading Strategies...");
         const container = document.getElementById('strategies-container');
         if (!container) return;
 
@@ -87,19 +125,16 @@
             html += `
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-card p-3 h-100 position-relative">
-                        <!-- HEADER & COIN BADGE -->
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold text-accent m-0">${strat.name}</h6>
                             <span class="badge bg-secondary border border-secondary">${strat.coin}</span>
                         </div>
 
-                        <!-- RISK CONFIG INFO -->
                         <div class="small text-muted mb-3">
                             <div>Amount: <strong class="text-white">$${strat.amount}</strong> (${strat.leverage}x)</div>
                             <div>Stop Loss: <span class="text-danger fw-bold">${strat.sl}%</span> | Take Profit: <span class="text-success fw-bold">${strat.tp}%</span></div>
                         </div>
 
-                        <!-- MANUAL EXECUTION BUTTONS (BUY / SELL) -->
                         <div class="d-flex gap-2 mb-3">
                             <button onclick="window.triggerStrategyExecution('${strat.name}', 'BUY')" class="btn btn-sm btn-success fw-bold w-50 py-1">
                                 ▶ Run BUY
@@ -109,7 +144,6 @@
                             </button>
                         </div>
 
-                        <!-- ACTIVE SWITCH & DELETE BUTTON -->
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary mt-auto">
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="auto-${index}" ${strat.active ? 'checked' : ''} onchange="toggleStrategy(${index})">
@@ -132,7 +166,6 @@
         if (strategies[index]) {
             strategies[index].active = !strategies[index].active;
             saveStrategies(strategies);
-            window.loadStrategies();
         }
     };
 
@@ -141,7 +174,6 @@
             let strategies = getStoredStrategies();
             strategies.splice(index, 1);
             saveStrategies(strategies);
-            window.loadStrategies();
         }
     };
 
@@ -169,18 +201,21 @@
                 const modalElement = document.getElementById('addStratModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
                 if (modal) modal.hide();
-
-                window.loadStrategies();
             });
         }
 
-        // Initial Load Call
+        // Initial Local Load
         window.loadStrategies();
-        fetchStrategiesFromFirebase();
 
-        // Safe Fallback: 1.5 Second Baad Dubara Fetch Karein (In case settings script sync ho rahi ho)
+        // Step 1: Initial Sync
+        fetchStrategiesFromFirebase().then(() => {
+            // Step 2: Live Realtime Connection Start
+            listenToFirebaseRealtime();
+        });
+
+        // Fallback retry for empty LocalStorage settings on new devices
         setTimeout(() => {
-            fetchStrategiesFromFirebase();
-        }, 1500);
+            fetchStrategiesFromFirebase().then(() => listenToFirebaseRealtime());
+        }, 2000);
     });
 })();
