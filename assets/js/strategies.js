@@ -5,6 +5,49 @@
 
     function saveStrategies(strategies) {
         localStorage.setItem('apex_strategies', JSON.stringify(strategies));
+        syncStrategiesToFirebase(strategies);
+    }
+
+    // ⚡ FIREBASE STRATEGY SYNC FUNCTIONS
+    async function syncStrategiesToFirebase(strategiesArray) {
+        const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+        const fbUrl = settings.firebaseUrl;
+
+        if (settings.fbEnable === false || !fbUrl || !fbUrl.startsWith('https://')) return;
+
+        const cleanUrl = fbUrl.replace(/\/$/, "");
+        try {
+            await fetch(`${cleanUrl}/strategies.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(strategiesArray)
+            });
+            console.log("⚡ Strategies Synced to Firebase!");
+        } catch (err) {
+            console.error("Firebase Strategy Push Error:", err);
+        }
+    }
+
+    async function fetchStrategiesFromFirebase() {
+        const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+        const fbUrl = settings.firebaseUrl;
+
+        if (!fbUrl || !fbUrl.startsWith('https://')) return;
+
+        const cleanUrl = fbUrl.replace(/\/$/, "");
+        try {
+            const res = await fetch(`${cleanUrl}/strategies.json`);
+            if (res.ok) {
+                const remoteStrats = await res.json();
+                if (Array.isArray(remoteStrats)) {
+                    localStorage.setItem('apex_strategies', JSON.stringify(remoteStrats));
+                    console.log("🔥 Remote Strategies Loaded from Firebase!");
+                    window.loadStrategies();
+                }
+            }
+        } catch (err) {
+            console.error("Firebase Strategy Load Error:", err);
+        }
     }
 
     window.loadStrategies = function() {
@@ -117,5 +160,6 @@
         }
 
         window.loadStrategies();
+        fetchStrategiesFromFirebase();
     });
 })();
