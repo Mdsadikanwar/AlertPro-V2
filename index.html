@@ -118,12 +118,6 @@
                                     <span class="me-2">⚙️</span> Global Engine Rules
                                 </h6>
 
-                                <!-- Telegram Master Switch -->
-                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                    <label class="form-check-label small fw-bold text-white" for="rule-tg-enable">Telegram Alerts</label>
-                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-tg-enable" checked>
-                                </div>
-
                                 <!-- Emergency Auto-Trading Switch -->
                                 <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
                                     <div>
@@ -151,44 +145,60 @@
 
                         </div>
 
-                        <!-- RIGHT COLUMN: API CREDENTIALS & SYSTEM CARDS -->
+                        <!-- RIGHT COLUMN: DB, TELEGRAM & EXCHANGE CARDS -->
                         <div class="col-lg-7">
                             
-                            <!-- 1. SYSTEM GATEWAY CREDENTIALS CARD -->
+                            <!-- 1. REALTIME DATABASE CARD -->
                             <div class="card bg-card p-3 mb-3">
                                 <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                    <span class="me-2">🌐</span> System Databases & Telegram Alerts
+                                    <span class="me-2">🔥</span> Firebase Realtime Database
                                 </h6>
                                 
-                                <div class="mb-3">
+                                <div>
                                     <label class="form-label">FIREBASE REALTIME DB URL</label>
                                     <input type="text" id="cfg-firebase" class="form-control bg-input text-white" placeholder="https://your-app.firebaseio.com">
                                 </div>
+                            </div>
 
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">TELEGRAM BOT TOKEN</label>
-                                        <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="123456789:ABC...">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">TELEGRAM CHAT ID</label>
-                                        <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="-100123456789">
+                            <!-- 2. DEDICATED TELEGRAM ALERTS CARD (WITH ON/OFF TOGGLE) -->
+                            <div class="card bg-card p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
+                                        <span class="me-2">✈️</span> Telegram Notification Gateway
+                                    </h6>
+                                    <!-- Dedicated Telegram Switch -->
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-tg-enable" checked>
+                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-tg-enable">Enable Alerts</label>
                                     </div>
                                 </div>
 
-                                <button type="button" id="btn-test-tg" class="btn btn-outline-info btn-sm fw-bold w-100 py-2">
-                                    Send Test Telegram Alert
-                                </button>
-                                <div id="tg-test-status" class="small mt-2 text-center"></div>
+                                <div id="tg-inputs-wrapper">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">TELEGRAM BOT TOKEN</label>
+                                            <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="123456789:ABC...">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">TELEGRAM CHAT ID</label>
+                                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="-100123456789">
+                                        </div>
+                                    </div>
+
+                                    <button type="button" id="btn-test-tg" class="btn btn-outline-info btn-sm fw-bold w-100 py-2">
+                                        Send Test Telegram Alert
+                                    </button>
+                                    <div id="tg-test-status" class="small mt-2 text-center"></div>
+                                </div>
                             </div>
 
-                            <!-- 2. DEDICATED EXCHANGE API CONNECTOR CARD -->
+                            <!-- 3. DEDICATED EXCHANGE API CONNECTOR CARD -->
                             <div class="card bg-card p-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
                                         <span class="me-2">🔑</span> Exchange API Connector
                                     </h6>
-                                    <!-- API Execution ON/OFF Toggle Switch -->
+                                    <!-- API Execution Switch -->
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" role="switch" id="cfg-api-enable">
                                         <label class="form-check-label small fw-bold text-white ms-1" for="cfg-api-enable">Enable API Execution</label>
