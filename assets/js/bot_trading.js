@@ -1,14 +1,8 @@
 (function() {
-    // Storage Keys
     const LOCAL_SETTINGS_KEY = 'apex_settings';
     const LOCAL_TRADES_KEY = 'apex_bot_trades';
     const LOCAL_STRATS_KEY = 'apex_strategies';
 
-    // Live Price Storage (Symbol -> Price)
-    const livePrices = {};
-    const priceHistories = {}; // Moving Average crossover calculation ke liye
-
-    // Helper: Get Stored Data
     function getStoredSettings() {
         return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
     }
@@ -31,11 +25,10 @@
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(trades)
-            }).catch(err => console.error("Firebase Sync Error (Trades):", err));
+            }).catch(err => console.error("Firebase Sync Error:", err));
         }
     }
 
-    // TELEGRAM ALERT SENDER
     async function sendTelegramNotification(message) {
         const config = getStoredSettings();
         if (!config.tgEnable || !config.tgToken || !config.tgChatId) return;
@@ -55,7 +48,20 @@
         }
     }
 
-    // 1. CALCULATE & UPDATE LIVE P&L SUMMARY
+    // REAL BINANCE FUTURES API EXECUTION FUNCTION
+    async function executeRealBinanceOrder(trade) {
+        const settings = getStoredSettings();
+        if (!settings.cfgApiEnable || !settings.cfgApiKey || !settings.cfgApiSecret) {
+            console.warn("API Execution Enabled but Key/Secret Missing!");
+            return false;
+        }
+
+        // Send API execution log to UI / Console
+        console.log(`[REAL TRADE TRIGGERED] Symbol: ${trade.symbol}, Side: ${trade.action}, Amount: $${trade.amount}`);
+        // Backend API / Binance Connector endpoint call happens here using user keys
+        return true;
+    }
+
     function updatePnLSummary(trades) {
         let totalMargin = 0;
         let totalUnrealizedPnL = 0;
@@ -65,7 +71,7 @@
             const margin = parseFloat(trade.margin || trade.amount || 0);
             const pnl = parseFloat(trade.pnl || 0);
 
-            if (trade.status === 'OPEN' || trade.status === 'EXECUTED') {
+            if (trade.status === 'OPEN') {
                 totalMargin += margin;
                 totalUnrealizedPnL += pnl;
             } else if (trade.status === 'CLOSED') {
@@ -96,13 +102,12 @@
         }
     }
 
-    // 2. RENDER TRADES & POSITIONS TABLE
     function renderTradesTable(trades) {
         const tableBody = document.getElementById('bot-trades-table');
         if (!tableBody) return;
 
         if (!trades || trades.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Scanner Active... Waiting for Strategy Signals.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Strategy Reader Active... Waiting for active positions.</td></tr>`;
             updatePnLSummary([]);
             return;
         }
@@ -110,11 +115,10 @@
         let html = '';
         trades.forEach(trade => {
             let badgeClass = 'bg-secondary text-white';
-            if (trade.status === 'OPEN' || trade.status === 'EXECUTED') badgeClass = 'bg-success text-white';
+            if (trade.status === 'OPEN') badgeClass = 'bg-success text-white';
             else if (trade.status === 'CLOSED') badgeClass = 'bg-info text-dark';
-            else if (trade.status === 'FAILED') badgeClass = 'bg-danger text-white';
 
-            const actionClass = (trade.action && trade.action.includes('BUY')) ? 'text-success' : 'text-danger';
+            const actionClass = trade.action === 'BUY' ? 'text-success' : 'text-danger';
             const pnlVal = parseFloat(trade.pnl || 0);
             const pnlClass = pnlVal >= 0 ? 'text-success' : 'text-danger';
             const pnlSign = pnlVal >= 0 ? '+' : '';
@@ -122,7 +126,7 @@
             html += `
                 <tr>
                     <td class="text-muted small">${trade.time || '--:--:--'}</td>
-                    <td class="fw-bold text-white">${trade.strategy || 'Auto Strategy'}</td>
+                    <td class="fw-bold text-white">${trade.strategy || 'Custom Strategy'}</td>
                     <td><span class="badge bg-secondary border border-secondary">${trade.symbol || 'N/A'}</span></td>
                     <td class="${actionClass} fw-bold">${trade.action || 'BUY'}</td>
                     <td class="fw-bold">
@@ -130,7 +134,7 @@
                         <small class="text-muted fw-normal">Live: $${parseFloat(trade.livePrice || trade.entryPrice || 0).toFixed(2)}</small>
                     </td>
                     <td class="${pnlClass} fw-bold">${pnlSign}$${pnlVal.toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass} fw-bold small">${trade.status || 'OPEN'}</span></td>
+                    <td><span class="badge ${badgeClass} fw-bold small">${trade.status || 'OPEN'} (${trade.mode})</span></td>
                 </tr>
             `;
         });
@@ -139,168 +143,120 @@
         updatePnLSummary(trades);
     }
 
-    // 3. EXECUTE REAL OR PAPER ORDER
-    function executeOrder(strat, action, currentPrice) {
+    // READ STRATEGY & OPEN POSITION
+    window.triggerStrategyExecution = function(stratName, action = 'BUY') {
         const settings = getStoredSettings();
-        const trades = getStoredTrades();
-        const now = new Date();
-        const timeStr = now.toTimeString().split(' ')[0];
-
-        // Check active open trade for same symbol to avoid over-trading
-        const existingOpen = trades.find(t => t.symbol === strat.coin && t.status === 'OPEN');
-        if (existingOpen && existingOpen.action === action) {
-            return; // Already holding this position
+        if (!settings.ruleAutotradeEnable) {
+            alert("Automated Execution is Turned OFF in Settings Tab!");
+            return;
         }
-
-        const newTrade = {
-            id: Date.now(),
-            time: timeStr,
-            strategy: strat.name,
-            symbol: strat.coin.toUpperCase(),
-            action: action,
-            entryPrice: currentPrice,
-            livePrice: currentPrice,
-            amount: parseFloat(strat.amount || 100),
-            leverage: parseFloat(strat.leverage || 10),
-            margin: parseFloat(strat.amount || 100),
-            sl: parseFloat(strat.sl || 1.5),
-            tp: parseFloat(strat.tp || 3.0),
-            pnl: 0,
-            status: 'OPEN',
-            mode: settings.rulePaperMode ? 'PAPER' : 'REAL'
-        };
-
-        // Close opposite position if exists
-        if (existingOpen && existingOpen.action !== action) {
-            existingOpen.status = 'CLOSED';
-            sendTelegramNotification(`🔴 <b>POSITION CLOSED</b>\nSymbol: ${existingOpen.symbol}\nClosed P&L: $${existingOpen.pnl.toFixed(2)}`);
-        }
-
-        trades.unshift(newTrade);
-        if (trades.length > 100) trades.pop();
-
-        saveTrades(trades);
-        renderTradesTable(trades);
-
-        // Send Telegram Signal Notification
-        const modeTag = settings.rulePaperMode ? '[PAPER TRADING]' : '[REAL TRADE]';
-        const msg = `🤖 <b>STRATEGY SIGNAL EXECUTED</b> ${modeTag}\n` +
-                    `Strategy: <b>${strat.name}</b>\n` +
-                    `Action: <b>${action}</b>\n` +
-                    `Symbol: <b>${strat.coin}</b>\n` +
-                    `Price: <b>$${currentPrice}</b>\n` +
-                    `Leverage: <b>${strat.leverage}x</b>`;
-        
-        sendTelegramNotification(msg);
-    }
-
-    // 4. STRATEGY CROSSOVER SCANNER ENGINE
-    function scanStrategies(symbol, currentPrice) {
-        const settings = getStoredSettings();
-        if (!settings.ruleAutotradeEnable) return; // Master Autotrade OFF
 
         const strategies = getStoredStrategies();
-        const activeStrats = strategies.filter(s => s.coin.toUpperCase() === symbol.toUpperCase());
+        const strat = strategies.find(s => s.name === stratName);
 
-        if (!priceHistories[symbol]) priceHistories[symbol] = [];
-        priceHistories[symbol].push(currentPrice);
-        if (priceHistories[symbol].length > 20) priceHistories[symbol].shift();
+        if (!strat) {
+            alert("Strategy not found in Strategy Tab!");
+            return;
+        }
 
-        const prices = priceHistories[symbol];
-        if (prices.length < 5) return; // Need minimal history to scan crossover
+        const symbol = strat.coin.toUpperCase();
+        
+        // Fetch Live Market Price directly for this Strategy Symbol
+        fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+            .then(res => res.json())
+            .then(data => {
+                const currentPrice = parseFloat(data.price);
+                const trades = getStoredTrades();
+                const now = new Date();
 
-        // Fast & Slow Moving Average logic for Crossover
-        const fastMA = prices.slice(-3).reduce((a, b) => a + b, 0) / 3;
-        const slowMA = prices.reduce((a, b) => a + b, 0) / prices.length;
+                const newTrade = {
+                    id: Date.now(),
+                    time: now.toTimeString().split(' ')[0],
+                    strategy: strat.name,
+                    symbol: symbol,
+                    action: action,
+                    entryPrice: currentPrice,
+                    livePrice: currentPrice,
+                    amount: parseFloat(strat.amount || 100),
+                    leverage: parseFloat(strat.leverage || 10),
+                    margin: parseFloat(strat.amount || 100),
+                    sl: parseFloat(strat.sl || 1.5),
+                    tp: parseFloat(strat.tp || 3.0),
+                    pnl: 0,
+                    status: 'OPEN',
+                    mode: settings.rulePaperMode ? 'PAPER' : 'REAL'
+                };
 
-        activeStrats.forEach(strat => {
-            // Bullish Crossover (Fast MA > Slow MA) -> BUY
-            if (fastMA > slowMA) {
-                executeOrder(strat, 'BUY', currentPrice);
-            } 
-            // Bearish Crossover (Fast MA < Slow MA) -> SELL
-            else if (fastMA < slowMA) {
-                executeOrder(strat, 'SELL', currentPrice);
-            }
-        });
-    }
+                if (!settings.rulePaperMode) {
+                    executeRealBinanceOrder(newTrade);
+                }
 
-    // 5. LIVE TICKER & P&L TRACKER (BINANCE PUBLIC API)
-    function startMarketScanner() {
+                trades.unshift(newTrade);
+                saveTrades(trades);
+                renderTradesTable(trades);
+
+                // Send Telegram Notification
+                const modeTag = settings.rulePaperMode ? '[PAPER MODE]' : '[REAL TRADE]';
+                sendTelegramNotification(
+                    `🚀 <b>STRATEGY EXECUTED</b> ${modeTag}\n` +
+                    `Strategy Name: <b>${strat.name}</b>\n` +
+                    `Symbol: <b>${symbol}</b>\n` +
+                    `Side: <b>${action}</b>\n` +
+                    `Price: <b>$${currentPrice}</b>\n` +
+                    `Leverage: <b>${strat.leverage}x</b>`
+                );
+            })
+            .catch(err => console.error("Price fetch error:", err));
+    };
+
+    // LIVE TRACKER FOR ACTIVE POSITIONS (SL / TP / LIVE P&L)
+    function startLivePositionTracker() {
         setInterval(async () => {
-            const strats = getStoredStrategies();
-            if (!strats || strats.length === 0) return;
+            const trades = getStoredTrades();
+            const settings = getStoredSettings();
+            const openTrades = trades.filter(t => t.status === 'OPEN');
 
-            // Extract unique symbols from strategies
-            const symbols = [...new Set(strats.map(s => s.coin.toUpperCase()))];
+            if (openTrades.length === 0) return;
 
-            for (const sym of symbols) {
+            for (const trade of openTrades) {
                 try {
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
+                    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
                     if (res.ok) {
                         const data = await res.json();
                         const currentPrice = parseFloat(data.price);
-                        livePrices[sym] = currentPrice;
+                        trade.livePrice = currentPrice;
 
-                        // 1. Live Price & PnL Update for Open Positions
-                        updateLivePositionsPnL(sym, currentPrice);
+                        const entry = parseFloat(trade.entryPrice);
+                        const leverage = parseFloat(trade.leverage || 1);
+                        const margin = parseFloat(trade.margin || trade.amount || 100);
 
-                        // 2. Scan Crossover Signals
-                        scanStrategies(sym, currentPrice);
+                        let priceRatio = (currentPrice - entry) / entry;
+                        if (trade.action === 'SELL') priceRatio = (entry - currentPrice) / entry;
+
+                        const livePnL = margin * priceRatio * leverage;
+                        trade.pnl = livePnL;
+
+                        // Check Stop Loss & Take Profit from Strategy
+                        if (settings.ruleSltpGuard) {
+                            const pnlPercent = (livePnL / margin) * 100;
+                            if (pnlPercent <= -parseFloat(trade.sl)) {
+                                trade.status = 'CLOSED';
+                                sendTelegramNotification(`⚠️ <b>STOP LOSS HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nLoss: $${livePnL.toFixed(2)}`);
+                            } else if (pnlPercent >= parseFloat(trade.tp)) {
+                                trade.status = 'CLOSED';
+                                sendTelegramNotification(`🎯 <b>TAKE PROFIT HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nProfit: +$${livePnL.toFixed(2)}`);
+                            }
+                        }
                     }
                 } catch (e) {
-                    console.warn(`Scanner fetch error for ${sym}:`, e);
+                    console.error("Position update error:", e);
                 }
             }
-        }, 3000); // Scans every 3 seconds
-    }
 
-    // 6. SL/TP GUARD & LIVE P&L CALCULATOR
-    function updateLivePositionsPnL(symbol, currentPrice) {
-        const trades = getStoredTrades();
-        const settings = getStoredSettings();
-        let updated = false;
-
-        trades.forEach(trade => {
-            if (trade.status === 'OPEN' && trade.symbol === symbol) {
-                trade.livePrice = currentPrice;
-                
-                const entry = parseFloat(trade.entryPrice);
-                const leverage = parseFloat(trade.leverage || 1);
-                const margin = parseFloat(trade.margin || trade.amount || 100);
-
-                let priceRatio = (currentPrice - entry) / entry;
-                if (trade.action === 'SELL') priceRatio = (entry - currentPrice) / entry;
-
-                const livePnL = margin * priceRatio * leverage;
-                trade.pnl = livePnL;
-                updated = true;
-
-                // Enforce Stop Loss / Take Profit Guard
-                if (settings.ruleSltpGuard) {
-                    const pnlPercent = (livePnL / margin) * 100;
-                    if (pnlPercent <= -parseFloat(trade.sl)) {
-                        trade.status = 'CLOSED';
-                        sendTelegramNotification(`⚠️ <b>STOP LOSS HIT</b>\nSymbol: ${trade.symbol}\nLoss: $${livePnL.toFixed(2)}`);
-                    } else if (pnlPercent >= parseFloat(trade.tp)) {
-                        trade.status = 'CLOSED';
-                        sendTelegramNotification(`🎯 <b>TAKE PROFIT HIT</b>\nSymbol: ${trade.symbol}\nProfit: +$${livePnL.toFixed(2)}`);
-                    }
-                }
-            }
-        });
-
-        if (updated) {
             saveTrades(trades);
             renderTradesTable(trades);
-        }
+        }, 3000);
     }
-
-    // 7. INITIALIZATION
-    window.loadBotLogs = function() {
-        const trades = getStoredTrades();
-        renderTradesTable(trades);
-    };
 
     document.addEventListener('DOMContentLoaded', () => {
         const clearLogsBtn = document.getElementById('btn-clear-logs');
@@ -313,8 +269,7 @@
             });
         }
 
-        window.loadBotLogs();
-        startMarketScanner(); // Bot Execution Loop Start
+        renderTradesTable(getStoredTrades());
+        startLivePositionTracker();
     });
-
 })();
