@@ -77,7 +77,7 @@
                 <form id="master-settings-form">
                     <div class="row g-3">
                         
-                        <!-- LEFT COLUMN: GATEWAY STATUS & MASTER SWITCHES -->
+                        <!-- LEFT COLUMN: GATEWAY STATUS, CRON SELECTION & MASTER SWITCHES -->
                         <div class="col-lg-5">
                             
                             <!-- 1. INTEGRATION GATEWAY STATUS CARD -->
@@ -98,21 +98,39 @@
                                     <span id="status-telegram-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
                                 </div>
 
-                                <!-- Cron Engine Selector & Status -->
-                                <div class="p-2 rounded bg-inner-box mb-1">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="small fw-bold text-white">Active Cron Provider</span>
-                                        <span id="status-cron-badge" class="badge bg-success px-2 py-1">Active</span>
+                                <!-- Cron Engine Health Status -->
+                                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-inner-box">
+                                    <div class="d-flex flex-column">
+                                        <span class="small fw-bold text-white">Cron Engine Health</span>
+                                        <span id="status-cron-provider-label" class="text-muted text-sublabel">Vercel Cron</span>
                                     </div>
-                                    <select id="cfg-cron-provider" class="form-select form-select-sm bg-input text-white border-secondary">
-                                        <option value="vercel">Vercel Cron (vercel.json)</option>
-                                        <option value="cronjob_org">Cron-Job.org (Webhook)</option>
-                                        <option value="github_actions">GitHub Actions Workflow</option>
-                                    </select>
+                                    <span id="status-cron-badge" class="badge bg-success px-2 py-1">Active</span>
                                 </div>
                             </div>
 
-                            <!-- 2. GLOBAL ENGINE RULES CARD -->
+                            <!-- 2. SEPARATE CRON PROVIDER CONFIG CARD -->
+                            <div class="card bg-card p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
+                                        <span class="me-2">⏱️</span> Cron Execution Provider
+                                    </h6>
+                                    <!-- Cron Toggle Switch -->
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-cron-enable" checked>
+                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-cron-enable">Enable</label>
+                                    </div>
+                                </div>
+
+                                <p class="text-sublabel mb-2">Select automated schedule trigger engine for bot strategies.</p>
+
+                                <select id="cfg-cron-provider" class="form-select form-select-sm bg-input text-white border-secondary">
+                                    <option value="vercel" selected>Vercel Cron (vercel.json)</option>
+                                    <option value="cronjob_org">Cron-Job.org (Webhook)</option>
+                                    <option value="github_actions">GitHub Actions Workflow</option>
+                                </select>
+                            </div>
+
+                            <!-- 3. GLOBAL ENGINE RULES CARD -->
                             <div class="card bg-card p-3">
                                 <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
                                     <span class="me-2">⚙️</span> Global Engine Rules
