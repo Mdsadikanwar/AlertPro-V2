@@ -173,6 +173,28 @@
         }
     }
 
+    // 🌐 FETCH REMOTE SETTINGS FROM FIREBASE ON LOAD (LAPTOP / PHONE SYNC)
+    async function fetchSettingsFromFirebase() {
+        const config = getStoredSettings();
+        if (!config.firebaseUrl || !config.firebaseUrl.startsWith('https://')) return;
+
+        try {
+            const baseUrl = config.firebaseUrl.replace(/\/$/, "");
+            const res = await fetch(`${baseUrl}/settings.json`);
+            if (res.ok) {
+                const remoteConfig = await res.json();
+                if (remoteConfig && typeof remoteConfig === 'object') {
+                    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(remoteConfig));
+                    console.log("🔥 Master Settings synced from Firebase to Local Device!");
+                    // Re-populate UI inputs with downloaded Firebase data
+                    window.loadSettings();
+                }
+            }
+        } catch (err) {
+            console.error("Firebase settings fetch error:", err);
+        }
+    }
+
     // Master Load Function
     window.loadSettings = function() {
         console.log("Loading Master Configurations...");
@@ -259,8 +281,9 @@
         if (apiToggle) apiToggle.addEventListener('change', updateApiUIState);
         if (exchangeSelect) exchangeSelect.addEventListener('change', updateApiUIState);
 
-        // Initial Load Call
+        // Initial Load Call & Firebase Remote Sync
         window.loadSettings();
+        fetchSettingsFromFirebase();
 
         // Form Submit: Save All Master Settings
         if (form) {
