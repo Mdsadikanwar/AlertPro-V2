@@ -29,21 +29,36 @@
             html += `
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-card p-3 h-100 position-relative">
+                        <!-- HEADER & COIN BADGE -->
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold text-accent m-0">${strat.name}</h6>
-                            <span class="badge bg-secondary">${strat.coin}</span>
+                            <span class="badge bg-secondary border border-secondary">${strat.coin}</span>
                         </div>
+
+                        <!-- RISK CONFIG INFO -->
                         <div class="small text-muted mb-3">
                             <div>Amount: <strong class="text-white">$${strat.amount}</strong> (${strat.leverage}x)</div>
-                            <div>Stop Loss: <span class="text-danger">${strat.sl}%</span> | Take Profit: <span class="text-success">${strat.tp}%</span></div>
+                            <div>Stop Loss: <span class="text-danger fw-bold">${strat.sl}%</span> | Take Profit: <span class="text-success fw-bold">${strat.tp}%</span></div>
                         </div>
+
+                        <!-- MANUAL EXECUTION BUTTONS (BUY / SELL) -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button onclick="window.triggerStrategyExecution('${strat.name}', 'BUY')" class="btn btn-sm btn-success fw-bold w-50 py-1">
+                                ▶ Run BUY
+                            </button>
+                            <button onclick="window.triggerStrategyExecution('${strat.name}', 'SELL')" class="btn btn-sm btn-danger fw-bold w-50 py-1">
+                                ▶ Run SELL
+                            </button>
+                        </div>
+
+                        <!-- ACTIVE SWITCH & DELETE BUTTON -->
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary mt-auto">
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="auto-${index}" ${strat.active ? 'checked' : ''} onchange="toggleStrategy(${index})">
                                 <label class="form-check-label small text-muted ms-1" for="auto-${index}">${strat.active ? 'Active' : 'Paused'}</label>
                             </div>
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteStrategy(${index})">
-                                Delete
+                                🗑️ Delete
                             </button>
                         </div>
                     </div>
@@ -64,10 +79,12 @@
     };
 
     window.deleteStrategy = function(index) {
-        let strategies = getStoredStrategies();
-        strategies.splice(index, 1);
-        saveStrategies(strategies);
-        window.loadStrategies();
+        if (confirm("Are you sure you want to delete this strategy?")) {
+            let strategies = getStoredStrategies();
+            strategies.splice(index, 1);
+            saveStrategies(strategies);
+            window.loadStrategies();
+        }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -98,5 +115,7 @@
                 window.loadStrategies();
             });
         }
+
+        window.loadStrategies();
     });
 })();
