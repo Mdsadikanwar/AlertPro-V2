@@ -74,90 +74,92 @@
             <div class="tab-section d-none" id="settings-tab">
                 <h5 class="mb-3 text-accent fw-bold">System Architecture & Engine Controls</h5>
                 
-                <div class="row g-3">
-                    
-                    <!-- LEFT COLUMN: GATEWAY STATUS & MASTER SWITCHES -->
-                    <div class="col-lg-5">
+                <form id="master-settings-form">
+                    <div class="row g-3">
                         
-                        <!-- 1. INTEGRATION GATEWAY STATUS CARD -->
-                        <div class="card bg-card p-3 mb-3">
-                            <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                <span class="me-2">🔌</span> Integration Gateway Status
-                            </h6>
-
-                            <!-- Firebase Status -->
-                            <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
-                                <span class="small fw-bold text-white">Firebase Realtime DB</span>
-                                <span id="status-firebase-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
-                            </div>
-
-                            <!-- Telegram Status -->
-                            <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
-                                <span class="small fw-bold text-white">Telegram Bot Service</span>
-                                <span id="status-telegram-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
-                            </div>
-
-                            <!-- Cron Engine Selector & Status -->
-                            <div class="p-2 rounded bg-inner-box mb-1">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small fw-bold text-white">Active Cron Provider</span>
-                                    <span id="status-cron-badge" class="badge bg-success px-2 py-1">Active</span>
-                                </div>
-                                <select id="cfg-cron-provider" class="form-select form-select-sm bg-input text-white border-secondary">
-                                    <option value="vercel">Vercel Cron (vercel.json)</option>
-                                    <option value="cronjob_org">Cron-Job.org (Webhook)</option>
-                                    <option value="github_actions">GitHub Actions Workflow</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 2. GLOBAL ENGINE RULES CARD -->
-                        <div class="card bg-card p-3">
-                            <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                <span class="me-2">⚙️</span> Global Engine Rules
-                            </h6>
-
-                            <!-- Telegram Master Switch -->
-                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                <label class="form-check-label small fw-bold text-white" for="rule-tg-enable">Telegram Alerts</label>
-                                <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-tg-enable" checked>
-                            </div>
-
-                            <!-- Emergency Auto-Trading Switch -->
-                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                <div>
-                                    <label class="form-check-label small fw-bold d-block text-white" for="rule-autotrade-enable">Automated Execution</label>
-                                    <span class="text-sublabel">Master ON/OFF switch for trades</span>
-                                </div>
-                                <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-autotrade-enable" checked>
-                            </div>
-
-                            <!-- Paper Trading Mode -->
-                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                <div>
-                                    <label class="form-check-label small fw-bold d-block text-white" for="rule-paper-mode">Paper Trading Mode</label>
-                                    <span class="text-sublabel">Simulate orders without real money</span>
-                                </div>
-                                <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-paper-mode" checked>
-                            </div>
-
-                            <!-- Auto SL/TP Guard -->
-                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-1">
-                                <label class="form-check-label small fw-bold text-white" for="rule-sltp-guard">Enforce Hard Stop Loss</label>
-                                <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-sltp-guard" checked>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- RIGHT COLUMN: API CREDENTIALS FORM -->
-                    <div class="col-lg-7">
-                        <div class="card bg-card p-3">
-                            <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                <span class="me-2">🔑</span> API & Webhook Credentials
-                            </h6>
+                        <!-- LEFT COLUMN: GATEWAY STATUS & MASTER SWITCHES -->
+                        <div class="col-lg-5">
                             
-                            <form id="master-settings-form">
+                            <!-- 1. INTEGRATION GATEWAY STATUS CARD -->
+                            <div class="card bg-card p-3 mb-3">
+                                <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
+                                    <span class="me-2">🔌</span> Integration Gateway Status
+                                </h6>
+
+                                <!-- Firebase Status -->
+                                <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
+                                    <span class="small fw-bold text-white">Firebase Realtime DB</span>
+                                    <span id="status-firebase-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
+                                </div>
+
+                                <!-- Telegram Status -->
+                                <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
+                                    <span class="small fw-bold text-white">Telegram Bot Service</span>
+                                    <span id="status-telegram-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
+                                </div>
+
+                                <!-- Cron Engine Selector & Status -->
+                                <div class="p-2 rounded bg-inner-box mb-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="small fw-bold text-white">Active Cron Provider</span>
+                                        <span id="status-cron-badge" class="badge bg-success px-2 py-1">Active</span>
+                                    </div>
+                                    <select id="cfg-cron-provider" class="form-select form-select-sm bg-input text-white border-secondary">
+                                        <option value="vercel">Vercel Cron (vercel.json)</option>
+                                        <option value="cronjob_org">Cron-Job.org (Webhook)</option>
+                                        <option value="github_actions">GitHub Actions Workflow</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 2. GLOBAL ENGINE RULES CARD -->
+                            <div class="card bg-card p-3">
+                                <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
+                                    <span class="me-2">⚙️</span> Global Engine Rules
+                                </h6>
+
+                                <!-- Telegram Master Switch -->
+                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
+                                    <label class="form-check-label small fw-bold text-white" for="rule-tg-enable">Telegram Alerts</label>
+                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-tg-enable" checked>
+                                </div>
+
+                                <!-- Emergency Auto-Trading Switch -->
+                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
+                                    <div>
+                                        <label class="form-check-label small fw-bold d-block text-white" for="rule-autotrade-enable">Automated Execution</label>
+                                        <span class="text-sublabel">Master ON/OFF switch for trades</span>
+                                    </div>
+                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-autotrade-enable" checked>
+                                </div>
+
+                                <!-- Paper Trading Mode -->
+                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
+                                    <div>
+                                        <label class="form-check-label small fw-bold d-block text-white" for="rule-paper-mode">Paper Trading Mode</label>
+                                        <span class="text-sublabel">Simulate orders without real money</span>
+                                    </div>
+                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-paper-mode" checked>
+                                </div>
+
+                                <!-- Auto SL/TP Guard -->
+                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-1">
+                                    <label class="form-check-label small fw-bold text-white" for="rule-sltp-guard">Enforce Hard Stop Loss</label>
+                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-sltp-guard" checked>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- RIGHT COLUMN: API CREDENTIALS & SYSTEM CARDS -->
+                        <div class="col-lg-7">
+                            
+                            <!-- 1. SYSTEM GATEWAY CREDENTIALS CARD -->
+                            <div class="card bg-card p-3 mb-3">
+                                <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
+                                    <span class="me-2">🌐</span> System Databases & Telegram Alerts
+                                </h6>
+                                
                                 <div class="mb-3">
                                     <label class="form-label">FIREBASE REALTIME DB URL</label>
                                     <input type="text" id="cfg-firebase" class="form-control bg-input text-white" placeholder="https://your-app.firebaseio.com">
@@ -174,31 +176,56 @@
                                     </div>
                                 </div>
 
-                                <div class="row g-2 mb-3 border-top border-secondary pt-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">BINANCE API KEY</label>
-                                        <input type="password" id="cfg-binance-key" class="form-control bg-input text-white" placeholder="Enter API Key">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">BINANCE SECRET KEY</label>
-                                        <input type="password" id="cfg-binance-secret" class="form-control bg-input text-white" placeholder="Enter Secret Key">
+                                <button type="button" id="btn-test-tg" class="btn btn-outline-info btn-sm fw-bold w-100 py-2">
+                                    Send Test Telegram Alert
+                                </button>
+                                <div id="tg-test-status" class="small mt-2 text-center"></div>
+                            </div>
+
+                            <!-- 2. DEDICATED EXCHANGE API CONNECTOR CARD -->
+                            <div class="card bg-card p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
+                                        <span class="me-2">🔑</span> Exchange API Connector
+                                    </h6>
+                                    <!-- API Execution ON/OFF Toggle Switch -->
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-api-enable">
+                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-api-enable">Enable API Execution</label>
                                     </div>
                                 </div>
 
-                                <!-- TELEGRAM TEST BUTTON & STATUS -->
-                                <div class="mb-3 border-top border-secondary pt-3">
-                                    <button type="button" id="btn-test-tg" class="btn btn-outline-info btn-sm fw-bold w-100 py-2">
-                                        Send Test Telegram Alert
-                                    </button>
-                                    <div id="tg-test-status" class="small mt-2 text-center"></div>
+                                <!-- Exchange Dropdown -->
+                                <div class="mb-3">
+                                    <label class="form-label">SELECT EXCHANGE</label>
+                                    <select id="cfg-exchange-select" class="form-select bg-input text-white">
+                                        <option value="binance" selected>Binance Futures / Spot</option>
+                                        <option value="bybit">Bybit Unified Trading Account</option>
+                                        <option value="okx">OKX Exchange API</option>
+                                    </select>
                                 </div>
 
-                                <button type="submit" class="btn btn-accent fw-bold w-100 mt-2 py-2">Save All Master Settings</button>
-                            </form>
+                                <!-- API Key Inputs -->
+                                <div id="api-keys-wrapper">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label" id="lbl-api-key">API KEY</label>
+                                            <input type="password" id="cfg-api-key" class="form-control bg-input text-white" placeholder="Enter API Key">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label" id="lbl-api-secret">API SECRET KEY</label>
+                                            <input type="password" id="cfg-api-secret" class="form-control bg-input text-white" placeholder="Enter Secret Key">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-accent fw-bold w-100 py-2 mt-2">Save All Master Settings</button>
+                            </div>
+
                         </div>
-                    </div>
 
-                </div>
+                    </div>
+                </form>
             </div>
 
         </div>
