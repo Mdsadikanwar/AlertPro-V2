@@ -1,263 +1,166 @@
+// assets/js/bot_trading.js
 (function() {
-    const LOCAL_SETTINGS_KEY = 'apex_settings';
-    const LOCAL_TRADES_KEY = 'apex_bot_trades';
-    const LOCAL_STRATS_KEY = 'apex_strategies';
+    let tradesList = [];
 
-    function getStoredSettings() {
-        return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
-    }
-
-    function getStoredTrades() {
-        return JSON.parse(localStorage.getItem(LOCAL_TRADES_KEY) || '[]');
-    }
-
-    function getStoredStrategies() {
-        return JSON.parse(localStorage.getItem(LOCAL_STRATS_KEY) || '[]');
+    function getTrades() {
+        return JSON.parse(localStorage.getItem('apex_trades') || '[]');
     }
 
     function saveTrades(trades) {
-        localStorage.setItem(LOCAL_TRADES_KEY, JSON.stringify(trades));
-        
-        // Sync to Firebase Realtime DB if enabled
-        const config = getStoredSettings();
-        if (config.cfgFbEnable && config.cfgFirebase && config.cfgFirebase.startsWith('https://')) {
-            const baseUrl = config.cfgFirebase.replace(/\/$/, "");
-            fetch(`${baseUrl}/bot_trades.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(trades)
-            }).catch(err => console.error("Firebase Sync Error:", err));
+        tradesList = trades;
+        localStorage.setItem('apex_trades', JSON.stringify(trades));
+
+        const masterRaw = localStorage.getItem('apex_master_data');
+        let master = masterRaw ? JSON.parse(masterRaw) : {};
+        master.trades = trades;
+        localStorage.setItem('apex_master_data', JSON.stringify(master));
+
+        if (window.triggerGlobalSave) {
+            window.triggerGlobalSave();
         }
     }
 
-    async function sendTelegramNotification(message) {
-        const config = getStoredSettings();
-        if (!config.cfgTgEnable || !config.cfgTgToken || !config.cfgTgChatid) return;
+    // Render Table Rows
+    window.renderBotTable = function() {
+        const tbody = document.getElementById('bot-trades-table');
+        if (!tbody) return;
 
-        try {
-            await fetch(`https://api.telegram.org/bot${config.cfgTgToken}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: config.cfgTgChatid,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            });
-        } catch (err) {
-            console.error("Telegram Alert Failed:", err);
-        }
-    }
+        tradesList = getTrades();
 
-    function updatePnLSummary(trades) {
-        let totalMargin = 0;
-        let totalUnrealizedPnL = 0;
-        let totalRealizedPnL = 0;
-
-        trades.forEach(trade => {
-            const margin = parseFloat(trade.margin || trade.amount || 0);
-            const pnl = parseFloat(trade.pnl || 0);
-
-            if (trade.status === 'OPEN') {
-                totalMargin += margin;
-                totalUnrealizedPnL += pnl;
-            } else if (trade.status === 'CLOSED') {
-                totalRealizedPnL += pnl;
-            }
-        });
-
-        const marginEl = document.getElementById('pnl-total-margin');
-        const unrealizedEl = document.getElementById('pnl-unrealized');
-        const realizedEl = document.getElementById('pnl-realized');
-
-        if (marginEl) marginEl.innerText = `$${totalMargin.toFixed(2)}`;
-        
-        if (unrealizedEl) {
-            const pnlClass = totalUnrealizedPnL >= 0 ? 'text-success' : 'text-danger';
-            const pnlSign = totalUnrealizedPnL >= 0 ? '+' : '';
-            const pnlPercentage = totalMargin > 0 ? ((totalUnrealizedPnL / totalMargin) * 100).toFixed(2) : '0.00';
-            
-            unrealizedEl.className = `m-0 fw-bold mt-1 ${pnlClass}`;
-            unrealizedEl.innerHTML = `${pnlSign}$${totalUnrealizedPnL.toFixed(2)} <small class="fs-6">(${pnlSign}${pnlPercentage}%)</small>`;
-        }
-
-        if (realizedEl) {
-            const relClass = totalRealizedPnL >= 0 ? 'text-success' : 'text-danger';
-            const relSign = totalRealizedPnL >= 0 ? '+' : '';
-            realizedEl.className = `m-0 fw-bold mt-1 ${relClass}`;
-            realizedEl.innerText = `${relSign}$${totalRealizedPnL.toFixed(2)}`;
-        }
-    }
-
-    function renderTradesTable(trades) {
-        const tableBody = document.getElementById('bot-trades-table');
-        if (!tableBody) return;
-
-        if (!trades || trades.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">🤖 Auto-Trading Engine Active... Waiting for positions.</td></tr>`;
-            updatePnLSummary([]);
+        if (tradesList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No active trades executing currently. Make sure Auto-Trading is Enabled in Settings and Strategies are RUNNING.
+                    </td>
+                </tr>
+            `;
+            updatePnLCards();
             return;
         }
 
         let html = '';
-        trades.forEach(trade => {
-            let badgeClass = 'bg-secondary text-white';
-            if (trade.status === 'OPEN') badgeClass = 'bg-success text-white';
-            else if (trade.status === 'CLOSED') badgeClass = 'bg-info text-dark';
-
-            const actionClass = trade.action === 'BUY' ? 'text-success' : 'text-danger';
-            const pnlVal = parseFloat(trade.pnl || 0);
-            const pnlClass = pnlVal >= 0 ? 'text-success' : 'text-danger';
-            const pnlSign = pnlVal >= 0 ? '+' : '';
+        tradesList.forEach((trade, index) => {
+            const isProfit = trade.pnl >= 0;
+            const pnlClass = isProfit ? 'text-success' : 'text-danger';
+            const actionBadge = trade.action === 'BUY' ? 'bg-success' : 'bg-danger';
+            const statusBadge = trade.status.includes('PAPER') ? 'bg-info text-dark' : 'bg-warning text-dark';
 
             html += `
                 <tr>
-                    <td class="text-muted small">${trade.time || '--:--:--'}</td>
-                    <td class="fw-bold text-white">${trade.strategy || 'Custom Strategy'}</td>
-                    <td><span class="badge bg-secondary border border-secondary">${trade.symbol || 'N/A'}</span></td>
-                    <td class="${actionClass} fw-bold">${trade.action || 'BUY'}</td>
-                    <td class="fw-bold">
-                        <div>Entry: $${parseFloat(trade.entryPrice || 0).toFixed(2)}</div>
-                        <small class="text-muted fw-normal">Live: $${parseFloat(trade.livePrice || trade.entryPrice || 0).toFixed(2)}</small>
+                    <td class="small text-muted">${trade.time || 'N/A'}</td>
+                    <td class="fw-bold text-accent">${trade.strategy || 'AI Strategy'}</td>
+                    <td class="fw-bold">${trade.symbol}</td>
+                    <td><span class="badge ${actionBadge}">${trade.action}</span></td>
+                    <td>
+                        <div><strong>Entry:</strong> $${parseFloat(trade.entryPrice || 0).toFixed(4)}</div>
+                        <div class="small text-muted"><strong>Live:</strong> <span id="live-price-${index}">$${parseFloat(trade.livePrice || trade.entryPrice || 0).toFixed(4)}</span></div>
                     </td>
-                    <td class="${pnlClass} fw-bold">${pnlSign}$${pnlVal.toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass} fw-bold small">${trade.status || 'OPEN'} (${trade.mode})</span></td>
+                    <td class="fw-bold ${pnlClass}" id="live-pnl-${index}">
+                        ${isProfit ? '+' : ''}$${parseFloat(trade.pnl || 0).toFixed(2)}
+                    </td>
+                    <td>
+                        <span class="badge ${statusBadge}">${trade.status}</span>
+                        <button class="btn btn-outline-danger btn-xs py-0 px-1 ms-1" style="font-size:10px;" onclick="closeTradeManual(${index})">Close</button>
+                    </td>
                 </tr>
             `;
         });
 
-        tableBody.innerHTML = html;
-        updatePnLSummary(trades);
-    }
-
-    // CORE AUTO-TRADING STRATEGY EXECUTION ENGINE
-    window.triggerStrategyExecution = function(stratName, action = 'BUY') {
-        const settings = getStoredSettings();
-        const strategies = getStoredStrategies();
-        const strat = strategies.find(s => s.name === stratName);
-
-        if (!strat) return;
-
-        const symbol = strat.coin.toUpperCase();
-        
-        fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
-            .then(res => res.json())
-            .then(data => {
-                const currentPrice = parseFloat(data.price);
-                const trades = getStoredTrades();
-                const now = new Date();
-
-                const newTrade = {
-                    id: Date.now(),
-                    time: now.toTimeString().split(' ')[0],
-                    strategy: strat.name,
-                    symbol: symbol,
-                    action: action,
-                    entryPrice: currentPrice,
-                    livePrice: currentPrice,
-                    amount: parseFloat(strat.amount || 100),
-                    leverage: parseFloat(strat.leverage || 10),
-                    margin: parseFloat(strat.amount || 100),
-                    sl: parseFloat(strat.sl || 1.5),
-                    tp: parseFloat(strat.tp || 3.0),
-                    pnl: 0,
-                    status: 'OPEN',
-                    mode: settings.rulePaperMode ? 'PAPER' : 'REAL'
-                };
-
-                trades.unshift(newTrade);
-                saveTrades(trades);
-                renderTradesTable(trades);
-
-                const modeTag = settings.rulePaperMode ? '[PAPER MODE]' : '[REAL TRADE]';
-                sendTelegramNotification(
-                    `🚀 <b>AUTOMATED STRATEGY EXECUTED</b> ${modeTag}\n` +
-                    `Strategy Name: <b>${strat.name}</b>\n` +
-                    `Symbol: <b>${symbol}</b>\n` +
-                    `Side: <b>${action}</b>\n` +
-                    `Entry Price: <b>$${currentPrice}</b>\n` +
-                    `Leverage: <b>${strat.leverage}x</b>\n` +
-                    `Stop Loss: <b>${strat.sl}%</b> | Take Profit: <b>${strat.tp}%</b>`
-                );
-            })
-            .catch(err => console.error("Price fetch error:", err));
+        tbody.innerHTML = html;
+        updatePnLCards();
     };
 
-    // AUTOMATED SCANNER FOR ACTIVE STRATEGIES & LIVE POSITIONS
-    function startAutoEngineScanner() {
-        setInterval(async () => {
-            const settings = getStoredSettings();
-            if (!settings.ruleAutotradeEnable) return; // Master Switch Check
+    // Live Market Price Updater via Binance Public API
+    async function updateLivePrices() {
+        if (tradesList.length === 0) return;
 
-            const strategies = getStoredStrategies();
-            const activeStrats = strategies.filter(s => s.active);
-            const trades = getStoredTrades();
+        let totalMargin = 0;
+        let totalUnrealizedPnL = 0;
 
-            // 1. Check if Active Strategy needs an Auto-Position Open
-            activeStrats.forEach(strat => {
-                const hasOpenTrade = trades.some(t => t.strategy === strat.name && t.status === 'OPEN');
-                if (!hasOpenTrade) {
-                    // Automatically trigger trade for active strategies
-                    window.triggerStrategyExecution(strat.name, 'BUY');
-                }
-            });
+        for (let i = 0; i < tradesList.length; i++) {
+            const trade = tradesList[i];
+            if (trade.status === 'CLOSED') continue;
 
-            // 2. Track & Manage Open Positions (SL / TP Guard)
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
+            try {
+                const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const livePrice = parseFloat(data.price);
+                    const entryPrice = parseFloat(trade.entryPrice);
 
-            for (const trade of openTrades) {
-                try {
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const currentPrice = parseFloat(data.price);
-                        trade.livePrice = currentPrice;
-
-                        const entry = parseFloat(trade.entryPrice);
-                        const leverage = parseFloat(trade.leverage || 1);
-                        const margin = parseFloat(trade.margin || trade.amount || 100);
-
-                        let priceRatio = (currentPrice - entry) / entry;
-                        if (trade.action === 'SELL') priceRatio = (entry - currentPrice) / entry;
-
-                        const livePnL = margin * priceRatio * leverage;
-                        trade.pnl = livePnL;
-
-                        // Check SL / TP Guard
-                        if (settings.ruleSltpGuard) {
-                            const pnlPercent = (livePnL / margin) * 100;
-                            if (pnlPercent <= -parseFloat(trade.sl)) {
-                                trade.status = 'CLOSED';
-                                sendTelegramNotification(`⚠️ <b>STOP LOSS HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nLoss: -$${Math.abs(livePnL).toFixed(2)}`);
-                            } else if (pnlPercent >= parseFloat(trade.tp)) {
-                                trade.status = 'CLOSED';
-                                sendTelegramNotification(`🎯 <b>TAKE PROFIT HIT</b>\nStrategy: ${trade.strategy}\nSymbol: ${trade.symbol}\nProfit: +$${livePnL.toFixed(2)}`);
-                            }
-                        }
+                    // P&L Calculation (BUY / SELL)
+                    let pnl = 0;
+                    if (trade.action === 'BUY') {
+                        pnl = ((livePrice - entryPrice) / entryPrice) * 100 * 10; // 10x Margin Simulation
+                    } else {
+                        pnl = ((entryPrice - livePrice) / entryPrice) * 100 * 10;
                     }
-                } catch (e) {
-                    console.error("Position update error:", e);
-                }
-            }
 
-            saveTrades(trades);
-            renderTradesTable(trades);
-        }, 3000);
+                    trade.livePrice = livePrice;
+                    trade.pnl = pnl;
+
+                    // Update UI Directly
+                    const priceEl = document.getElementById(`live-price-${i}`);
+                    const pnlEl = document.getElementById(`live-pnl-${i}`);
+
+                    if (priceEl) priceEl.innerText = `$${livePrice.toFixed(4)}`;
+                    if (pnlEl) {
+                        pnlEl.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+                        pnlEl.className = `fw-bold ${pnl >= 0 ? 'text-success' : 'text-danger'}`;
+                    }
+
+                    totalMargin += 100; // Simulated $100 per position
+                    totalUnrealizedPnL += pnl;
+                }
+            } catch (err) {
+                console.error('Error fetching live price for ' + trade.symbol, err);
+            }
+        }
+
+        saveTrades(tradesList);
+        updatePnLCards(totalMargin, totalUnrealizedPnL);
     }
 
+    function updatePnLCards(margin = 0, unrealized = 0) {
+        const marginEl = document.getElementById('pnl-total-margin');
+        const unrealizedEl = document.getElementById('pnl-unrealized');
+        const realizedEl = document.getElementById('pnl-realized');
+
+        if (marginEl) marginEl.innerText = `$${margin.toFixed(2)}`;
+        if (unrealizedEl) {
+            unrealizedEl.innerHTML = `$${unrealized.toFixed(2)} <small class="fs-6 text-muted">(${margin > 0 ? ((unrealized/margin)*100).toFixed(2) : '0.00'}%)</small>`;
+            unrealizedEl.className = `m-0 fw-bold mt-1 ${unrealized >= 0 ? 'text-success' : 'text-danger'}`;
+        }
+
+        // Calculate closed trades realized PnL
+        const realizedTotal = tradesList.filter(t => t.status === 'CLOSED').reduce((acc, curr) => acc + (curr.pnl || 0), 0);
+        if (realizedEl) realizedEl.innerText = `$${realizedTotal.toFixed(2)}`;
+    }
+
+    window.closeTradeManual = function(index) {
+        if (tradesList[index]) {
+            tradesList[index].status = 'CLOSED';
+            saveTrades(tradesList);
+            renderBotTable();
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
-        const clearLogsBtn = document.getElementById('btn-clear-logs');
-        if (clearLogsBtn) {
-            clearLogsBtn.addEventListener('click', () => {
-                if (confirm("Clear all trades history?")) {
+        renderBotTable();
+
+        // Clear Logs Button Handler
+        const btnClearLogs = document.getElementById('btn-clear-logs');
+        if (btnClearLogs) {
+            btnClearLogs.addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear all trade logs?')) {
                     saveTrades([]);
-                    renderTradesTable([]);
+                    renderBotTable();
                 }
             });
         }
 
-        renderTradesTable(getStoredTrades());
-        startAutoEngineScanner();
+        // Start Live Price Ticker (Every 3 Seconds)
+        setInterval(updateLivePrices, 3000);
     });
 })();
