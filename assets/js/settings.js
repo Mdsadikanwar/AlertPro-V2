@@ -3,7 +3,6 @@
     const MASTER_LOCAL_KEY = 'apex_master_data';
     let firebaseSyncTimer = null;
 
-    // Helper: Master Data Get
     function getMasterData() {
         const raw = localStorage.getItem(MASTER_LOCAL_KEY);
         if (raw) {
@@ -16,47 +15,73 @@
         };
     }
 
-    // Helper: Master Data Save locally
     function saveMasterDataLocally(data) {
         localStorage.setItem(MASTER_LOCAL_KEY, JSON.stringify(data));
         if (data.settings) localStorage.setItem('apex_settings', JSON.stringify(data.settings));
         if (data.strategies) localStorage.setItem('apex_strategies', JSON.stringify(data.strategies));
     }
 
-    // 🔴 REAL FIREBASE NETWORK HEALTH PING (No Fake Status)
-    async function checkRealFirebaseHealth(fbUrl, isEnabled) {
+    // 🔴 100% REAL NETWORK HEALTH CHECK FOR FIREBASE & TELEGRAM
+    async function checkRealGatewayHealth(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
-        if (!fbBadge) return;
+        const tgBadge = document.getElementById('status-telegram-badge');
 
-        if (!isEnabled || !fbUrl || !fbUrl.startsWith('https://')) {
-            fbBadge.className = "badge bg-secondary";
-            fbBadge.innerText = "Disabled";
-            return;
+        // 1. REAL FIREBASE PING
+        if (fbBadge) {
+            if (!config.fbEnable || !config.firebaseUrl) {
+                fbBadge.className = "badge bg-secondary";
+                fbBadge.innerText = "Disabled";
+            } else {
+                try {
+                    const cleanUrl = config.firebaseUrl.replace(/\/$/, "");
+                    const res = await fetch(`${cleanUrl}/.json?shallow=true`);
+                    if (res.ok) {
+                        fbBadge.className = "badge bg-success";
+                        fbBadge.innerText = "Connected (Live)";
+                    } else {
+                        fbBadge.className = "badge bg-danger";
+                        fbBadge.innerText = "Permission Denied";
+                    }
+                } catch (e) {
+                    fbBadge.className = "badge bg-danger";
+                    fbBadge.innerText = "Network Error";
+                }
+            }
         }
 
-        fbBadge.className = "badge bg-warning text-dark";
-        fbBadge.innerText = "Checking...";
-
-        try {
-            const cleanUrl = fbUrl.replace(/\/$/, "");
-            const res = await fetch(`${cleanUrl}/.json?shallow=true`);
-            if (res.ok) {
-                fbBadge.className = "badge bg-success";
-                fbBadge.innerText = "Connected (Live)";
-            } else if (res.status === 401 || res.status === 403) {
-                fbBadge.className = "badge bg-danger";
-                fbBadge.innerText = "Permission Denied";
+        // 2. 🔴 100% REAL TELEGRAM BOT PING (Checks Telegram API Live)
+        if (tgBadge) {
+            if (!config.tgEnable) {
+                tgBadge.className = "badge bg-secondary";
+                tgBadge.innerText = "Disabled";
+            } else if (!config.tgToken || !config.tgChatId) {
+                tgBadge.className = "badge bg-danger";
+                tgBadge.innerText = "Disconnected (Missing Keys)";
             } else {
-                fbBadge.className = "badge bg-danger";
-                fbBadge.innerText = "Error " + res.status;
+                tgBadge.className = "badge bg-warning text-dark";
+                tgBadge.innerText = "Checking Network...";
+
+                try {
+                    // Real Telegram API Request to check Token Validity
+                    const res = await fetch(`https://api.telegram.org/bot${config.tgToken.trim()}/getMe`);
+                    const data = await res.json();
+
+                    if (res.ok && data.ok) {
+                        tgBadge.className = "badge bg-success";
+                        tgBadge.innerText = "Connected (Live)";
+                    } else {
+                        tgBadge.className = "badge bg-danger";
+                        tgBadge.innerText = "Invalid Token/Auth Error";
+                    }
+                } catch (err) {
+                    tgBadge.className = "badge bg-danger";
+                    tgBadge.innerText = "Disconnected (Network Error)";
+                }
             }
-        } catch (e) {
-            fbBadge.className = "badge bg-danger";
-            fbBadge.innerText = "Network Failure";
         }
     }
 
-    // 🌐 PUSH COMPLETE WEBSITE STATE TO FIREBASE
+    // PUSH ALL MASTER DATA TO FIREBASE
     async function pushMasterToFirebase() {
         const master = getMasterData();
         const settings = master.settings || {};
@@ -65,7 +90,7 @@
 
         if (!settings.fbEnable || !fbUrl || !fbUrl.startsWith('https://')) return;
 
-        if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">⏳ Syncing entire website data...</span>`;
+        if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">⏳ Syncing data to Firebase...</span>`;
 
         try {
             const cleanUrl = fbUrl.replace(/\/$/, "");
@@ -77,16 +102,16 @@
 
             if (res.ok) {
                 if (fbStatusText) fbStatusText.innerHTML = `<span class="text-success fw-bold">✓ Website Synced Completely!</span>`;
-                checkRealFirebaseHealth(fbUrl, true);
+                checkRealGatewayHealth(settings);
             } else {
-                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Push Failed (Check Database Rules)</span>`;
+                if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Push Failed</span>`;
             }
         } catch (err) {
             if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Sync Connection Error!</span>`;
         }
     }
 
-    // 📥 FETCH COMPLETE WEBSITE STATE FROM FIREBASE
+    // FETCH MASTER DATA FROM FIREBASE
     async function fetchMasterFromFirebase() {
         const master = getMasterData();
         const settings = master.settings || {};
@@ -101,8 +126,6 @@
                 const remoteMaster = await res.json();
                 if (remoteMaster && typeof remoteMaster === 'object') {
                     saveMasterDataLocally(remoteMaster);
-                    console.log("🔥 Whole Website Synced from Firebase!");
-                    
                     if (window.loadSettings) window.loadSettings();
                     if (window.loadStrategies) window.loadStrategies();
                 }
@@ -122,7 +145,7 @@
         if (document.getElementById('cfg-tg-token')) document.getElementById('cfg-tg-token').value = config.tgToken || '';
         if (document.getElementById('cfg-tg-chatid')) document.getElementById('cfg-tg-chatid').value = config.tgChatId || '';
 
-        checkRealFirebaseHealth(config.firebaseUrl || DEFAULT_FIREBASE_URL, config.fbEnable !== false);
+        checkRealGatewayHealth(config);
     };
 
     window.triggerGlobalSave = function() {
@@ -152,6 +175,7 @@
                 };
 
                 saveMasterDataLocally(master);
+                checkRealGatewayHealth(master.settings);
                 window.triggerGlobalSave();
             });
         }
