@@ -1,31 +1,25 @@
 (function() {
-    // 🔴 अपना असल Firebase Database URL यहाँ पेस्ट करें (1-Time Zero-Config Fix)
     const DEFAULT_FIREBASE_URL = "https://alertpro-bot-default-rtdb.firebaseio.com/";
 
-    // Storage Keys
     const LOCAL_SETTINGS_KEY = 'apex_settings';
-    let firebaseSyncTimer = null; // 2-Second Delay Timer Reference
+    let firebaseSyncTimer = null;
 
-    // Helper to get settings from LocalStorage (Fallback to DEFAULT_FIREBASE_URL if empty)
     function getStoredSettings() {
         const stored = JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || '{}');
 
-        // अगर नए डिवाइस/लैपटॉप में Firebase URL नहीं है, तो डिफॉल्ट URL यूज़ करो
         if (!stored.firebaseUrl && DEFAULT_FIREBASE_URL) {
             stored.firebaseUrl = DEFAULT_FIREBASE_URL;
-            stored.fbEnable = true; // Auto-enable Firebase
+            stored.fbEnable = true;
         }
         return stored;
     }
 
-    // 🔴 ASLI LIVE NETWORK HEALTH CHECK (NO FAKE STATUS)
     async function checkRealGatewayHealth(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
         const cronBadge = document.getElementById('status-cron-badge');
         const cronLabel = document.getElementById('status-cron-provider-label');
 
-        // 1. REAL FIREBASE PING CHECK
         if (fbBadge) {
             if (!config.fbEnable || !config.firebaseUrl) {
                 fbBadge.className = "badge bg-secondary";
@@ -36,7 +30,6 @@
 
                 try {
                     const baseUrl = config.firebaseUrl.replace(/\/$/, "");
-                    // Firebase Database par live ping bhej kar check karo ki Permission/URL sahi hai ya nahi
                     const res = await fetch(`${baseUrl}/.json?shallow=true`);
                     if (res.ok) {
                         fbBadge.className = "badge bg-success";
@@ -52,7 +45,6 @@
             }
         }
 
-        // 2. TELEGRAM STATUS CHECK
         if (tgBadge) {
             if (config.tgEnable === false) {
                 tgBadge.className = "badge bg-warning text-dark";
@@ -66,7 +58,6 @@
             }
         }
 
-        // 3. CRON PROVIDER & HEALTH
         if (cronBadge) {
             const providerNames = {
                 'vercel': 'Vercel Cron',
@@ -88,7 +79,6 @@
         }
     }
 
-    // Dynamic UI Update for Cron Switch
     function updateCronUIState() {
         const cronToggle = document.getElementById('cfg-cron-enable');
         const cronSelect = document.getElementById('cfg-cron-provider');
@@ -99,7 +89,6 @@
         cronSelect.disabled = !isEnabled;
     }
 
-    // Dynamic UI Update for Firebase Switch
     function updateFirebaseUIState() {
         const fbToggle = document.getElementById('cfg-fb-enable');
         const fbUrlInput = document.getElementById('cfg-firebase');
@@ -119,7 +108,6 @@
         }
     }
 
-    // Dynamic UI Update for Telegram Switch
     function updateTelegramUIState() {
         const tgToggle = document.getElementById('cfg-tg-enable');
         const tgTokenInput = document.getElementById('cfg-tg-token');
@@ -142,7 +130,6 @@
         }
     }
 
-    // Dynamic UI Update for API Switch & Exchange Dropdown
     function updateApiUIState() {
         const apiToggle = document.getElementById('cfg-api-enable');
         const apiKeyInput = document.getElementById('cfg-api-key');
@@ -165,7 +152,6 @@
         }
     }
 
-    // Function to sync config to Firebase Realtime DB (REST API Put)
     async function syncToFirebase(config) {
         const fbStatusText = document.getElementById('fb-sync-status');
 
@@ -187,7 +173,7 @@
 
             if (response.ok) {
                 if (fbStatusText) fbStatusText.innerHTML = `<span class="text-success fw-bold">✓ Synced with Firebase!</span>`;
-                checkRealGatewayHealth(config); // Save ke baad status dubara check kare
+                checkRealGatewayHealth(config);
             } else {
                 if (fbStatusText) fbStatusText.innerHTML = `<span class="text-danger">❌ Firebase Rules Error! (Check Read/Write Permissions)</span>`;
             }
@@ -196,7 +182,6 @@
         }
     }
 
-    // 🌐 FETCH REMOTE SETTINGS FROM FIREBASE ON LOAD (LAPTOP / PHONE SYNC)
     async function fetchSettingsFromFirebase() {
         const config = getStoredSettings();
         if (!config.fbEnable || !config.firebaseUrl || !config.firebaseUrl.startsWith('https://')) return;
@@ -207,13 +192,11 @@
             if (res.ok) {
                 const remoteConfig = await res.json();
                 if (remoteConfig && typeof remoteConfig === 'object') {
-                    // Firebase ki URL aur Settings preserve rakhein
                     remoteConfig.firebaseUrl = config.firebaseUrl;
                     remoteConfig.fbEnable = true;
 
                     localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(remoteConfig));
                     console.log("🔥 Master Settings synced from Firebase to Local Device!");
-                    // Re-populate UI inputs with downloaded Firebase data
                     window.loadSettings();
                 }
             }
@@ -222,44 +205,36 @@
         }
     }
 
-    // Master Load Function
     window.loadSettings = function() {
         console.log("Loading Master Configurations...");
         const config = getStoredSettings();
 
-        // Firebase Controls
         if (document.getElementById('cfg-fb-enable')) document.getElementById('cfg-fb-enable').checked = config.fbEnable !== false;
         if (document.getElementById('cfg-firebase')) document.getElementById('cfg-firebase').value = config.firebaseUrl || '';
 
-        // Telegram Controls
         if (document.getElementById('cfg-tg-enable')) document.getElementById('cfg-tg-enable').checked = config.tgEnable !== false;
         if (document.getElementById('cfg-tg-token')) document.getElementById('cfg-tg-token').value = config.tgToken || '';
         if (document.getElementById('cfg-tg-chatid')) document.getElementById('cfg-tg-chatid').value = config.tgChatId || '';
 
-        // Dedicated Exchange API Config
         if (document.getElementById('cfg-api-enable')) document.getElementById('cfg-api-enable').checked = config.apiEnable || false;
         if (document.getElementById('cfg-exchange-select')) document.getElementById('cfg-exchange-select').value = config.selectedExchange || 'binance';
         if (document.getElementById('cfg-api-key')) document.getElementById('cfg-api-key').value = config.apiKey || '';
         if (document.getElementById('cfg-api-secret')) document.getElementById('cfg-api-secret').value = config.apiSecret || '';
 
-        // Cron Execution Config
         if (document.getElementById('cfg-cron-enable')) document.getElementById('cfg-cron-enable').checked = config.cronEnable !== false;
         if (config.cronProvider && document.getElementById('cfg-cron-provider')) {
             document.getElementById('cfg-cron-provider').value = config.cronProvider;
         }
 
-        // Global Engine Rules
         if (document.getElementById('rule-autotrade-enable')) document.getElementById('rule-autotrade-enable').checked = config.ruleAutoTradeEnable !== false;
         if (document.getElementById('rule-paper-mode')) document.getElementById('rule-paper-mode').checked = config.rulePaperMode !== false;
         if (document.getElementById('rule-sltp-guard')) document.getElementById('rule-sltp-guard').checked = config.ruleSltpGuard !== false;
 
-        // Sync Dynamic UI States
         updateCronUIState();
         updateFirebaseUIState();
         updateTelegramUIState();
         updateApiUIState();
 
-        // Check Real Status Badges via Network Request
         checkRealGatewayHealth(config);
     };
 
@@ -275,7 +250,6 @@
         const apiToggle = document.getElementById('cfg-api-enable');
         const exchangeSelect = document.getElementById('cfg-exchange-select');
 
-        // Dynamic Event Listeners
         if (cronToggle) cronToggle.addEventListener('change', () => {
             updateCronUIState();
             const config = getStoredSettings();
@@ -308,46 +282,33 @@
         if (apiToggle) apiToggle.addEventListener('change', updateApiUIState);
         if (exchangeSelect) exchangeSelect.addEventListener('change', updateApiUIState);
 
-        // Initial Load Call & Firebase Remote Sync
         window.loadSettings();
         fetchSettingsFromFirebase();
 
-        // Form Submit: Save All Master Settings
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
 
                 const newConfig = {
-                    // Firebase Settings
                     fbEnable: document.getElementById('cfg-fb-enable').checked,
                     firebaseUrl: document.getElementById('cfg-firebase').value.trim() || DEFAULT_FIREBASE_URL,
-
-                    // Telegram Settings
                     tgEnable: document.getElementById('cfg-tg-enable').checked,
                     tgToken: document.getElementById('cfg-tg-token').value.trim(),
                     tgChatId: document.getElementById('cfg-tg-chatid').value.trim(),
-
-                    // Exchange API Config
                     apiEnable: document.getElementById('cfg-api-enable').checked,
                     selectedExchange: document.getElementById('cfg-exchange-select').value,
                     apiKey: document.getElementById('cfg-api-key').value.trim(),
                     apiSecret: document.getElementById('cfg-api-secret').value.trim(),
-
-                    // Cron Provider Settings
                     cronEnable: document.getElementById('cfg-cron-enable') ? document.getElementById('cfg-cron-enable').checked : true,
                     cronProvider: document.getElementById('cfg-cron-provider').value,
-
-                    // Master Engine Rules
                     ruleAutoTradeEnable: document.getElementById('rule-autotrade-enable').checked,
                     rulePaperMode: document.getElementById('rule-paper-mode').checked,
                     ruleSltpGuard: document.getElementById('rule-sltp-guard').checked
                 };
 
-                // STEP 1: Instant LocalStorage Save
                 localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(newConfig));
                 checkRealGatewayHealth(newConfig);
 
-                // UI Button Immediate Instant Local Storage Feedback
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.innerText = "Saved to LocalStorage!";
@@ -355,7 +316,6 @@
                     submitBtn.style.color = "#ffffff";
                 }
 
-                // STEP 2: Delayed Firebase Sync (2 Seconds Delay)
                 if (firebaseSyncTimer) clearTimeout(firebaseSyncTimer);
 
                 const fbStatusText = document.getElementById('fb-sync-status');
@@ -373,7 +333,7 @@
                                 submitBtn.style.color = "";
                             }, 1800);
                         }
-                    }, 2000); // 2000ms = 2 Seconds Delay
+                    }, 2000);
                 } else {
                     if (fbStatusText) fbStatusText.innerHTML = `<span class="text-warning">Saved locally only (Firebase disabled).</span>`;
                     setTimeout(() => {
@@ -387,7 +347,6 @@
             });
         }
 
-        // Telegram Live Test Button
         if (testTgBtn) {
             testTgBtn.addEventListener('click', async () => {
                 const token = document.getElementById('cfg-tg-token').value.trim();
