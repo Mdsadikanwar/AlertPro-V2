@@ -391,22 +391,34 @@
                             </div>
                         </div>
 
-                        <!-- 2. COIN SCANNER SELECTION (SINGLE, MULTI OR TOP 10) -->
+                        <!-- 2. FLEXIBLE MULTI-COIN SELECTION -->
                         <div class="p-3 mb-3 rounded border border-secondary bg-dark">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-accent small fw-bold m-0">🎯 PAIR SELECTION & MULTI-SCANNER</h6>
-                                <div class="form-check form-switch m-0">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="strat-top10-switch">
-                                    <label class="form-check-label small fw-bold text-info ms-1" for="strat-top10-switch">Auto Top 10 Multi-Scan</label>
+                                <h6 class="text-accent small fw-bold m-0">🎯 SELECT TRADING PAIRS (Choose Any 1 to 10+)</h6>
+                                <div>
+                                    <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 small" id="btn-select-all-coins" style="font-size: 11px;">Select All</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 small" id="btn-clear-coins" style="font-size: 11px;">Clear</button>
                                 </div>
                             </div>
-                            <div id="single-coin-wrapper">
-                                <label class="form-label text-sublabel">COIN SYMBOLS (Comma Separated for Multi-Coin)</label>
-                                <input type="text" id="strat-coin" class="form-control bg-input text-white" placeholder="e.g. BTCUSDT, ETHUSDT, SOLUSDT" value="BTCUSDT">
-                                <span class="text-muted text-sublabel small">Separate multiple coins with commas.</span>
+                            
+                            <!-- QUICK CHECKBOXES -->
+                            <div class="row g-2 mb-2" id="coin-checkboxes-container">
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="BTCUSDT" id="chk-btc"><label class="form-check-label small text-white" for="chk-btc">BTC</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="ETHUSDT" id="chk-eth"><label class="form-check-label small text-white" for="chk-eth">ETH</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="SOLUSDT" id="chk-sol"><label class="form-check-label small text-white" for="chk-sol">SOL</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="BNBUSDT" id="chk-bnb"><label class="form-check-label small text-white" for="chk-bnb">BNB</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="XRPUSDT" id="chk-xrp"><label class="form-check-label small text-white" for="chk-xrp">XRP</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="DOGEUSDT" id="chk-doge"><label class="form-check-label small text-white" for="chk-doge">DOGE</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="ADAUSDT" id="chk-ada"><label class="form-check-label small text-white" for="chk-ada">ADA</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="AVAXUSDT" id="chk-avax"><label class="form-check-label small text-white" for="chk-avax">AVAX</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="LINKUSDT" id="chk-link"><label class="form-check-label small text-white" for="chk-link">LINK</label></div></div>
+                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="DOTUSDT" id="chk-dot"><label class="form-check-label small text-white" for="chk-dot">DOT</label></div></div>
                             </div>
-                            <div id="top10-info-badge" class="d-none text-muted small mt-1">
-                                <span class="badge bg-info text-dark">Top 10 Active:</span> BTC, ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, LINK, DOT
+
+                            <!-- OTHER CUSTOM COINS INPUT -->
+                            <div class="mt-2">
+                                <label class="form-label text-sublabel small m-0 mb-1">ADDITIONAL CUSTOM COINS (Optional, Comma Separated)</label>
+                                <input type="text" id="strat-custom-coins" class="form-control form-control-sm bg-input text-white" placeholder="e.g. PEPEUSDT, NEARUSDT">
                             </div>
                         </div>
 
