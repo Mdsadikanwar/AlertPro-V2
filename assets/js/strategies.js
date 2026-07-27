@@ -18,6 +18,49 @@
         }
     }
 
+    // Helper: Collect selected coins from UI
+    function getSelectedCoinsFromUI() {
+        let selected = [];
+        document.querySelectorAll('.coin-chk:checked').forEach(chk => {
+            selected.push(chk.value);
+        });
+
+        const customInput = document.getElementById('strat-custom-coins');
+        if (customInput && customInput.value.trim() !== '') {
+            const extra = customInput.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
+            selected = selected.concat(extra);
+        }
+
+        // Remove duplicates
+        return [...new Set(selected)];
+    }
+
+    // Helper: Set coin selections in UI when editing
+    function setSelectedCoinsInUI(coinString) {
+        // Reset checkboxes
+        document.querySelectorAll('.coin-chk').forEach(chk => chk.checked = false);
+        const customInput = document.getElementById('strat-custom-coins');
+        if (customInput) customInput.value = '';
+
+        if (!coinString) return;
+
+        const coins = coinString.split(',').map(c => c.trim());
+        let unhandledCustom = [];
+
+        coins.forEach(coin => {
+            const chk = document.querySelector(`.coin-chk[value="${coin}"]`);
+            if (chk) {
+                chk.checked = true;
+            } else {
+                unhandledCustom.push(coin);
+            }
+        });
+
+        if (customInput && unhandledCustom.length > 0) {
+            customInput.value = unhandledCustom.join(', ');
+        }
+    }
+
     window.loadStrategies = function() {
         const container = document.getElementById('strategies-container');
         if (!container) return;
@@ -30,18 +73,16 @@
 
         let html = '';
         strategies.forEach((strat, index) => {
-            const isTop10 = strat.coin === 'TOP10_SCAN';
             const typeBadge = strat.type === 'ai_prompt' ? '🤖 AI Prompt' : (strat.type === 'candlestick' ? '🕯️ Candlestick' : '📈 Crossover');
             const tfBadge = strat.timeframe || '15m';
 
-            // Coin Badge Logic
+            // Coin Badge Formatting
+            const coinList = strat.coin ? strat.coin.split(',') : ['BTCUSDT'];
             let coinDisplayBadge = '';
-            if (isTop10) {
-                coinDisplayBadge = `<span class="badge bg-warning text-dark me-1 mt-1">🎯 TOP 10 SCAN</span>`;
-            } else if (strat.coin && strat.coin.includes(',')) {
-                coinDisplayBadge = `<span class="badge bg-primary me-1 mt-1" title="${strat.coin}">🌐 MULTI-COIN (${strat.coin.split(',').length})</span>`;
+            if (coinList.length === 1) {
+                coinDisplayBadge = `<span class="badge bg-secondary me-1 mt-1">${coinList[0]}</span>`;
             } else {
-                coinDisplayBadge = `<span class="badge bg-secondary me-1 mt-1">${strat.coin || 'BTCUSDT'}</span>`;
+                coinDisplayBadge = `<span class="badge bg-primary me-1 mt-1" title="${strat.coin}">🎯 ${coinList.length} COINS SELECTED</span>`;
             }
 
             html += `
@@ -112,10 +153,7 @@
         document.getElementById('modal-title-text').innerHTML = `<span class="me-2">⚡</span> Advanced Strategy Architect`;
         document.getElementById('btn-submit-strat').innerText = "🚀 Deploy Strategy";
 
-        // Reset toggles & displays
-        document.getElementById('strat-top10-switch').checked = false;
-        document.getElementById('single-coin-wrapper').classList.remove('d-none');
-        document.getElementById('top10-info-badge').classList.add('d-none');
+        setSelectedCoinsInUI("BTCUSDT"); // Default select BTC
         document.getElementById('strat-type').dispatchEvent(new Event('change'));
     };
 
@@ -129,10 +167,9 @@
         document.getElementById('btn-submit-strat').innerText = "💾 Save Changes";
 
         document.getElementById('strat-name').value = strat.name;
-        document.getElementById('strat-type').value = strat.type || 'ai_prompt';
         document.getElementById('strat-timeframe').value = strat.timeframe || '15m';
 
-        // Dynamic Types Fill
+        // Type Fill
         const typeSelect = document.getElementById('strat-type');
         typeSelect.value = strat.type || 'ai_prompt';
         typeSelect.dispatchEvent(new Event('change'));
@@ -145,18 +182,8 @@
             document.getElementById('strat-indicator-signal').value = (strat.aiPrompt || '').replace('Signal: ', '');
         }
 
-        // Multi Coin or Top 10 Switch Fill
-        const top10Switch = document.getElementById('strat-top10-switch');
-        if (strat.coin === 'TOP10_SCAN') {
-            top10Switch.checked = true;
-            document.getElementById('single-coin-wrapper').classList.add('d-none');
-            document.getElementById('top10-info-badge').classList.remove('d-none');
-        } else {
-            top10Switch.checked = false;
-            document.getElementById('single-coin-wrapper').classList.remove('d-none');
-            document.getElementById('top10-info-badge').classList.add('d-none');
-            document.getElementById('strat-coin').value = strat.coin;
-        }
+        // Set Coin Checkboxes
+        setSelectedCoinsInUI(strat.coin);
 
         document.getElementById('strat-capital-pct').value = strat.capitalPct || 10;
         document.getElementById('strat-leverage').value = strat.leverage || 10;
@@ -182,13 +209,20 @@
             });
         }
 
-        // Top 10 Scanner Switch Logic
-        const top10Switch = document.getElementById('strat-top10-switch');
-        if (top10Switch) {
-            top10Switch.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                document.getElementById('single-coin-wrapper').classList.toggle('d-none', isChecked);
-                document.getElementById('top10-info-badge').classList.toggle('d-none', !isChecked);
+        // Select All & Clear Coin Buttons
+        const btnSelectAll = document.getElementById('btn-select-all-coins');
+        const btnClear = document.getElementById('btn-clear-coins');
+
+        if (btnSelectAll) {
+            btnSelectAll.addEventListener('click', () => {
+                document.querySelectorAll('.coin-chk').forEach(chk => chk.checked = true);
+            });
+        }
+
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                document.querySelectorAll('.coin-chk').forEach(chk => chk.checked = false);
+                document.getElementById('strat-custom-coins').value = '';
             });
         }
 
@@ -209,14 +243,13 @@
             rrSelect.addEventListener('change', updateTpBasedOnRR);
         }
 
-        // Form Submit Handler (Create OR Update)
+        // Form Submit Handler
         const form = document.getElementById('add-strat-form');
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
 
                 const editIndex = parseInt(document.getElementById('edit-strat-index').value);
-                const isTop10 = document.getElementById('strat-top10-switch').checked;
                 const stratType = document.getElementById('strat-type').value;
 
                 let promptText = '';
@@ -228,9 +261,12 @@
                     promptText = "Signal: " + document.getElementById('strat-indicator-signal').value;
                 }
 
-                // Format Coins (e.g. "BTCUSDT, ETHUSDT")
-                let rawCoins = document.getElementById('strat-coin').value.trim().toUpperCase();
-                let finalCoins = isTop10 ? 'TOP10_SCAN' : (rawCoins || 'BTCUSDT');
+                // Get selected coins array
+                let selectedCoins = getSelectedCoinsFromUI();
+                if (selectedCoins.length === 0) {
+                    alert('Please select at least 1 coin!');
+                    return;
+                }
 
                 const strategies = getStrategies();
                 const stratData = {
@@ -238,7 +274,7 @@
                     type: stratType,
                     timeframe: document.getElementById('strat-timeframe').value,
                     aiPrompt: promptText,
-                    coin: finalCoins,
+                    coin: selectedCoins.join(','), // e.g. "BTCUSDT,ETHUSDT,SOLUSDT"
                     capitalPct: parseFloat(document.getElementById('strat-capital-pct').value) || 10,
                     leverage: parseInt(document.getElementById('strat-leverage').value) || 10,
                     rrRatio: document.getElementById('strat-rr-ratio').value,
@@ -249,9 +285,9 @@
                 };
 
                 if (editIndex >= 0) {
-                    strategies[editIndex] = stratData; // UPDATE
+                    strategies[editIndex] = stratData;
                 } else {
-                    strategies.push(stratData); // CREATE NEW
+                    strategies.push(stratData);
                 }
 
                 saveStrategies(strategies);
