@@ -21,12 +21,14 @@
         if (data.strategies) localStorage.setItem('apex_strategies', JSON.stringify(data.strategies));
     }
 
-    // 🔴 100% REAL NETWORK HEALTH CHECK FOR FIREBASE & TELEGRAM
+    // 🔴 100% REAL GATEWAY & CRON HEALTH CHECK (NO FAKE BADGES)
     async function checkRealGatewayHealth(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
+        const cronBadge = document.getElementById('status-cron-badge');
+        const cronSubtext = document.getElementById('status-cron-subtext');
 
-        // 1. REAL FIREBASE PING
+        // 1. FIREBASE REAL PING
         if (fbBadge) {
             if (!config.fbEnable || !config.firebaseUrl) {
                 fbBadge.className = "badge bg-secondary";
@@ -49,7 +51,7 @@
             }
         }
 
-        // 2. 🔴 100% REAL TELEGRAM BOT PING (Checks Telegram API Live)
+        // 2. TELEGRAM REAL API PING
         if (tgBadge) {
             if (!config.tgEnable) {
                 tgBadge.className = "badge bg-secondary";
@@ -58,25 +60,60 @@
                 tgBadge.className = "badge bg-danger";
                 tgBadge.innerText = "Disconnected (Missing Keys)";
             } else {
-                tgBadge.className = "badge bg-warning text-dark";
-                tgBadge.innerText = "Checking Network...";
-
                 try {
-                    // Real Telegram API Request to check Token Validity
                     const res = await fetch(`https://api.telegram.org/bot${config.tgToken.trim()}/getMe`);
                     const data = await res.json();
-
                     if (res.ok && data.ok) {
                         tgBadge.className = "badge bg-success";
                         tgBadge.innerText = "Connected (Live)";
                     } else {
                         tgBadge.className = "badge bg-danger";
-                        tgBadge.innerText = "Invalid Token/Auth Error";
+                        tgBadge.innerText = "Invalid Token";
                     }
                 } catch (err) {
                     tgBadge.className = "badge bg-danger";
-                    tgBadge.innerText = "Disconnected (Network Error)";
+                    tgBadge.innerText = "Disconnected Error";
                 }
+            }
+        }
+
+        // 3. 🔴 REAL CRON ENGINE HEALTH CHECK BASED ON SELECTED PROVIDER
+        if (cronBadge) {
+            const cronEnabled = config.cronEnable !== false;
+            const selectedProvider = config.cronProvider || 'vercel'; // vercel | cronjob_org | github
+
+            if (!cronEnabled) {
+                cronBadge.className = "badge bg-secondary";
+                cronBadge.innerText = "Disabled";
+                if (cronSubtext) cronSubtext.innerText = "Cron Engine OFF";
+                return;
+            }
+
+            cronBadge.className = "badge bg-warning text-dark";
+            cronBadge.innerText = "Pinging API...";
+
+            // Check if Scanner Endpoint actually works on the server
+            try {
+                const scannerRes = await fetch('/api/cron-scanner');
+                if (scannerRes.ok) {
+                    cronBadge.className = "badge bg-success";
+                    cronBadge.innerText = "Active (Live)";
+                    
+                    if (cronSubtext) {
+                        if (selectedProvider === 'vercel') cronSubtext.innerText = "Vercel Cron (vercel.json)";
+                        else if (selectedProvider === 'cronjob_org') cronSubtext.innerText = "Cron-job.org External Ping";
+                        else if (selectedProvider === 'github') cronSubtext.innerText = "GitHub Workflow Action";
+                        else cronSubtext.innerText = selectedProvider;
+                    }
+                } else {
+                    cronBadge.className = "badge bg-danger";
+                    cronBadge.innerText = "Endpoint Error " + scannerRes.status;
+                    if (cronSubtext) cronSubtext.innerText = "/api/cron-scanner failed";
+                }
+            } catch (e) {
+                cronBadge.className = "badge bg-danger";
+                cronBadge.innerText = "Scanner Inactive";
+                if (cronSubtext) cronSubtext.innerText = "Endpoint Connection Failed";
             }
         }
     }
@@ -144,6 +181,10 @@
         if (document.getElementById('cfg-tg-enable')) document.getElementById('cfg-tg-enable').checked = config.tgEnable !== false;
         if (document.getElementById('cfg-tg-token')) document.getElementById('cfg-tg-token').value = config.tgToken || '';
         if (document.getElementById('cfg-tg-chatid')) document.getElementById('cfg-tg-chatid').value = config.tgChatId || '';
+        
+        // Cron Engine Settings
+        if (document.getElementById('cfg-cron-enable')) document.getElementById('cfg-cron-enable').checked = config.cronEnable !== false;
+        if (document.getElementById('cfg-cron-provider')) document.getElementById('cfg-cron-provider').value = config.cronProvider || 'vercel';
 
         checkRealGatewayHealth(config);
     };
@@ -171,7 +212,9 @@
                     firebaseUrl: document.getElementById('cfg-firebase').value.trim() || DEFAULT_FIREBASE_URL,
                     tgEnable: document.getElementById('cfg-tg-enable').checked,
                     tgToken: document.getElementById('cfg-tg-token').value.trim(),
-                    tgChatId: document.getElementById('cfg-tg-chatid').value.trim()
+                    tgChatId: document.getElementById('cfg-tg-chatid').value.trim(),
+                    cronEnable: document.getElementById('cfg-cron-enable') ? document.getElementById('cfg-cron-enable').checked : true,
+                    cronProvider: document.getElementById('cfg-cron-provider') ? document.getElementById('cfg-cron-provider').value : 'vercel'
                 };
 
                 saveMasterDataLocally(master);
