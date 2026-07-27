@@ -5,10 +5,10 @@
         return JSON.parse(localStorage.getItem('apex_strategies') || '[]');
     }
 
-    // Dynamic Helper to get Firebase URL from Saved Settings
+    // Dynamic Helper: Settings LocalStorage से Firebase URL निकालता है
     function getFirebaseUrl() {
         const settings = JSON.parse(localStorage.getItem('apex_settings') || '{}');
-        return settings.firebaseUrl || null;
+        return settings.firebaseUrl || "https://alertpro-bot-default-rtdb.firebaseio.com/";
     }
 
     function saveStrategies(strategies, skipPush = false) {
@@ -44,27 +44,24 @@
 
         const cleanUrl = fbUrl.replace(/\/$/, "");
 
-        // Close existing listener if open
         if (firebaseEventSource) {
             firebaseEventSource.close();
         }
 
         try {
-            // Firebase SSE EventSource for Realtime Updates
             firebaseEventSource = new EventSource(`${cleanUrl}/strategies.json`);
 
             firebaseEventSource.addEventListener('put', (e) => {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data && data.data) {
+                    if (data && data.data !== undefined) {
                         let remoteData = data.data;
-                        if (!Array.isArray(remoteData) && typeof remoteData === 'object') {
+                        if (!Array.isArray(remoteData) && typeof remoteData === 'object' && remoteData !== null) {
                             remoteData = Object.values(remoteData);
                         }
                         if (Array.isArray(remoteData)) {
-                            // Update Local Storage silently without re-pushing back to Firebase
                             saveStrategies(remoteData, true);
-                            console.log("🔥 Live Strategy Update Received from Firebase!");
+                            console.log("🔥 Live Strategy Update Received!");
                         }
                     }
                 } catch (err) {
@@ -204,16 +201,12 @@
             });
         }
 
-        // Initial Local Load
         window.loadStrategies();
 
-        // Step 1: Initial Sync
         fetchStrategiesFromFirebase().then(() => {
-            // Step 2: Live Realtime Connection Start
             listenToFirebaseRealtime();
         });
 
-        // Fallback retry for empty LocalStorage settings on new devices
         setTimeout(() => {
             fetchStrategiesFromFirebase().then(() => listenToFirebaseRealtime());
         }, 2000);
