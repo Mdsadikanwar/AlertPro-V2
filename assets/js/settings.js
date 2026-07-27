@@ -21,7 +21,7 @@
         if (data.strategies) localStorage.setItem('apex_strategies', JSON.stringify(data.strategies));
     }
 
-    // 🔴 100% REAL GATEWAY & CRON HEALTH CHECK (NO FAKE BADGES)
+    // 🔴 100% REAL GATEWAY & CRON HEALTH CHECK
     async function checkRealGatewayHealth(config) {
         const fbBadge = document.getElementById('status-firebase-badge');
         const tgBadge = document.getElementById('status-telegram-badge');
@@ -77,7 +77,7 @@
             }
         }
 
-        // 3. 🔴 REAL CRON ENGINE HEALTH CHECK BASED ON SELECTED PROVIDER
+        // 3. 🔴 REAL CRON PROVIDER VALIDATION
         if (cronBadge) {
             const cronEnabled = config.cronEnable !== false;
             const selectedProvider = config.cronProvider || 'vercel'; // vercel | cronjob_org | github
@@ -89,31 +89,57 @@
                 return;
             }
 
-            cronBadge.className = "badge bg-warning text-dark";
-            cronBadge.innerText = "Pinging API...";
-
-            // Check if Scanner Endpoint actually works on the server
-            try {
-                const scannerRes = await fetch('/api/cron-scanner');
-                if (scannerRes.ok) {
-                    cronBadge.className = "badge bg-success";
-                    cronBadge.innerText = "Active (Live)";
-                    
-                    if (cronSubtext) {
-                        if (selectedProvider === 'vercel') cronSubtext.innerText = "Vercel Cron (vercel.json)";
-                        else if (selectedProvider === 'cronjob_org') cronSubtext.innerText = "Cron-job.org External Ping";
-                        else if (selectedProvider === 'github') cronSubtext.innerText = "GitHub Workflow Action";
-                        else cronSubtext.innerText = selectedProvider;
+            // 🟢 OPTION A: Vercel Cron Selected
+            if (selectedProvider === 'vercel') {
+                try {
+                    const scannerRes = await fetch('/api/cron-scanner');
+                    if (scannerRes.ok) {
+                        cronBadge.className = "badge bg-success";
+                        cronBadge.innerText = "Active (Live)";
+                        if (cronSubtext) cronSubtext.innerText = "Vercel Cron (vercel.json)";
+                    } else {
+                        cronBadge.className = "badge bg-danger";
+                        cronBadge.innerText = "Vercel API Error " + scannerRes.status;
+                        if (cronSubtext) cronSubtext.innerText = "/api/cron-scanner missing";
                     }
+                } catch (e) {
+                    cronBadge.className = "badge bg-danger";
+                    cronBadge.innerText = "Inactive";
+                    if (cronSubtext) cronSubtext.innerText = "Vercel Cron Connection Failed";
+                }
+            } 
+            // 🔴 OPTION B: Cron-job.org Selected
+            else if (selectedProvider === 'cronjob_org') {
+                // Check if user has provided cronjob.org details/token or set up external header
+                if (config.cronjobApiKey && config.cronjobApiKey.trim() !== '') {
+                    cronBadge.className = "badge bg-success";
+                    cronBadge.innerText = "Active (Configured)";
+                    if (cronSubtext) cronSubtext.innerText = "Cron-job.org Connected";
                 } else {
                     cronBadge.className = "badge bg-danger";
-                    cronBadge.innerText = "Endpoint Error " + scannerRes.status;
-                    if (cronSubtext) cronSubtext.innerText = "/api/cron-scanner failed";
+                    cronBadge.innerText = "Not Configured";
+                    if (cronSubtext) cronSubtext.innerText = "Setup Missing on Cron-job.org";
                 }
-            } catch (e) {
-                cronBadge.className = "badge bg-danger";
-                cronBadge.innerText = "Scanner Inactive";
-                if (cronSubtext) cronSubtext.innerText = "Endpoint Connection Failed";
+            } 
+            // 🔴 OPTION C: GitHub Workflow Selected
+            else if (selectedProvider === 'github') {
+                // Check if GitHub Workflow file actually exists
+                try {
+                    const ghCheck = await fetch('/.github/workflows/cron.yml');
+                    if (ghCheck.ok) {
+                        cronBadge.className = "badge bg-success";
+                        cronBadge.innerText = "Active (Live)";
+                        if (cronSubtext) cronSubtext.innerText = "GitHub Actions Workflow";
+                    } else {
+                        cronBadge.className = "badge bg-danger";
+                        cronBadge.innerText = "Workflow Not Set";
+                        if (cronSubtext) cronSubtext.innerText = "No .github/workflows/cron.yml found";
+                    }
+                } catch (e) {
+                    cronBadge.className = "badge bg-danger";
+                    cronBadge.innerText = "Not Configured";
+                    if (cronSubtext) cronSubtext.innerText = "GitHub Workflow Inactive";
+                }
             }
         }
     }
