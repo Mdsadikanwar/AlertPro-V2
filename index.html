@@ -3,320 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexTraders Bot Engine</title>
-
-    <!-- BOOTSTRAP 5 CSS CDN -->
+    <title>ApexTraders - Signal Control Panel</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- SEPARATE CUSTOM CSS FILE -->
-    <link rel="stylesheet" href="./assets/css/style.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 </head>
-<body class="bg-dark text-white">
+<body class="bg-light">
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-dark bg-secondary bg-opacity-10 border-bottom border-secondary px-3 py-2">
-        <div class="container-fluid p-0">
-            <a class="navbar-brand text-accent fw-bold fs-5 m-0" href="#">
-                ApexTraders <span class="badge badge-bot ms-1 fs-6">BOT</span>
-            </a>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand font-weight-bold" href="#"><i class="bi bi-graph-up-arrow text-warning"></i> ApexTraders</a>
+            <div class="d-flex align-items-center gap-2">
+                <span id="global-mode-badge" class="badge bg-info text-dark">PAPER MODE</span>
+                <span id="global-autotrade-badge" class="badge bg-success">SIGNALS ON</span>
+                <button class="btn btn-sm btn-outline-light ms-2" id="btn-refresh-signals"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
         </div>
     </nav>
 
-    <!-- MODERN TOP TAB NAVIGATION BAR -->
-    <div class="container-fluid py-2 px-3 border-bottom border-secondary bg-dark sticky-top">
-        <ul class="nav nav-pills nav-justified gap-2" id="app-nav-tabs">
-            <li class="nav-item">
-                <button class="nav-link active fw-bold py-2" data-tab="bot_trading">
-                    🤖 Bot Trading
-                </button>
+    <div class="container my-4">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">Dashboard & Live Signals</button>
             </li>
-            <li class="nav-item">
-                <button class="nav-link fw-bold py-2" data-tab="strategies">
-                    ⚡ Strategies
-                </button>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="strategies-tab-btn" data-bs-toggle="tab" data-bs-target="#strategies" type="button" role="tab">Signal Strategies</button>
             </li>
-            <li class="nav-item">
-                <button class="nav-link fw-bold py-2" data-tab="settings">
-                    ⚙️ Settings
-                </button>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab-btn" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">System Settings</button>
             </li>
         </ul>
-    </div>
 
-    <!-- MAIN WRAPPER FOR TOUCH SWIPE SLIDING -->
-    <div class="container-fluid py-3" id="swipe-container">
-        <!-- TAB CONTENT SECTION -->
         <div class="tab-content" id="mainTabContent">
             
-            <!-- 1. BOT TRADING TAB -->
-            <div class="tab-section" id="bot-tab">
-                
-                <!-- LIVE P&L SUMMARY CARDS -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <div class="card bg-card p-3 border-start border-4 border-info">
-                            <span class="text-sublabel fw-bold">TOTAL INVESTED / MARGIN</span>
-                            <h4 id="pnl-total-margin" class="m-0 fw-bold text-white mt-1">$0.00</h4>
+            <!-- Tab 1: Live Signals Dashboard -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="m-0 font-weight-bold"><i class="bi bi-activity text-primary"></i> Live Market Signals & Generated Trades</h5>
+                        <small class="text-muted">Auto-refreshes via Vercel Cron Engine</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Time (IST)</th>
+                                        <th>Strategy</th>
+                                        <th>Pair</th>
+                                        <th>Action</th>
+                                        <th>Entry Price</th>
+                                        <th>SL / TP Target</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trades-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-muted">
+                                            Loading signals from engine...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card bg-card p-3 border-start border-4 border-warning">
-                            <span class="text-sublabel fw-bold">UNREALIZED P&L (LIVE)</span>
-                            <h4 id="pnl-unrealized" class="m-0 fw-bold text-warning mt-1">$0.00 <small class="fs-6 text-muted">(0.00%)</small></h4>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-card p-3 border-start border-4 border-success">
-                            <span class="text-sublabel fw-bold">REALIZED P&L (CLOSED TRADES)</span>
-                            <h4 id="pnl-realized" class="m-0 fw-bold text-success mt-1">$0.00</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ACTIVE POSITIONS & LOGS HEADER -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-accent fw-bold">Live Execution & Open Positions</h5>
-                    <button id="btn-clear-logs" class="btn btn-outline-danger btn-sm fw-bold">
-                        🗑️ Clear Logs
-                    </button>
-                </div>
-                
-                <!-- TRADES TABLE -->
-                <div class="table-responsive bg-card p-2 rounded">
-                    <table class="table table-dark table-hover mb-0 align-middle">
-                        <thead>
-                            <tr class="text-muted small">
-                                <th>TIME</th>
-                                <th>STRATEGY</th>
-                                <th>SYMBOL</th>
-                                <th>ACTION</th>
-                                <th>ENTRY / LIVE PRICE</th>
-                                <th>LIVE P&L</th>
-                                <th>STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bot-trades-table">
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    लाइव सिग्नल्स/ट्रेड्स लोड हो रहे हैं...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
-            <!-- 2. STRATEGIES TAB -->
-            <div class="tab-section d-none" id="strategies-tab">
+            <!-- Tab 2: Signal Strategies -->
+            <div class="tab-pane fade" id="strategies" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-accent fw-bold">Strategy Management</h5>
-                    <button class="btn btn-accent fw-bold btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addStratModal" onclick="openCreateModal()">
-                        + Create Strategy
+                    <h5 class="m-0">Active Signal Engines</h5>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStrategyModal">
+                        <i class="bi bi-plus-lg"></i> Add New Strategy
                     </button>
                 </div>
-                <div class="row g-3" id="strategies-container">
-                    <!-- Dynamic Strategy Cards -->
+                <div class="row" id="strategies-container">
+                    <!-- Strategies rendered dynamically via strategies.js -->
                 </div>
             </div>
 
-            <!-- 3. SETTINGS TAB (MASTER CONTROL DASHBOARD) -->
-            <div class="tab-section d-none" id="settings-tab">
-                <h5 class="mb-3 text-accent fw-bold">System Architecture & Engine Controls</h5>
-                
+            <!-- Tab 3: Settings -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
                 <form id="master-settings-form">
-                    <div class="row g-3">
-                        
-                        <!-- LEFT COLUMN: GATEWAY STATUS, CRON SELECTION & MASTER SWITCHES -->
-                        <div class="col-lg-5">
-                            
-                            <!-- 1. INTEGRATION GATEWAY STATUS CARD -->
-                            <div class="card bg-card p-3 mb-3">
-                                <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                    <span class="me-2">🔌</span> Integration Gateway Status
-                                </h6>
-
-                                <!-- Firebase Status -->
-                                <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
-                                    <span class="small fw-bold text-white">Firebase Realtime DB</span>
-                                    <span id="status-firebase-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
-                                </div>
-
-                                <!-- Telegram Status -->
-                                <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-inner-box">
-                                    <span class="small fw-bold text-white">Telegram Bot Service</span>
-                                    <span id="status-telegram-badge" class="badge bg-danger px-2 py-1">Disconnected</span>
-                                </div>
-
-                                <!-- Cron Engine Health Status -->
-                                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-inner-box">
-                                    <div class="d-flex flex-column">
-                                        <span class="small fw-bold text-white">Cron Engine Health</span>
-                                        <span id="status-cron-provider-label" class="text-muted text-sublabel">Vercel Cron</span>
+                    <div class="row">
+                        <!-- Global Engine Toggles -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white font-weight-bold">Engine Controls</div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="rule-autotrade-enable" checked>
+                                        <label class="form-check-label fw-bold" for="rule-autotrade-enable">Master Signal Generation Switch</label>
+                                        <div class="form-text">Master ON/OFF switch for cron signal scanning.</div>
                                     </div>
-                                    <span id="status-cron-badge" class="badge bg-success px-2 py-1">Active</span>
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="rule-paper-mode" checked>
+                                        <label class="form-check-label fw-bold" for="rule-paper-mode">Paper Signal Mode</label>
+                                        <div class="form-text">Run in simulation mode without placing live broker trades.</div>
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="rule-sltp-guard" checked>
+                                        <label class="form-check-label fw-bold" for="rule-sltp-guard">SL / TP Guard Check</label>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- 2. SEPARATE CRON PROVIDER CONFIG CARD -->
-                            <div class="card bg-card p-3 mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
-                                        <span class="me-2">⏱️</span> Cron Execution Provider
-                                    </h6>
-                                    <!-- Cron Toggle Switch -->
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-cron-enable" checked>
-                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-cron-enable">Enable</label>
-                                    </div>
-                                </div>
-
-                                <p class="text-sublabel mb-2">Select automated schedule trigger engine for bot strategies.</p>
-
-                                <select id="cfg-cron-provider" class="form-select form-select-sm bg-input text-white border-secondary">
-                                    <option value="vercel" selected>Vercel Cron (vercel.json)</option>
-                                    <option value="cronjob_org">Cron-Job.org (Webhook)</option>
-                                    <option value="github_actions">GitHub Actions Workflow</option>
-                                </select>
-                            </div>
-
-                            <!-- 3. GLOBAL ENGINE RULES CARD -->
-                            <div class="card bg-card p-3">
-                                <h6 class="text-accent fw-bold mb-3 d-flex align-items-center">
-                                    <span class="me-2">⚙️</span> Global Engine Rules
-                                </h6>
-
-                                <!-- Emergency Auto-Trading Switch -->
-                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                    <div>
-                                        <label class="form-check-label small fw-bold d-block text-white" for="rule-autotrade-enable">Automated Execution</label>
-                                        <span class="text-sublabel">Master ON/OFF switch for trades</span>
-                                    </div>
-                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-autotrade-enable" checked>
-                                </div>
-
-                                <!-- Paper Trading Mode -->
-                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-3 border-bottom border-secondary pb-2">
-                                    <div>
-                                        <label class="form-check-label small fw-bold d-block text-white" for="rule-paper-mode">Paper Trading Mode</label>
-                                        <span class="text-sublabel">Simulate orders without real money</span>
-                                    </div>
-                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-paper-mode" checked>
-                                </div>
-
-                                <!-- Auto SL/TP Guard -->
-                                <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-1">
-                                    <label class="form-check-label small fw-bold text-white" for="rule-sltp-guard">Enforce Hard Stop Loss</label>
-                                    <input class="form-check-input ms-0" type="checkbox" role="switch" id="rule-sltp-guard" checked>
-                                </div>
-                            </div>
-
                         </div>
 
-                        <!-- RIGHT COLUMN: DB, TELEGRAM & EXCHANGE CARDS -->
-                        <div class="col-lg-7">
-                            
-                            <!-- 1. REALTIME DATABASE & LOCAL STORAGE SYNC CARD -->
-                            <div class="card bg-card p-3 mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
-                                        <span class="me-2">🔥</span> Firebase & Local Storage Sync
-                                    </h6>
-                                    <!-- Service ON/OFF Toggle Switch -->
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-fb-enable" checked>
-                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-fb-enable">Enable Firebase</label>
+                        <!-- Integration Gateways -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white font-weight-bold">Gateways & Services</div>
+                                <div class="card-body">
+                                    <!-- Firebase -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="form-label fw-bold m-0">Firebase Realtime DB</label>
+                                            <span id="badge-fb-status" class="badge bg-secondary">Checking...</span>
+                                        </div>
+                                        <div class="input-group mt-1">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" id="cfg-fb-enable" checked>
+                                            </div>
+                                            <input type="text" class="form-control" id="cfg-firebase" placeholder="https://your-db.firebaseio.com/">
+                                        </div>
                                     </div>
-                                </div>
 
-                                <!-- Storage Mode Info Badges -->
-                                <div class="d-flex gap-2 mb-3">
-                                    <span class="badge bg-secondary text-white fw-bold py-1 px-2">1. Local Storage (Instant)</span>
-                                    <span class="badge bg-dark text-info border border-info fw-bold py-1 px-2">2. Firebase Sync (+2s Delay)</span>
-                                </div>
-
-                                <div id="fb-inputs-wrapper">
-                                    <div class="mb-2">
-                                        <label class="form-label">FIREBASE REALTIME DB URL</label>
-                                        <input type="text" id="cfg-firebase" class="form-control bg-input text-white" placeholder="https://your-app.firebaseio.com">
+                                    <!-- Telegram -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="form-label fw-bold m-0">Telegram Alerts</label>
+                                            <span id="badge-tg-status" class="badge bg-secondary">Checking...</span>
+                                        </div>
+                                        <div class="input-group mt-1">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" id="cfg-tg-enable" checked>
+                                            </div>
+                                            <input type="text" class="form-control mb-1" id="cfg-tg-token" placeholder="Bot Token (e.g., 123456:ABC...)">
+                                        </div>
+                                        <input type="text" class="form-control ms-auto" style="width: 88%;" id="cfg-tg-chatid" placeholder="Chat / Channel ID (e.g., -100123456)">
                                     </div>
-                                    <div id="fb-sync-status" class="small text-muted"></div>
+
+                                    <!-- Cron Engine Provider -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="form-label fw-bold m-0">Cron Engine Provider</label>
+                                            <span id="badge-cron-status" class="badge bg-secondary">Checking...</span>
+                                        </div>
+                                        <div class="input-group mt-1">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" id="cfg-cron-enable" checked>
+                                            </div>
+                                            <select class="form-select" id="cfg-cron-provider">
+                                                <option value="vercel">Vercel Cron (Serverless API)</option>
+                                                <option value="github_actions">GitHub Actions Cron Workflow</option>
+                                            </select>
+                                        </div>
+                                        <small id="cron-status-subtext" class="text-muted d-block mt-1"></small>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- 2. DEDICATED TELEGRAM ALERTS CARD -->
-                            <div class="card bg-card p-3 mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
-                                        <span class="me-2">✈️</span> Telegram Notification Gateway
-                                    </h6>
-                                    <!-- Dedicated Telegram Switch -->
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-tg-enable" checked>
-                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-tg-enable">Enable Alerts</label>
-                                    </div>
-                                </div>
-
-                                <div id="tg-inputs-wrapper">
-                                    <div class="row g-2 mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">TELEGRAM BOT TOKEN</label>
-                                            <input type="text" id="cfg-tg-token" class="form-control bg-input text-white" placeholder="123456789:ABC...">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">TELEGRAM CHAT ID</label>
-                                            <input type="text" id="cfg-tg-chatid" class="form-control bg-input text-white" placeholder="-100123456789">
-                                        </div>
-                                    </div>
-
-                                    <button type="button" id="btn-test-tg" class="btn btn-outline-info btn-sm fw-bold w-100 py-2">
-                                        Send Test Telegram Alert
-                                    </button>
-                                    <div id="tg-test-status" class="small mt-2 text-center"></div>
-                                </div>
-                            </div>
-
-                            <!-- 3. DEDICATED EXCHANGE API CONNECTOR CARD -->
-                            <div class="card bg-card p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="text-accent fw-bold m-0 d-flex align-items-center">
-                                        <span class="me-2">🔑</span> Exchange API Connector
-                                    </h6>
-                                    <!-- API Execution Switch -->
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="cfg-api-enable">
-                                        <label class="form-check-label small fw-bold text-white ms-1" for="cfg-api-enable">Enable API Execution</label>
-                                    </div>
-                                </div>
-
-                                <!-- Exchange Dropdown -->
-                                <div class="mb-3">
-                                    <label class="form-label">SELECT EXCHANGE</label>
-                                    <select id="cfg-exchange-select" class="form-select bg-input text-white">
-                                        <option value="binance" selected>Binance Futures / Spot</option>
-                                        <option value="bybit">Bybit Unified Trading Account</option>
-                                        <option value="okx">OKX Exchange API</option>
-                                    </select>
-                                </div>
-
-                                <!-- API Key Inputs -->
-                                <div id="api-keys-wrapper">
-                                    <div class="row g-2 mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label" id="lbl-api-key">API KEY</label>
-                                            <input type="password" id="cfg-api-key" class="form-control bg-input text-white" placeholder="Enter API Key">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" id="lbl-api-secret">API SECRET KEY</label>
-                                            <input type="password" id="cfg-api-secret" class="form-control bg-input text-white" placeholder="Enter Secret Key">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn btn-accent fw-bold w-100 py-2 mt-2">Save All Master Settings</button>
-                            </div>
-
                         </div>
+                    </div>
 
+                    <div class="text-end mb-5">
+                        <button type="submit" class="btn btn-success px-4"><i class="bi bi-check-circle"></i> Save All Settings</button>
                     </div>
                 </form>
             </div>
@@ -324,159 +178,46 @@
         </div>
     </div>
 
-    <!-- ADVANCED STRATEGY ARCHITECT MODAL -->
-    <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content text-white bg-card border border-secondary">
-                <div class="modal-header border-bottom border-secondary px-3 py-2">
-                    <h6 class="modal-title text-accent fw-bold d-flex align-items-center" id="modal-title-text">
-                        <span class="me-2">⚡</span> Advanced Strategy Architect
-                    </h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <!-- Modal: Add Strategy -->
+    <div class="modal fade" id="addStrategyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Signal Strategy</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-3">
-                    <form id="add-strat-form">
-                        <input type="hidden" id="edit-strat-index" value="-1">
-                        
-                        <!-- 1. NAME, TYPE & TIMEFRAME -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-5">
-                                <label class="form-label text-sublabel fw-bold">STRATEGY NAME</label>
-                                <input type="text" id="strat-name" class="form-control bg-input text-white" placeholder="e.g. AI Momentum Alpha" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-sublabel fw-bold">STRATEGY TYPE</label>
-                                <select id="strat-type" class="form-select bg-input text-white">
-                                    <option value="ai_prompt" selected>🤖 AI Prompt Strategy</option>
-                                    <option value="candlestick">🕯️ Candlestick Pattern</option>
-                                    <option value="crossover">📈 Indicator Crossover</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label text-sublabel fw-bold">TIMEFRAME ⏱️</label>
-                                <select id="strat-timeframe" class="form-select bg-input text-white">
-                                    <option value="1m">1 Minute</option>
-                                    <option value="5m">5 Minutes</option>
-                                    <option value="15m" selected>15 Minutes</option>
-                                    <option value="1h">1 Hour</option>
-                                    <option value="4h">4 Hours</option>
-                                    <option value="1d">1 Day</option>
-                                </select>
-                            </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Strategy Name</label>
+                        <input type="text" class="form-control" id="strat-name" placeholder="e.g. Scalping Trend">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Pairs (Comma Separated)</label>
+                        <input type="text" class="form-control" id="strat-coin" placeholder="BTCUSDT, ETHUSDT, EURUSD">
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">Stop Loss (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="strat-sl" value="1.5">
                         </div>
-
-                        <!-- DYNAMIC CONFIGURATION BOX BASED ON TYPE -->
-                        <div id="strat-dynamic-config" class="mb-3 p-3 rounded bg-dark border border-secondary">
-                            <!-- AI Prompt Box -->
-                            <div id="cfg-ai-box">
-                                <label class="form-label text-accent fw-bold small">🤖 AI TRADING PROMPT / RULE</label>
-                                <textarea id="strat-ai-prompt" class="form-control bg-input text-white" rows="2" placeholder="Write custom prompt: e.g. Buy when RSI < 30 and 15m candle shows a strong Hammer with 2x volume..."></textarea>
-                            </div>
-
-                            <!-- Candlestick Box -->
-                            <div id="cfg-candle-box" class="d-none">
-                                <label class="form-label text-accent fw-bold small">🕯️ SELECT CANDLESTICK PATTERN</label>
-                                <select id="strat-candle-pattern" class="form-select bg-input text-white">
-                                    <option value="hammer">Bullish Hammer Pattern</option>
-                                    <option value="engulfing">Bullish Engulfing Candle</option>
-                                    <option value="doji">Doji Reversal Pattern</option>
-                                    <option value="morning_star">Morning Star Pattern</option>
-                                </select>
-                            </div>
-
-                            <!-- Crossover Box -->
-                            <div id="cfg-crossover-box" class="d-none">
-                                <label class="form-label text-accent fw-bold small">📈 SELECT INDICATOR SIGNAL</label>
-                                <select id="strat-indicator-signal" class="form-select bg-input text-white">
-                                    <option value="ema_golden">EMA 20/50 Golden Cross</option>
-                                    <option value="rsi_oversold">RSI Oversold Bounce (&lt; 30)</option>
-                                    <option value="macd_cross">MACD Bullish Crossover</option>
-                                </select>
-                            </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">Take Profit (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="strat-tp" value="3.0">
                         </div>
-
-                        <!-- 2. FLEXIBLE MULTI-COIN SELECTION -->
-                        <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-accent small fw-bold m-0">🎯 SELECT TRADING PAIRS (Choose Any 1 to 10+)</h6>
-                                <div>
-                                    <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 small" id="btn-select-all-coins" style="font-size: 11px;">Select All</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 small" id="btn-clear-coins" style="font-size: 11px;">Clear</button>
-                                </div>
-                            </div>
-                            
-                            <!-- QUICK CHECKBOXES -->
-                            <div class="row g-2 mb-2" id="coin-checkboxes-container">
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="BTCUSDT" id="chk-btc"><label class="form-check-label small text-white" for="chk-btc">BTC</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="ETHUSDT" id="chk-eth"><label class="form-check-label small text-white" for="chk-eth">ETH</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="SOLUSDT" id="chk-sol"><label class="form-check-label small text-white" for="chk-sol">SOL</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="BNBUSDT" id="chk-bnb"><label class="form-check-label small text-white" for="chk-bnb">BNB</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="XRPUSDT" id="chk-xrp"><label class="form-check-label small text-white" for="chk-xrp">XRP</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="DOGEUSDT" id="chk-doge"><label class="form-check-label small text-white" for="chk-doge">DOGE</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="ADAUSDT" id="chk-ada"><label class="form-check-label small text-white" for="chk-ada">ADA</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="AVAXUSDT" id="chk-avax"><label class="form-check-label small text-white" for="chk-avax">AVAX</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="LINKUSDT" id="chk-link"><label class="form-check-label small text-white" for="chk-link">LINK</label></div></div>
-                                <div class="col-4 col-sm-3"><div class="form-check"><input class="form-check-input coin-chk" type="checkbox" value="DOTUSDT" id="chk-dot"><label class="form-check-label small text-white" for="chk-dot">DOT</label></div></div>
-                            </div>
-
-                            <!-- OTHER CUSTOM COINS INPUT -->
-                            <div class="mt-2">
-                                <label class="form-label text-sublabel small m-0 mb-1">ADDITIONAL CUSTOM COINS (Optional, Comma Separated)</label>
-                                <input type="text" id="strat-custom-coins" class="form-control form-control-sm bg-input text-white" placeholder="e.g. PEPEUSDT, NEARUSDT">
-                            </div>
-                        </div>
-
-                        <!-- 3. CAPITAL & RISK MANAGEMENT -->
-                        <div class="p-3 mb-3 rounded border border-secondary bg-dark">
-                            <h6 class="text-accent small fw-bold mb-2">🛡️ CAPITAL & RISK MANAGEMENT</h6>
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <label class="form-label text-sublabel">Trade Size (% of Balance)</label>
-                                    <input type="number" id="strat-capital-pct" class="form-control bg-input text-white" value="10" min="1" max="100">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label text-sublabel">Leverage</label>
-                                    <select id="strat-leverage" class="form-select bg-input text-white">
-                                        <option value="1">1x (Spot)</option>
-                                        <option value="5">5x Cross</option>
-                                        <option value="10" selected>10x Futures</option>
-                                        <option value="20">20x Leverage</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label text-sublabel">Risk-to-Reward Ratio</label>
-                                    <select id="strat-rr-ratio" class="form-select bg-input text-white">
-                                        <option value="1:1">1:1 Ratio</option>
-                                        <option value="1:1.5">1:1.5 Ratio</option>
-                                        <option value="1:2" selected>1:2 Ratio</option>
-                                        <option value="1:3">1:3 Ratio</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mt-2">
-                                    <label class="form-label text-sublabel">Stop Loss (%)</label>
-                                    <input type="number" step="0.1" id="strat-sl" class="form-control bg-input text-white" value="1.5">
-                                </div>
-                                <div class="col-md-6 mt-2">
-                                    <label class="form-label text-sublabel">Take Profit (%) [Auto Calculated]</label>
-                                    <input type="number" step="0.1" id="strat-tp" class="form-control bg-input text-white" value="3.0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" id="btn-submit-strat" class="btn btn-accent fw-bold w-100 py-2 fs-6">🚀 Deploy Strategy</button>
-                    </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-strategy-btn">Add Engine</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- BOOTSTRAP JS CDN -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- PROJECT JS FILES (OPTIMIZED EXECUTION ORDER) -->
-    <script src="./assets/js/strategies.js?v=2"></script>
-    <script src="./assets/js/settings.js?v=2"></script>
-    <script src="./assets/js/bot_trading.js?v=2"></script>
-    <script src="./assets/js/app.js?v=2"></script>
+    <script src="assets/js/settings.js"></script>
+    <script src="assets/js/strategies.js"></script>
+    <script src="assets/js/app.js"></script>
 </body>
 </html>
