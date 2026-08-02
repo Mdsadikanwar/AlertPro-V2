@@ -1,27 +1,38 @@
-// assets/js/bot_trading.js - Frontend Live Sync & Table Engine
+// assets/js/bot_trading.js - ApexTraders Live Engine Sync
 
 (function() {
-    // 1. Storage से ट्रेड्स और सेटिंग्स निकालें
+    console.log("⚡ Bot Engine Loaded");
+
+    // LocalStorage से डेटा निकालना
     function getStoredTrades() {
-        return JSON.parse(localStorage.getItem('apex_trades') || '[]');
+        try {
+            return JSON.parse(localStorage.getItem('apex_trades') || '[]');
+        } catch(e) {
+            return [];
+        }
     }
 
     function getMasterSettings() {
-        return JSON.parse(localStorage.getItem('apex_master_settings') || '{}');
+        try {
+            return JSON.parse(localStorage.getItem('apex_master_settings') || '{}');
+        } catch(e) {
+            return {};
+        }
     }
 
-    // 2. टेबल और P&L कार्ड्स को लाइव रेंडर (Render) करने का फ़ंक्शन
+    // UI में Table और Cards को रेंडर करना
     window.loadBotLogs = async function() {
         const tableBody = document.getElementById('bot-trades-table');
         if (!tableBody) return;
 
-        // Firebase से लाइव ट्रेड्स fetch करने की कोशिश करें
         let trades = getStoredTrades();
         const settings = getMasterSettings();
 
+        // अगर Firebase ON है तो लाइव सिंक करें
         if (settings.cfgFbEnable && settings.cfgFirebase) {
             try {
-                const res = await fetch(`${settings.cfgFirebase}/apex_master_data/trades.json`);
+                const cleanUrl = settings.cfgFirebase.replace(/\/+$/, "");
+                const res = await fetch(`${cleanUrl}/apex_master_data/trades.json`);
                 if (res.ok) {
                     const fbTrades = await res.json();
                     if (fbTrades && Array.isArray(fbTrades)) {
@@ -30,36 +41,39 @@
                     }
                 }
             } catch (err) {
-                console.warn("Firebase Fetch Warning, using local storage", err);
+                console.warn("Firebase sync fallback to local storage:", err);
             }
         }
 
-        if (trades.length === 0) {
+        // खाली टेबल हैंडलर
+        if (!trades || trades.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center text-muted py-4">
-                        कोई ट्रेड्स/सिग्नल्स उपलब्ध नहीं हैं। Vercel Cron चलने का इंतज़ार करें या टेस्ट डेटा लोड करें।
+                        कोई ट्रेड्स/सिग्नल्स उपलब्ध नहीं हैं। Vercel Cron चलने का इंतज़ार करें।
                     </td>
                 </tr>`;
             updatePnLCards([]);
             return;
         }
 
+        // टेबल HTML बनाना
         let html = '';
         trades.forEach(trade => {
             const isBuy = trade.action === 'BUY';
             const actionBadge = isBuy ? '<span class="badge bg-success">BUY</span>' : '<span class="badge bg-danger">SELL</span>';
-            const pnlColor = (trade.pnl >= 0) ? 'text-success' : 'text-danger';
-            
+            const pnlVal = parseFloat(trade.pnl || 0);
+            const pnlColor = pnlVal >= 0 ? 'text-success' : 'text-danger';
+
             html += `
                 <tr>
                     <td><small class="text-muted">${trade.time || '-'}</small></td>
-                    <td><strong class="text-accent">${trade.strategy || 'Auto Alpha'}</strong></td>
+                    <td><strong class="text-info">${trade.strategy || 'Auto Strategy'}</strong></td>
                     <td><span class="badge bg-secondary">${trade.symbol}</span></td>
                     <td>${actionBadge}</td>
-                    <td>$${trade.entryPrice} / <span class="text-info">$${trade.livePrice || trade.entryPrice}</span></td>
-                    <td class="${pnlColor} fw-bold">$${(trade.pnl || 0).toFixed(2)}</td>
-                    <td><span class="badge bg-dark border border-warning text-warning">${trade.status || 'PAPER_OPEN'}</span></td>
+                    <td>$${trade.entryPrice} / <span class="text-warning">$${trade.livePrice || trade.entryPrice}</span></td>
+                    <td class="${pnlColor} fw-bold">$${pnlVal.toFixed(2)}</td>
+                    <td><span class="badge bg-dark border border-warning text-warning">${trade.status || 'SIGNAL_ACTIVE'}</span></td>
                 </tr>
             `;
         });
@@ -68,18 +82,19 @@
         updatePnLCards(trades);
     };
 
-    // 3. P&L Summary Cards कैलकुलेटर
+    // P&L Summary Cards अपडेटर
     function updatePnLCards(trades) {
         let totalMargin = 0;
         let unrealizedPnl = 0;
         let realizedPnl = 0;
 
         trades.forEach(t => {
-            if (t.status === 'PAPER_OPEN' || t.status === 'LIVE_OPEN') {
-                unrealizedPnl += (t.pnl || 0);
-                totalMargin += 100; // डिफ़ॉल्ट मार्जिन गणना
+            const pnl = parseFloat(t.pnl || 0);
+            if (t.status === 'PAPER_OPEN' || t.status === 'LIVE_OPEN' || t.status === 'SIGNAL_ACTIVE') {
+                unrealizedPnl += pnl;
+                totalMargin += 100; // Stand-in trade margin
             } else {
-                realizedPnl += (t.pnl || 0);
+                realizedPnl += pnl;
             }
         });
 
@@ -89,30 +104,23 @@
 
         if (elMargin) elMargin.innerText = `$${totalMargin.toFixed(2)}`;
         if (elUnrealized) {
-            const colorClass = unrealizedPnl >= 0 ? 'text-success' : 'text-danger';
-            elUnrealized.className = `m-0 fw-bold ${colorClass} mt-1`;
-            elUnrealized.innerHTML = `$${unrealizedPnl.toFixed(2)}`;
+            elUnrealized.className = `m-0 fw-bold ${unrealizedPnl >= 0 ? 'text-success' : 'text-danger'} mt-1`;
+            elUnrealized.innerText = `$${unrealizedPnl.toFixed(2)}`;
         }
         if (elRealized) elRealized.innerText = `$${realizedPnl.toFixed(2)}`;
     }
 
-    // 4. Clear Logs बटन इवेंट
+    // Clear Logs Button & Initial Setup
     document.addEventListener('DOMContentLoaded', () => {
         const btnClear = document.getElementById('btn-clear-logs');
         if (btnClear) {
-            btnClear.addEventListener('click', () => {
-                if (confirm('क्या आप सभी लाइव ट्रेड्स और लॉग्स साफ़ करना चाहते हैं?')) {
+            btnClear.onclick = function() {
+                if (confirm('क्या आप सभी सिग्नल्स और ट्रेड्स साफ़ करना चाहते हैं?')) {
                     localStorage.removeItem('apex_trades');
                     window.loadBotLogs();
                 }
-            });
+            };
         }
-
-        // हर 5 सेकंड में ऑटो-रिफ्रेश टेबल
-        setInterval(() => {
-            if (!document.getElementById('bot-tab').classList.contains('d-none')) {
-                window.loadBotLogs();
-            }
-        }, 5000);
+        window.loadBotLogs();
     });
 })();
