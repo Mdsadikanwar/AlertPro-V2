@@ -1,13 +1,15 @@
+// assets/js/app.js - Navigation, Swipe Engine & Central Tab Switcher
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("ApexTraders App Ready");
+    console.log("🚀 ApexTraders App Engine Ready");
 
     const tabKeys = ['bot_trading', 'strategies', 'settings'];
-    const tabSectionIds = ['bot-tab', 'strategies-tab', 'settings-tab'];
     let currentTabIndex = 0;
+    let autoRefreshInterval = null;
 
     const navButtons = document.querySelectorAll('#app-nav-tabs .nav-link');
 
-    // Function to handle Section Visibility & Tab State
+    // Central Function to handle Section Visibility, Active Tabs & Loader Triggers
     function switchTab(targetIndex) {
         if (targetIndex < 0 || targetIndex >= tabKeys.length) return;
         currentTabIndex = targetIndex;
@@ -23,29 +25,55 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. Toggle Tab Content Sections
+        // 2. Hide All Tab Sections
         document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('d-none'));
 
+        // 3. Clear existing auto-refresh interval on switch
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+
+        // 4. Activate Target Tab & Trigger Dynamic Loaders
         if (targetKey === 'bot_trading') {
-            document.getElementById('bot-tab').classList.remove('d-none');
-            if (typeof window.loadBotLogs === 'function') window.loadBotLogs();
+            const botTab = document.getElementById('bot-tab');
+            if (botTab) botTab.classList.remove('d-none');
+            
+            if (typeof window.loadBotLogs === 'function') {
+                window.loadBotLogs();
+            }
+
+            // Auto-refresh bot trades every 5 seconds while viewing
+            autoRefreshInterval = setInterval(() => {
+                if (typeof window.loadBotLogs === 'function') {
+                    window.loadBotLogs();
+                }
+            }, 5000);
+
         } else if (targetKey === 'strategies') {
-            document.getElementById('strategies-tab').classList.remove('d-none');
-            if (typeof window.loadStrategies === 'function') window.loadStrategies();
+            const stratTab = document.getElementById('strategies-tab');
+            if (stratTab) stratTab.classList.remove('d-none');
+
+            if (typeof window.loadStrategies === 'function') {
+                window.loadStrategies();
+            }
+
         } else if (targetKey === 'settings') {
-            document.getElementById('settings-tab').classList.remove('d-none');
-            if (typeof window.loadSettings === 'function') window.loadSettings();
+            const setTab = document.getElementById('settings-tab');
+            if (setTab) setTab.classList.remove('d-none');
+
+            if (typeof window.loadSettings === 'function') {
+                window.loadSettings();
+            }
         }
     }
 
     // Nav Bar Click Listeners
     navButtons.forEach((btn, index) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
             switchTab(index);
         });
     });
 
-    // TOUCH SWIPE SLIDING LOGIC (Left / Right Swipe Gesture)
+    // TOUCH SWIPE SLIDING LOGIC (Smooth Left / Right Mobile Gestures)
     let touchStartX = 0;
     let touchEndX = 0;
     let touchStartY = 0;
@@ -66,11 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleSwipeGesture() {
-        const minSwipeDistance = 50; // Minimum horizontal swipe in px
+        const minSwipeDistance = 60; // Minimum distance for horizontal swipe
         const diffX = touchEndX - touchStartX;
         const diffY = touchEndY - touchStartY;
 
-        // Ensure horizontal swipe is dominant (not vertical scrolling)
+        // Ensure horizontal swipe is dominant over vertical scrolling
         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
             if (diffX < 0) {
                 // Swiped Left -> Move to Next Tab
@@ -86,6 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initial Load (Bot Trading by default)
+    // Global Expose for Switching Tabs programmatically if needed
+    window.apexSwitchTab = switchTab;
+
+    // Initial App Load (Bot Trading by default)
     switchTab(0);
 });
