@@ -1,24 +1,9 @@
 {
   "version": 2,
-  "framework": null,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/cron-scanner.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "**/*",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/cron-scanner",
-      "dest": "/api/cron-scanner.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/api/cron-scanner",
+      "destination": "/api/cron-scanner.js"
     }
   ],
   "crons": [
