@@ -1,122 +1,207 @@
-// assets/js/app.js - Navigation, Swipe Engine & Central Tab Switcher
+// ApexTraders - Core Application Manager (100% Production Ready)
+
+const STORAGE_KEY = 'apex_master_data';
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 ApexTraders App Engine Ready");
+    initApexApp();
+});
 
-    const tabKeys = ['bot_trading', 'strategies', 'settings'];
-    let currentTabIndex = 0;
-    let autoRefreshInterval = null;
+function initApexApp() {
+    // 1. Storage setup
+    ensureDefaultMasterData();
 
-    const navButtons = document.querySelectorAll('#app-nav-tabs .nav-link');
+    // 2. Initial Sync & UI Setup
+    syncUIWithMasterData();
+    setupGlobalEventListeners();
 
-    // Central Function to handle Section Visibility, Active Tabs & Loader Triggers
-    function switchTab(targetIndex) {
-        if (targetIndex < 0 || targetIndex >= tabKeys.length) return;
-        currentTabIndex = targetIndex;
+    // 3. Periodic Background Sync
+    setInterval(() => {
+        pullLatestFirebaseData();
+    }, 15000);
+}
 
-        const targetKey = tabKeys[targetIndex];
+function getMasterData() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch (e) {
+        console.error("Localstorage access error:", e);
+        return {};
+    }
+}
 
-        // 1. Update Navigation Buttons Active State
-        navButtons.forEach((btn, idx) => {
-            if (idx === targetIndex) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
+function saveMasterDataLocally(data) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+        console.error("Localstorage write error:", e);
+    }
+}
 
-        // 2. Hide All Tab Sections
-        document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('d-none'));
-
-        // 3. Clear existing auto-refresh interval on switch
-        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-
-        // 4. Activate Target Tab & Trigger Dynamic Loaders
-        if (targetKey === 'bot_trading') {
-            const botTab = document.getElementById('bot-tab');
-            if (botTab) botTab.classList.remove('d-none');
-            
-            if (typeof window.loadBotLogs === 'function') {
-                window.loadBotLogs();
-            }
-
-            // Auto-refresh bot trades every 5 seconds while viewing
-            autoRefreshInterval = setInterval(() => {
-                if (typeof window.loadBotLogs === 'function') {
-                    window.loadBotLogs();
+function ensureDefaultMasterData() {
+    const existing = getMasterData();
+    if (!existing || Object.keys(existing).length === 0) {
+        const defaultData = {
+            settings: {
+                fbEnable: true,
+                firebaseUrl: "https://apextraders-default-rtdb.firebaseio.com/",
+                tgEnable: true,
+                tgToken: "",
+                tgChatId: "",
+                cronEnable: true,
+                cronProvider: "vercel",
+                ruleAutotradeEnable: true,
+                rulePaperMode: true,
+                ruleSltpGuard: true
+            },
+            strategies: [
+                {
+                    id: "STRAT_DEFAULT_1",
+                    name: "Default BTC Momentum",
+                    coin: "BTCUSDT",
+                    sl: 1.5,
+                    tp: 3.0,
+                    active: true
                 }
-            }, 5000);
+            ],
+            trades: []
+        };
+        saveMasterDataLocally(defaultData);
+    }
+}
 
-        } else if (targetKey === 'strategies') {
-            const stratTab = document.getElementById('strategies-tab');
-            if (stratTab) stratTab.classList.remove('d-none');
+function syncUIWithMasterData() {
+    const master = getMasterData();
+    const settings = master.settings || {};
 
-            if (typeof window.loadStrategies === 'function') {
-                window.loadStrategies();
-            }
-
-        } else if (targetKey === 'settings') {
-            const setTab = document.getElementById('settings-tab');
-            if (setTab) setTab.classList.remove('d-none');
-
-            if (typeof window.loadSettings === 'function') {
-                window.loadSettings();
-            }
+    // Mode Indicators Update
+    const modeBadge = document.getElementById('global-mode-badge');
+    if (modeBadge) {
+        if (settings.rulePaperMode !== false) {
+            modeBadge.className = "badge bg-info text-dark";
+            modeBadge.innerText = "PAPER MODE";
+        } else {
+            modeBadge.className = "badge bg-warning text-dark";
+            modeBadge.innerText = "LIVE SIGNAL MODE";
         }
     }
 
-    // Nav Bar Click Listeners
-    navButtons.forEach((btn, index) => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            switchTab(index);
-        });
+    // Auto-Signal Status Badge Update
+    const autoBadge = document.getElementById('global-autotrade-badge');
+    if (autoBadge) {
+        if (settings.ruleAutotradeEnable !== false) {
+            autoBadge.className = "badge bg-success";
+            autoBadge.innerText = "SIGNALS ON";
+        } else {
+            autoBadge.className = "badge bg-secondary";
+            autoBadge.innerText = "SIGNALS PAUSED";
+        }
+    }
+
+    // Render Recent Signals/Trades Table
+    renderRecentSignalsTable(master.trades || []);
+}
+
+function renderRecentSignalsTable(trades) {
+    const tableBody = document.getElementById('trades-table-body') || document.getElementById('signals-table-body');
+    if (!tableBody) return;
+
+    if (!trades || trades.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    No active signals or trades recorded yet. Cron engine will populate signals automatically.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    trades.slice(0, 15).forEach(trade => {
+        const isBuy = trade.action === 'BUY';
+        html += `
+            <tr>
+                <td><small class="text-muted">${trade.time || '--:--'}</small></td>
+                <td><strong>${escapeHtml(trade.strategy || 'Signal Engine')}</strong></td>
+                <td><span class="badge bg-light text-dark border">#${escapeHtml(trade.symbol || 'N/A')}</span></td>
+                <td>
+                    <span class="badge ${isBuy ? 'bg-success' : 'bg-danger'}">
+                        ${trade.action || 'SIGNAL'}
+                    </span>
+                </td>
+                <td>$${trade.entryPrice || '0.00'}</td>
+                <td>
+                    <small class="text-danger">SL: $${trade.sl || '0'}</small><br>
+                    <small class="text-success">TP: $${trade.tp || '0'}</small>
+                </td>
+                <td>
+                    <span class="badge bg-primary">${trade.status || 'ACTIVE'}</span>
+                </td>
+            </tr>
+        `;
     });
 
-    // TOUCH SWIPE SLIDING LOGIC (Smooth Left / Right Mobile Gestures)
-    let touchStartX = 0;
-    let touchEndX = 0;
-    let touchStartY = 0;
-    let touchEndY = 0;
-    const swipeContainer = document.getElementById('swipe-container');
+    tableBody.innerHTML = html;
+}
 
-    if (swipeContainer) {
-        swipeContainer.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        }, { passive: true });
+function setupGlobalEventListeners() {
+    // Global Save Trigger for Child Modules
+    window.triggerGlobalSave = function() {
+        const master = getMasterData();
+        syncUIWithMasterData();
+        pushMasterToFirebase(master);
+    };
 
-        swipeContainer.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            touchEndY = e.changedTouches[0].screenY;
-            handleSwipeGesture();
-        }, { passive: true });
+    // Manual Refresh Button Listener
+    const refreshBtn = document.getElementById('btn-refresh-signals');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            pullLatestFirebaseData();
+        });
     }
+}
 
-    function handleSwipeGesture() {
-        const minSwipeDistance = 60; // Minimum distance for horizontal swipe
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
-
-        // Ensure horizontal swipe is dominant over vertical scrolling
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-            if (diffX < 0) {
-                // Swiped Left -> Move to Next Tab
-                if (currentTabIndex < tabKeys.length - 1) {
-                    switchTab(currentTabIndex + 1);
-                }
-            } else {
-                // Swiped Right -> Move to Previous Tab
-                if (currentTabIndex > 0) {
-                    switchTab(currentTabIndex - 1);
-                }
-            }
+async function pushMasterToFirebase(masterData) {
+    const settings = masterData.settings || {};
+    if (settings.fbEnable && settings.firebaseUrl) {
+        try {
+            const cleanUrl = settings.firebaseUrl.replace(/\/+$/, "");
+            await fetch(`${cleanUrl}/app_master_data.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(masterData)
+            });
+            console.log("Master State synced to Firebase.");
+        } catch (err) {
+            console.error("Firebase Sync Error:", err);
         }
     }
+}
 
-    // Global Expose for Switching Tabs programmatically if needed
-    window.apexSwitchTab = switchTab;
+async function pullLatestFirebaseData() {
+    const master = getMasterData();
+    const settings = master.settings || {};
 
-    // Initial App Load (Bot Trading by default)
-    switchTab(0);
-});
+    if (settings.fbEnable && settings.firebaseUrl) {
+        try {
+            const cleanUrl = settings.firebaseUrl.replace(/\/+$/, "");
+            const res = await fetch(`${cleanUrl}/app_master_data.json`);
+            if (res.ok) {
+                const cloudData = await res.json();
+                if (cloudData && typeof cloudData === 'object') {
+                    saveMasterDataLocally(cloudData);
+                    syncUIWithMasterData();
+                }
+            }
+        } catch (err) {
+            console.error("Error pulling cloud data:", err);
+        }
+    }
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
+}
