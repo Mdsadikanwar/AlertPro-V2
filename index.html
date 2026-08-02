@@ -8,6 +8,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .nav-pills .nav-link { cursor: pointer; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -24,23 +29,23 @@
     </nav>
 
     <div class="container my-4">
-        <!-- Navigation Tabs -->
-        <ul class="nav nav-pills mb-4" id="mainTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">Dashboard & Live Signals</button>
+        <!-- Navigation Tabs (Simple & Pure JS Switcher) -->
+        <ul class="nav nav-pills mb-4" id="mainTab">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="switchTab('dashboard', this)">Dashboard & Live Signals</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="strategies-tab-btn" data-bs-toggle="tab" data-bs-target="#strategies" type="button" role="tab">Signal Strategies</button>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchTab('strategies', this)">Signal Strategies</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="settings-tab-btn" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">System Settings</button>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchTab('settings', this)">System Settings</button>
             </li>
         </ul>
 
         <div class="tab-content" id="mainTabContent">
             
             <!-- Tab 1: Live Signals Dashboard -->
-            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+            <div class="tab-pane active" id="dashboard">
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                         <h5 class="m-0 font-weight-bold"><i class="bi bi-activity text-primary"></i> Live Market Signals & Generated Trades</h5>
@@ -74,7 +79,7 @@
             </div>
 
             <!-- Tab 2: Signal Strategies -->
-            <div class="tab-pane fade" id="strategies" role="tabpanel">
+            <div class="tab-pane" id="strategies">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0">Active Signal Engines</h5>
                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStrategyModal">
@@ -87,7 +92,7 @@
             </div>
 
             <!-- Tab 3: Settings -->
-            <div class="tab-pane fade" id="settings" role="tabpanel">
+            <div class="tab-pane" id="settings">
                 <form id="master-settings-form">
                     <div class="row">
                         <!-- Global Engine Toggles -->
@@ -144,7 +149,7 @@
                                             </div>
                                             <input type="text" class="form-control mb-1" id="cfg-tg-token" placeholder="Bot Token (e.g., 123456:ABC...)">
                                         </div>
-                                        <input type="text" class="form-control ms-auto" style="width: 88%;" id="cfg-tg-chatid" placeholder="Chat / Channel ID (e.g., -100123456)">
+                                        <input type="text" class="form-control ms-auto mt-1" style="width: 88%;" id="cfg-tg-chatid" placeholder="Chat / Channel ID (e.g., -100123456)">
                                     </div>
 
                                     <!-- Cron Engine Provider -->
@@ -213,6 +218,23 @@
             </div>
         </div>
     </div>
+
+    <!-- Tab Switcher Script (Guaranteed Work Solution) -->
+    <script>
+        function switchTab(tabId, el) {
+            // Hide all tab content
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            // Remove active class from all buttons
+            document.querySelectorAll('#mainTab .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Show current tab & set button active
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+        }
+    </script>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
