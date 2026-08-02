@@ -1,111 +1,118 @@
-// api/cron-scanner.js - INSTANT AUTO-TRADE ENGINE
-import fetch from 'node-fetch';
+// assets/js/bot_trading.js - Frontend Live Sync & Table Engine
 
-export default async function handler(req, res) {
-    try {
-        const FIREBASE_URL = process.env.FIREBASE_DB_URL;
-        let masterData = {};
+(function() {
+    // 1. Storage से ट्रेड्स और सेटिंग्स निकालें
+    function getStoredTrades() {
+        return JSON.parse(localStorage.getItem('apex_trades') || '[]');
+    }
 
-        // 1. Fetch Firebase Master Data
-        if (FIREBASE_URL) {
-            const fbRes = await fetch(`${FIREBASE_URL}/apex_master_data.json`);
-            if (fbRes.ok) {
-                masterData = await fbRes.json() || {};
-            }
-        }
+    function getMasterSettings() {
+        return JSON.parse(localStorage.getItem('apex_master_settings') || '{}');
+    }
 
-        const strategies = masterData.strategies || [];
-        const settings = masterData.settings || {};
+    // 2. टेबल और P&L कार्ड्स को लाइव रेंडर (Render) करने का फ़ंक्शन
+    window.loadBotLogs = async function() {
+        const tableBody = document.getElementById('bot-trades-table');
+        if (!tableBody) return;
 
-        // Master Switch Check
-        if (settings.ruleAutotradeEnable === false) {
-            return res.status(200).json({ status: 'paused', message: 'Master Auto-Trade Switch is OFF' });
-        }
+        // Firebase से लाइव ट्रेड्स fetch करने की कोशिश करें
+        let trades = getStoredTrades();
+        const settings = getMasterSettings();
 
-        // Read Active Strategies (Or Fallback to Default Auto Strategy)
-        const activeStrategies = strategies.filter(s => s.active);
-        const stratToRun = activeStrategies.length > 0 ? activeStrategies : [{
-            name: "Default Alpha Auto",
-            coin: "BTCUSDT,ETHUSDT",
-            sl: 1.5,
-            tp: 3.0
-        }];
-
-        let executedTrades = [];
-
-        // 2. Loop Through Coins & Execute Trades
-        for (const strat of stratToRun) {
-            const coins = strat.coin ? strat.coin.split(',') : ['BTCUSDT'];
-
-            for (const symbol of coins) {
-                const cleanSymbol = symbol.trim().toUpperCase();
-
-                // Fetch LIVE Price from Binance Public API
-                const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSymbol}`);
-                if (!tickerRes.ok) continue;
-                
-                const ticker = await tickerRes.json();
-                const currentPrice = parseFloat(ticker.price);
-                const action = Math.random() > 0.5 ? 'BUY' : 'SELL';
-
-                // Create Live Auto-Trade Object
-                const tradeObj = {
-                    id: 'TRD_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                    time: new Date().toLocaleTimeString(),
-                    strategy: strat.name,
-                    symbol: cleanSymbol,
-                    action: action,
-                    entryPrice: currentPrice,
-                    livePrice: currentPrice,
-                    pnl: 0.00,
-                    status: settings.rulePaperMode !== false ? 'PAPER_OPEN' : 'LIVE_OPEN',
-                    sl: (action === 'BUY' ? currentPrice * (1 - (strat.sl / 100)) : currentPrice * (1 + (strat.sl / 100))).toFixed(4),
-                    tp: (action === 'BUY' ? currentPrice * (1 + (strat.tp / 100)) : currentPrice * (1 - (strat.tp / 100))).toFixed(4)
-                };
-
-                executedTrades.push(tradeObj);
-
-                // Send Instant Telegram Notification
-                if (settings.cfgTgEnable && settings.cfgTgToken && settings.cfgTgChatid) {
-                    const tgMsg = `🚀 *AUTO-TRADE EXECUTED* 🚀\n\n` +
-                                  `📈 *Strategy:* ${strat.name}\n` +
-                                  `🪙 *Coin:* #${cleanSymbol}\n` +
-                                  `⚡ *Action:* ${action}\n` +
-                                  `💵 *Entry Price:* $${currentPrice}\n` +
-                                  `🎯 *Target TP:* $${tradeObj.tp}\n` +
-                                  `🛡️ *Stop Loss:* $${tradeObj.sl}\n` +
-                                  `📌 *Mode:* ${tradeObj.status}`;
-
-                    await fetch(`https://api.telegram.org/bot${settings.cfgTgToken}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: settings.cfgTgChatid,
-                            text: tgMsg,
-                            parse_mode: 'Markdown'
-                        })
-                    });
+        if (settings.cfgFbEnable && settings.cfgFirebase) {
+            try {
+                const res = await fetch(`${settings.cfgFirebase}/apex_master_data/trades.json`);
+                if (res.ok) {
+                    const fbTrades = await res.json();
+                    if (fbTrades && Array.isArray(fbTrades)) {
+                        trades = fbTrades;
+                        localStorage.setItem('apex_trades', JSON.stringify(trades));
+                    }
                 }
+            } catch (err) {
+                console.warn("Firebase Fetch Warning, using local storage", err);
             }
         }
 
-        // Save Executed Trades Back to Firebase
-        if (FIREBASE_URL && executedTrades.length > 0) {
-            const existingTrades = masterData.trades || [];
-            const updatedTrades = [...executedTrades, ...existingTrades].slice(0, 40); // Keep last 40 trades
-            await fetch(`${FIREBASE_URL}/apex_master_data/trades.json`, {
-                method: 'PUT',
-                body: JSON.stringify(updatedTrades)
+        if (trades.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        कोई ट्रेड्स/सिग्नल्स उपलब्ध नहीं हैं। Vercel Cron चलने का इंतज़ार करें या टेस्ट डेटा लोड करें।
+                    </td>
+                </tr>`;
+            updatePnLCards([]);
+            return;
+        }
+
+        let html = '';
+        trades.forEach(trade => {
+            const isBuy = trade.action === 'BUY';
+            const actionBadge = isBuy ? '<span class="badge bg-success">BUY</span>' : '<span class="badge bg-danger">SELL</span>';
+            const pnlColor = (trade.pnl >= 0) ? 'text-success' : 'text-danger';
+            
+            html += `
+                <tr>
+                    <td><small class="text-muted">${trade.time || '-'}</small></td>
+                    <td><strong class="text-accent">${trade.strategy || 'Auto Alpha'}</strong></td>
+                    <td><span class="badge bg-secondary">${trade.symbol}</span></td>
+                    <td>${actionBadge}</td>
+                    <td>$${trade.entryPrice} / <span class="text-info">$${trade.livePrice || trade.entryPrice}</span></td>
+                    <td class="${pnlColor} fw-bold">$${(trade.pnl || 0).toFixed(2)}</td>
+                    <td><span class="badge bg-dark border border-warning text-warning">${trade.status || 'PAPER_OPEN'}</span></td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = html;
+        updatePnLCards(trades);
+    };
+
+    // 3. P&L Summary Cards कैलकुलेटर
+    function updatePnLCards(trades) {
+        let totalMargin = 0;
+        let unrealizedPnl = 0;
+        let realizedPnl = 0;
+
+        trades.forEach(t => {
+            if (t.status === 'PAPER_OPEN' || t.status === 'LIVE_OPEN') {
+                unrealizedPnl += (t.pnl || 0);
+                totalMargin += 100; // डिफ़ॉल्ट मार्जिन गणना
+            } else {
+                realizedPnl += (t.pnl || 0);
+            }
+        });
+
+        const elMargin = document.getElementById('pnl-total-margin');
+        const elUnrealized = document.getElementById('pnl-unrealized');
+        const elRealized = document.getElementById('pnl-realized');
+
+        if (elMargin) elMargin.innerText = `$${totalMargin.toFixed(2)}`;
+        if (elUnrealized) {
+            const colorClass = unrealizedPnl >= 0 ? 'text-success' : 'text-danger';
+            elUnrealized.className = `m-0 fw-bold ${colorClass} mt-1`;
+            elUnrealized.innerHTML = `$${unrealizedPnl.toFixed(2)}`;
+        }
+        if (elRealized) elRealized.innerText = `$${realizedPnl.toFixed(2)}`;
+    }
+
+    // 4. Clear Logs बटन इवेंट
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnClear = document.getElementById('btn-clear-logs');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                if (confirm('क्या आप सभी लाइव ट्रेड्स और लॉग्स साफ़ करना चाहते हैं?')) {
+                    localStorage.removeItem('apex_trades');
+                    window.loadBotLogs();
+                }
             });
         }
 
-        return res.status(200).json({
-            status: 'success',
-            executed: executedTrades.length,
-            trades: executedTrades
-        });
-
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: error.message });
-    }
-}
+        // हर 5 सेकंड में ऑटो-रिफ्रेश टेबल
+        setInterval(() => {
+            if (!document.getElementById('bot-tab').classList.contains('d-none')) {
+                window.loadBotLogs();
+            }
+        }, 5000);
+    });
+})();
