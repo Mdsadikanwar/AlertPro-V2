@@ -1,14 +1,28 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
+    // CORS Headers
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
     try {
         const FIREBASE_URL = process.env.FIREBASE_DB_URL;
         let masterData = {};
 
-        // 1. Firebase से मास्टर डेटा (Strategies & Settings) निकालें
+        // 1. Retrieve Master Data from Firebase Realtime DB
         if (FIREBASE_URL) {
             const cleanUrl = FIREBASE_URL.replace(/\/+$/, "");
-            const fbRes = await fetch(`${cleanUrl}/apex_master_data.json`);
+            const fbRes = await fetch(`${cleanUrl}/app_master_data.json`);
             if (fbRes.ok) {
                 masterData = await fbRes.json() || {};
             }
@@ -17,14 +31,14 @@ export default async function handler(req, res) {
         const strategies = masterData.strategies || [];
         const settings = masterData.settings || {};
 
-        // स्विच चेकिंग
-        if (settings.ruleAutotradeEnable === false) {
-            return res.status(200).json({ status: 'paused', message: 'Master Trade Switch is OFF' });
+        // 2. Check Signals Engine Switches
+        if (settings.ruleAutotradeEnable === false || settings.cronEnable === false) {
+            return res.status(200).json({ status: 'paused', message: 'Signal engine or Cron switch is OFF' });
         }
 
         const activeStrats = strategies.filter(s => s.active !== false);
         const listToRun = activeStrats.length > 0 ? activeStrats : [{
-            name: "Default Momentum Signal",
+            name: "Default Momentum Strategy",
             coin: "BTCUSDT,ETHUSDT",
             sl: 1.5,
             tp: 3.0
@@ -39,7 +53,7 @@ export default async function handler(req, res) {
                 const symbol = rawCoin.trim().toUpperCase();
                 if (!symbol) continue;
 
-                // Binance API से लाइव प्राइस खींचना
+                // Live Ticker Price Fetch from Binance Public API
                 const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
                 if (!tickerRes.ok) continue;
 
@@ -66,8 +80,8 @@ export default async function handler(req, res) {
 
                 newGeneratedTrades.push(tradeObj);
 
-                // Telegram Alert Gateway
-                if (settings.cfgTgEnable && settings.cfgTgToken && settings.cfgTgChatid) {
+                // Send Alert Signal to Telegram Channel / Chat
+                if (settings.tgEnable !== false && settings.tgToken && settings.tgChatId) {
                     const msg = `⚡ *NEW TRADING SIGNAL*\n\n` +
                                 `📈 *Strategy:* ${strat.name}\n` +
                                 `🪙 *Pair:* #${symbol}\n` +
@@ -75,32 +89,37 @@ export default async function handler(req, res) {
                                 `💵 *Entry Price:* $${price.toFixed(2)}\n` +
                                 `🛡️ *SL:* $${tradeObj.sl} | 🎯 *TP:* $${tradeObj.tp}`;
 
-                    await fetch(`https://api.telegram.org/bot${settings.cfgTgToken}/sendMessage`, {
+                    await fetch(`https://api.telegram.org/bot${settings.tgToken}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            chat_id: settings.cfgTgChatid,
+                            chat_id: settings.tgChatId,
                             text: msg,
                             parse_mode: 'Markdown'
                         })
-                    }).catch(() => {});
+                    }).catch(err => console.error("Telegram error:", err));
                 }
             }
         }
 
-        // Firebase में सिग्नल्स सेव करें
+        // 3. Store Generated Signals Back to Firebase
         if (FIREBASE_URL && newGeneratedTrades.length > 0) {
             const cleanUrl = FIREBASE_URL.replace(/\/+$/, "");
             const existingTrades = masterData.trades || [];
             const updatedTrades = [...newGeneratedTrades, ...existingTrades].slice(0, 30);
 
-            await fetch(`${cleanUrl}/apex_master_data/trades.json`, {
+            await fetch(`${cleanUrl}/app_master_data/trades.json`, {
                 method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedTrades)
             });
         }
 
-        return res.status(200).json({ status: 'success', signals: newGeneratedTrades.length, trades: newGeneratedTrades });
+        return res.status(200).json({
+            status: 'success',
+            signalsGenerated: newGeneratedTrades.length,
+            trades: newGeneratedTrades
+        });
 
     } catch (err) {
         return res.status(500).json({ status: 'error', message: err.message });
