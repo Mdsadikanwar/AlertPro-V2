@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/cron-scanner",
+      "destination": "/api/cron-scanner.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-scanner",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
