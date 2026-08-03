@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoSignal Pro - Advanced Strategy Engine</title>
+    <title>ApexSignal Pro - Crypto Trading Bot</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -11,33 +11,35 @@
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
         .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; color: #f8fafc; }
+        .bg-card { background-color: #1e293b; }
+        .text-accent { color: #38bdf8; }
+        .text-sublabel { color: #94a3b8; }
         .nav-pills .nav-link { color: #94a3b8; font-weight: 600; border-radius: 8px; cursor: pointer; }
         .nav-pills .nav-link.active { background-color: #3b82f6; color: #ffffff; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
-        #tv_chart_container { height: 420px; width: 100%; border-radius: 10px; overflow: hidden; }
+        #tv_chart_container { height: 440px; width: 100%; border-radius: 10px; overflow: hidden; }
         .badge-buy { background-color: #10b981; color: #fff; }
         .badge-sell { background-color: #ef4444; color: #fff; }
-        .text-accent { color: #38bdf8; }
     </style>
 </head>
 <body>
 
-    <!-- Top Navigation -->
+    <!-- Top Navbar -->
     <nav class="navbar navbar-dark border-bottom border-secondary px-3 mb-4" style="background-color: #0b1120;">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-primary fs-4" href="#">
-                <i class="bi bi-currency-bitcoin text-warning"></i> CryptoSignal Pro
+            <a class="navbar-brand fw-bold text-info fs-4" href="#">
+                <i class="bi bi-cpu-fill text-warning"></i> ApexSignal Pro
             </a>
             <div class="d-flex align-items-center gap-3">
-                <span id="engine-status-badge" class="badge bg-success px-3 py-2"><i class="bi bi-cpu"></i> SCANNER LIVE</span>
-                <button class="btn btn-sm btn-outline-light" onclick="manualScan()"><i class="bi bi-arrow-repeat"></i> Run Scan Now</button>
+                <span id="engine-status-badge" class="badge bg-success px-3 py-2"><i class="bi bi-activity"></i> ENGINE RUNNING</span>
+                <button class="btn btn-sm btn-outline-light" onclick="manualScan()"><i class="bi bi-arrow-repeat"></i> Force Scan</button>
             </div>
         </div>
     </nav>
 
     <div class="container-fluid px-4">
-        <!-- Main Navigation Tabs -->
+        <!-- Main Nav Tabs -->
         <ul class="nav nav-pills mb-4" id="appTabs">
             <li class="nav-item">
                 <button class="nav-link active px-4 py-2" onclick="switchTab('dashboard', this)">
@@ -45,86 +47,85 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button class="nav-link px-4 py-2" onclick="switchTab('strategies-tab', this)">
+                    <i class="bi bi-diagram-3 me-1"></i> Strategy Manager
+                </button>
+            </li>
+            <li class="nav-item">
                 <button class="nav-link px-4 py-2" onclick="switchTab('settings', this)">
-                    <i class="bi bi-gear me-1"></i> Telegram & Engine Settings
+                    <i class="bi bi-gear me-1"></i> Telegram & Settings
                 </button>
             </li>
         </ul>
 
         <div class="tab-content">
             
-            <!-- TAB 1: DASHBOARD & LIVE CHART -->
+            <!-- TAB 1: DASHBOARD -->
             <div class="tab-pane active" id="dashboard">
                 <div class="row">
-                    <!-- Left Column: TradingView Chart -->
+                    <!-- Chart Box -->
                     <div class="col-lg-8 mb-4">
                         <div class="card p-3 shadow-sm">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="m-0 fw-bold text-info"><i class="bi bi-graph-up me-2"></i>Live Crypto Candlestick Chart</h5>
-                                <div class="d-flex gap-2">
-                                    <select id="chart-pair-select" class="form-select form-select-sm bg-dark text-light border-secondary" style="width: 140px;" onchange="updateChartPair(this.value)">
-                                        <option value="BINANCE:BTCUSDT">BTC / USDT</option>
-                                        <option value="BINANCE:ETHUSDT">ETH / USDT</option>
-                                        <option value="BINANCE:SOLUSDT">SOL / USDT</option>
-                                        <option value="BINANCE:XRPUSDT">XRP / USDT</option>
-                                    </select>
-                                </div>
+                                <h5 class="m-0 fw-bold text-info"><i class="bi bi-graph-up me-2"></i>Live Market Chart</h5>
+                                <select id="chart-pair-select" class="form-select form-select-sm bg-dark text-light border-secondary" style="width: 140px;" onchange="updateChartPair(this.value)">
+                                    <option value="BINANCE:BTCUSDT">BTC / USDT</option>
+                                    <option value="BINANCE:ETHUSDT">ETH / USDT</option>
+                                    <option value="BINANCE:SOLUSDT">SOL / USDT</option>
+                                    <option value="BINANCE:XRPUSDT">XRP / USDT</option>
+                                </select>
                             </div>
-                            <!-- Live Embedded TradingView Widget -->
                             <div id="tv_chart_container"></div>
                         </div>
                     </div>
 
-                    <!-- Right Column: Quick Signals Feed -->
+                    <!-- Signals Feed -->
                     <div class="col-lg-4 mb-4">
                         <div class="card p-3 shadow-sm h-100">
-                            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-bell me-2"></i>Latest Signals Feed</h5>
-                            <div id="quick-signals-list" class="overflow-auto" style="max-height: 400px;">
+                            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-bell me-2"></i>Live Signals</h5>
+                            <div id="quick-signals-list" class="overflow-auto" style="max-height: 420px;">
                                 <div class="text-center py-5 text-muted">
                                     <i class="bi bi-radar display-4 d-block mb-2"></i>
-                                    Waiting for upcoming crypto signal...
+                                    Waiting for active trade signals...
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Bottom Section: Strategy Cards & Controls -->
+            <!-- TAB 2: STRATEGY MANAGER -->
+            <div class="tab-pane" id="strategies-tab">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="fw-bold text-light m-0"><i class="bi bi-cpu-fill text-primary me-2"></i>Active AI Strategies</h4>
+                    <h4 class="fw-bold text-light m-0"><i class="bi bi-cpu-fill text-primary me-2"></i>Active Strategies</h4>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStratModal">
                         <i class="bi bi-plus-lg me-1"></i> Create Strategy
                     </button>
                 </div>
 
                 <div class="row g-3 mb-5" id="strategies-container">
-                    <!-- Dynamic Strategy Cards render here -->
+                    <!-- Cards will auto load here via JS -->
                 </div>
             </div>
 
-            <!-- TAB 2: SETTINGS -->
+            <!-- TAB 3: SETTINGS -->
             <div class="tab-pane" id="settings">
                 <div class="row">
                     <div class="col-md-8 mx-auto">
                         <div class="card p-4 shadow-sm">
-                            <h4 class="fw-bold mb-4 text-primary"><i class="bi bi-telegram me-2"></i>Telegram Bot Integration</h4>
+                            <h4 class="fw-bold mb-4 text-primary"><i class="bi bi-telegram me-2"></i>Telegram Bot Config</h4>
                             <form id="telegram-settings-form">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Telegram Bot Token</label>
-                                    <input type="text" class="form-control bg-dark text-light border-secondary" id="cfg-tg-token" placeholder="e.g., 7123456789:AAFx...">
-                                    <div class="form-text text-muted">Obtain token from @BotFather on Telegram.</div>
+                                    <label class="form-label fw-bold">Bot Token</label>
+                                    <input type="text" class="form-control bg-dark text-light border-secondary" id="cfg-tg-token" placeholder="Bot Token from @BotFather">
                                 </div>
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Telegram Chat / Channel ID</label>
-                                    <input type="text" class="form-control bg-dark text-light border-secondary" id="cfg-tg-chatid" placeholder="e.g., -1001987654321 or @your_channel">
+                                    <label class="form-label fw-bold">Chat / Channel ID</label>
+                                    <input type="text" class="form-control bg-dark text-light border-secondary" id="cfg-tg-chatid" placeholder="-100xxxxxxxxx or @channel">
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <button type="button" class="btn btn-outline-info" onclick="testTelegramAlert()">
-                                        <i class="bi bi-send me-1"></i> Send Test Message
-                                    </button>
-                                    <button type="submit" class="btn btn-success px-4">
-                                        <i class="bi bi-check-lg me-1"></i> Save Telegram Settings
-                                    </button>
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-info" onclick="testTelegramAlert()">Test Alert</button>
+                                    <button type="submit" class="btn btn-success px-4">Save Config</button>
                                 </div>
                             </form>
                         </div>
@@ -135,85 +136,77 @@
         </div>
     </div>
 
-    <!-- Modal: Add Strategy (Advanced Form) -->
+    <!-- Modal: Create Strategy -->
     <div class="modal fade" id="addStratModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i>Create Advanced Trading Strategy</h5>
+                    <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i>Create Strategy</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="add-strat-form">
                     <div class="modal-body">
-                        
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Strategy Name</label>
-                                <input type="text" class="form-control bg-secondary text-light border-0" id="strat-name" placeholder="e.g., BTC EMA Crossover" required>
+                                <input type="text" class="form-control bg-secondary text-light border-0" id="strat-name" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Strategy Type</label>
+                                <label class="form-label fw-bold">Type</label>
                                 <select class="form-select bg-secondary text-light border-0" id="strat-type">
-                                    <option value="ai_prompt">🤖 AI Prompt Strategy</option>
-                                    <option value="candlestick">🕯️ Candlestick Pattern</option>
-                                    <option value="crossover">📈 Indicator Crossover</option>
+                                    <option value="ai_prompt">🤖 AI Prompt</option>
+                                    <option value="candlestick">🕯️ Candlestick</option>
+                                    <option value="crossover">📈 Crossover</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- Config Box 1: AI Prompt -->
                         <div id="cfg-ai-box" class="mb-3">
-                            <label class="form-label fw-bold">AI Prompt Instructions</label>
-                            <textarea class="form-control bg-secondary text-light border-0" id="strat-ai-prompt" rows="2" placeholder="e.g., Scan for RSI oversold on 15m chart with sudden volume surge..."></textarea>
+                            <label class="form-label fw-bold">AI Prompt</label>
+                            <textarea class="form-control bg-secondary text-light border-0" id="strat-ai-prompt" rows="2"></textarea>
                         </div>
 
-                        <!-- Config Box 2: Candlestick -->
                         <div id="cfg-candle-box" class="mb-3 d-none">
                             <label class="form-label fw-bold">Candlestick Pattern</label>
                             <select class="form-select bg-secondary text-light border-0" id="strat-candle-pattern">
                                 <option value="Bullish Engulfing">Bullish Engulfing</option>
                                 <option value="Bearish Engulfing">Bearish Engulfing</option>
                                 <option value="Hammer / Pinbar">Hammer / Pinbar</option>
-                                <option value="Doji Reversal">Doji Reversal</option>
                             </select>
                         </div>
 
-                        <!-- Config Box 3: Crossover -->
                         <div id="cfg-crossover-box" class="mb-3 d-none">
                             <label class="form-label fw-bold">Indicator Signal</label>
                             <select class="form-select bg-secondary text-light border-0" id="strat-indicator-signal">
                                 <option value="EMA 9 Cross EMA 21">EMA 9 Cross EMA 21</option>
-                                <option value="RSI 14 Oversold (< 30)">RSI 14 Oversold (&lt; 30)</option>
+                                <option value="RSI 14 Oversold (<30)">RSI 14 Oversold (&lt;30)</option>
                                 <option value="MACD Bullish Cross">MACD Bullish Cross</option>
                             </select>
                         </div>
 
-                        <!-- Coin Selection & Top 10 Switch -->
                         <div class="card p-3 bg-secondary bg-opacity-25 border-secondary mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="fw-bold m-0">Target Coin Scanning</label>
+                                <label class="fw-bold m-0">Coin Selection</label>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" id="strat-top10-switch">
                                     <label class="form-check-label fw-bold text-warning ms-1" for="strat-top10-switch">Scan TOP 10 Coins</label>
                                 </div>
                             </div>
-                            
                             <div id="single-coin-wrapper">
-                                <input type="text" class="form-control bg-dark text-light border-secondary" id="strat-coin" placeholder="e.g. BTCUSDT (or comma separated)">
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="strat-coin" placeholder="BTCUSDT">
                             </div>
                             <div id="top10-info-badge" class="badge bg-warning text-dark p-2 d-none">
-                                🎯 Scanner will automatically check top 10 market cap coins (BTC, ETH, SOL, XRP, ADA, etc.)
+                                🎯 Will scan Top 10 Cryptos (BTC, ETH, SOL, XRP, etc.)
                             </div>
                         </div>
 
-                        <!-- Risk & Management -->
                         <div class="row g-2">
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small">Trade Capital (%)</label>
+                                <label class="form-label fw-bold small">Capital %</label>
                                 <input type="number" class="form-control bg-secondary text-light border-0" id="strat-capital-pct" value="10">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small">Leverage (x)</label>
+                                <label class="form-label fw-bold small">Leverage</label>
                                 <input type="number" class="form-control bg-secondary text-light border-0" id="strat-leverage" value="10">
                             </div>
                             <div class="col-md-2">
@@ -234,22 +227,19 @@
                                 <input type="number" step="0.1" class="form-control bg-secondary text-light border-0" id="strat-tp" value="3.0" readonly>
                             </div>
                         </div>
-
                     </div>
                     <div class="modal-footer border-secondary">
                         <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary px-4">Deploy Strategy</button>
+                        <button type="submit" class="btn btn-primary">Save Strategy</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- TradingView Widget JS -->
+    <!-- Scripts -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- App Logic Script -->
     <script src="assets/js/app.js"></script>
 </body>
 </html>
